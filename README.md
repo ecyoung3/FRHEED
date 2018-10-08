@@ -14,48 +14,48 @@ Download the following files and move them to a folder of your choice:
 
 ### Prerequisites
 
-The following packages are required in addition to the default Python 3.6 libraries:
+The following packages are required in addition to the default Python 3.6 libraries. The lines of codes can be copy/pasted into the appropriate command window to install the package. Use the second line ('conda install...') if working with Anaconda.
 
 ```
 cv2		
     python -m pip install opencv-python  (General installation)
-		conda install -c conda-forge opencv  (Anaconda installation)
+    conda install -c conda-forge opencv  (Anaconda installation)
 
 numpy		
       python -m pip install numpy
-		  conda install -c anaconda numpy
+      conda install -c anaconda numpy
 
 colormap	
     python -m pip install colormap
-		conda install -c conda-forge colormap
+    conda install -c conda-forge colormap
 
 matplotlib	
     python -m pip install matplotlib
-		conda install -c conda-forge matplotlib
+    conda install -c conda-forge matplotlib
 
 PIL		
     python -m pip install Pillow
-		conda install -c anaconda pillow
+    conda install -c anaconda pillow
 
 PyQt5		
     pip install PyQt5
-		conda install -c anaaconda pyqt
+    conda install -c anaaconda pyqt
 
 pyqtgraph	
     python -m pip install pyqtgraph
-		conda install -c anaconda pyqtgraph
+    conda install -c anaconda pyqtgraph
 
 scipy		
     python -m pip install scipy
-		conda install -c anaconda scipy
+    conda install -c anaconda scipy
 
 PySpin		
-    Available from FLIR website at following links:
-		Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
-		Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
-    
-		Unzip the cp36 folder and open a command prompt there, then execute the command:
-		    python -m pip install numpy spinnaker_python-1.15.0.63-cp36-cp36m-win_amd64.whl
+    Available from the FLIR website at the following links:
+	Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
+	Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
+	
+	Unzip the cp36 folder and open a command prompt there, then execute the command:
+	    python -m pip install numpy spinnaker_python-1.15.0.63-cp36-cp36m-win_amd64.whl
 ```
 
 ### Running FRHEED
