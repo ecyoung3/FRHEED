@@ -58,16 +58,11 @@ PySpin
 	    python -m pip install numpy spinnaker_python-1.15.0.63-cp36-cp36m-win_amd64.whl
 ```
 
-### Running FRHEED
+## Running FRHEED
 
 Once all required files are downloaded and located in the same folder and the required packages are installed, open FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly andwill prompt you to select your default save location and which type of camera your computer is using.
 
 However, things more than likely did NOT go according to plan, so it's up to you to troubleshoot. (sorry!)
-
-### Known Bugs
-
-* Spyder will require a kernel restart every time after running the program
-* The 'Annotation' frame flickers when resizing the main window
 
 ## Features and Functions
 
@@ -110,6 +105,11 @@ However, things more than likely did NOT go according to plan, so it's up to you
 * Further image annotation customization
 * Ability to automatically stop/start recording video when the RHEED shutter is opened/closed
 * Expand the colormap library and automatically plot a sample without having to explicitly import images
+
+## Known Bugs
+
+* Spyder will require a kernel restart every time after running the program
+* The 'Annotation' frame flickers when resizing the main window
 
 ## License
 
