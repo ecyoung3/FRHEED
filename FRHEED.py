@@ -17,10 +17,8 @@ Github: https://github.com/ecyoung3/FRHEED
 
 """
 
-
 import os  # for checking/creating computer directories
 import sys  # for system-specific parameters
-
 import configparser  # for reading a configuration file
 import cv2  # for image processing
 import numpy as np  # for math and array processing
@@ -91,7 +89,7 @@ form_class = uic.loadUiType("FRHEED.ui")[0]  # UI file should be located in same
 q = queue.Queue()
 
 # Define video recording codec
-fourcc = cv2.VideoWriter_fourcc(*'MJPG')  # MJPG works with .avi
+fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')  # MJPG works with .avi
 
 # Set default appearance of plots
 pg.setConfigOption('background', 'w')  # 'w' = white background
@@ -100,6 +98,9 @@ pg.setConfigOption('foreground', 0.0)  # black axes lines and labels
 # Initialize configuration file
 config = configparser.ConfigParser()  # create 'shortcut' for configparser
 config.read('config.ini')  # config file is named 'config.ini' and should be in the same directory as this .py file
+
+# Run the program, show the main window and name it 'FRHEED'
+app = QtWidgets.QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
 
 # Select default save location if none set
 if config['Default']['pathset'] == 'False':
@@ -275,6 +276,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.oldwidth = self.parentFrame.frameSize().width()
         self.oldheight = self.parentFrame.frameSize().height()
         self.drawingshapes = False
+        self.editingshapes = False
         self.timeset = 0.0
         self.savedtime = 0.0
         self.savedtime2 = 0.0
@@ -505,8 +507,8 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.window_width = self.parentFrame.frameSize().width()
         self.window_height = self.parentFrame.frameSize().height()
 
-        # Connect to the camera on startup
-        if not running:
+        # Connect to the camera on startup; this only triggers once due to the .isEnabled() check.
+        if not running and self.connectButton.isEnabled():
             self.connectCamera()
 
         # Perform the following code if the queue is not empty (i.e. the camera is running)
@@ -530,35 +532,38 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             if backgroundset:
                 img = img - background
 
-            # Scaling the image from the camera
-            img_height, img_width = img.shape[0], img.shape[1]  # img.shape gives image dimensions as (height, width)
-            scale_w = float(self.window_width) / float(img_width)  # calculate the width scale
-            scale_h = float(self.window_height) / float(img_height)  # calculate the height scale
-            scale = min([scale_w, scale_h])  # set the scale to the minimum of the width and height scales
-            self.scaled_w = int(scale * img_width)  # calculate the scaled width as an integer (important)
-            self.scaled_h = int(scale * img_height)  # calculate the scaled height as an integer (important)
+            if img is not None:
+                # Scaling the image from the camera
+                img_height, img_width = img.shape[0], img.shape[1]  # img.shape gives image dimensions as (h, w)
+                scale_w = float(self.window_width) / float(img_width)  # calculate the width scale
+                scale_h = float(self.window_height) / float(img_height)  # calculate the height scale
+                scale = min([scale_w, scale_h])  # set the scale to the minimum of the width and height scales
+                self.scaled_w = int(scale * img_width)  # calculate the scaled width as an integer (important)
+                self.scaled_h = int(scale * img_height)  # calculate the scaled height as an integer (important)
 
-            # Resize camera canvas (displays camera feed) and draw canvas (displays shapes) to proper size
-            self.cameraCanvas.resize(self.scaled_w, self.scaled_h)
-            self.drawCanvas.resize(self.scaled_w, self.scaled_h)
+                # Resize camera canvas (displays camera feed) and draw canvas (displays shapes) to proper size
+                self.cameraCanvas.resize(self.scaled_w, self.scaled_h)
+                self.drawCanvas.resize(self.scaled_w, self.scaled_h)
 
-            # Resize annotation frame to the width of the camera feed and keep the height constant
-            # TODO reduce flickering of annotation frame when resizing window (using pixmap as black background)
-            self.annotationFrame.resize(self.scaled_w, 56)
+                # Resize annotation frame to the width of the camera feed and keep the height constant
+                # TODO reduce flickering of annotation frame when resizing window (using pixmap as black background)
+                self.annotationFrame.resize(self.scaled_w, 56)
 
-            # Resize the image to the new scaled width and height.
-            # Linear interpolation (INTER_LINEAR) would be slightly faster but produce a lower quality image.
-            img = cv2.resize(img, dsize=(self.scaled_w, self.scaled_h), interpolation=cv2.INTER_CUBIC)
-            self.f = np.uint8(cmap(img)*255)  # apply colormap to the numpy array; mult. by 255 since cmap scales to 1
+                # Resize the image to the new scaled width and height.
+                # Linear interpolation (INTER_LINEAR) would be slightly faster but produce a lower quality image.
+                img = cv2.resize(img, dsize=(self.scaled_w, self.scaled_h), interpolation=cv2.INTER_CUBIC)
+                self.f = np.uint8(cmap(img)*255)  # apply cmap to the numpy array; mult. by 255 since cmap scales to 1
 
-            # Apply colormap to the image array and convert it to a PIL image object
-            self.img = Image.fromarray(self.f)
+                # Apply colormap to the image array and convert it to a PIL image object
+                self.img = Image.fromarray(self.f)
 
-            # Convert PIL image to QImage that can be applied to a QLabel as a QPixmap
-            imc = ImageQt.ImageQt(self.img)
+                # Convert PIL image to QImage that can be applied to a QLabel as a QPixmap
+                imc = ImageQt.ImageQt(self.img)
 
-            # Create a pixmap from the QImage and display it on the camera canvas
-            self.cameraCanvas.setPixmap(QtGui.QPixmap.fromImage(imc))
+                # Create a pixmap from the QImage and display it on the camera canvas
+                self.cameraCanvas.setPixmap(QtGui.QPixmap.fromImage(imc))
+            else:
+                print('Image is somehow still empty')
 
             # Resize the rectangles if the main window size changes
             if self.oldwidth != self.window_width or self.oldheight != self.window_height:
@@ -1296,9 +1301,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     def clearstopwatch(self):
         global runstopwatch, stopwatch_active
         if not runstopwatch:
-            self.savedtime = 0
-            self.timenow = 0
-            self.stopwatchScreen.display('%.2f') % self.savedtime
+            self.savedtime = 0.0
+            self.timenow = 0.0
+            self.stopwatchScreen.display('       0.00')
             stopwatch_active = False
 
     # Change the set time for the timer, i.e. what it counts down from
@@ -1388,16 +1393,15 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
 
 # if __name__ == '__main__': ensures that the code executes when run directly, but not when called by another program
-if __name__ == '__main__':
-    fps = 35.0  # this isn't actually used but if I take it out things don't work and I don't know why
-    capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn't actually used but leave it alone
-    # Run the program, show the main window and name it 'FRHEED'
-    app = QtWidgets.QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
-    # This is where the main window is actually created and shown
-    w = FRHEED(None)
-    w.setWindowTitle('FRHEED')
-    w.show()
-    app.exec_()
+# I've chosen to disable it here so that the function executes properly when packed into an .exe file.
+# if __name__ == '__main__':
+fps = 35.0  # this isn't actually used but if I take it out things don't work and I don't know why
+capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn't actually used but leave it alone
+# This is where the main window is actually created and shown
+w = FRHEED(None)
+w.setWindowTitle('FRHEED')
+w.show()
+app.exec_()
 
 # TODO
 """
