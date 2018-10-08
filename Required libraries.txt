@@ -1,0 +1,17 @@
+os
+sys
+configparser
+cv2
+numpy
+queue
+threading
+time
+colormap	pip install colormap			https://colormap.readthedocs.io
+matplotlib
+PIL
+PyQt5
+pyqtgraph
+scipy
+PySpin							Available from FLIR website at following links:
+							Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
+							Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
