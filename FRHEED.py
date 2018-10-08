@@ -284,6 +284,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.timeset = 0.0
         self.savedtime = 0.0
         self.savedtime2 = 0.0
+        self.totaltime = 0.0
         self.livecursor, self.newercursor, self.oldercursor = '', '', ''  # cursor positions on intensity data plots
         self.redcursor, self.greencursor, self.bluecursor = '', '', ''  # cursor positions on FFT plots
         self.rheed1cal, self.rheed2cal, self.rheed3cal = '', '', ''  # text for manually calculated RHEED oscillation
@@ -514,6 +515,13 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         # Connect to the camera on startup; this only triggers once due to the .isEnabled() check.
         if not running and self.connectButton.isEnabled():
             self.connectCamera()
+
+        # Only enable the "Start Timer" button if the timer is set to a non-zero value
+        # This prevents an error that can occur if the timer is started from zero while the stopwatch is running
+        if self.totaltime == 0.0:
+            self.starttimerButton.setEnabled(False)
+        if self.totaltime > 0.0:
+            self.starttimerButton.setEnabled(True)
 
         # Perform the following code if the queue is not empty (i.e. the camera is running)
         if not q.empty():
@@ -1316,6 +1324,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     # Change the set time for the timer, i.e. what it counts down from
     # TODO this function still needs to be fully commented
     def changetime(self):
+        global timing, timer_active
         if not timing:
             self.starttimerButton.setText('Start')
             self.starttimerButton.setStyleSheet('QPushButton {color:green}')
@@ -1327,6 +1336,8 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.sec = str(self.seconds).zfill(2)
         self.start_time = str(self.hr+':'+self.minu+':'+self.sec+'.00')
         self.timerScreen.display(self.start_time)
+        if not timing and not timer_active:
+            self.totaltime = self.hours*60*60 + self.minutes*60 + self.seconds
 
     # Start or pause timer
     def timer(self):
