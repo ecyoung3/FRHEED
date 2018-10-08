@@ -49,7 +49,6 @@ capture_thread = None  # no capture thread until defined at end of program
 running = False  # capture thread not running
 isfile = False  # file name not set
 recording = False  # not recording video
-setout = False  # output location not set
 liveplotting = False  # not live-plotting data
 drawing = False  # shapes not being shown
 backgroundset = False  # not subtracting background image
@@ -222,10 +221,8 @@ if camtype == 'USB':
 # Code for grabbing frames from camera in threaded loop
 def grab(fps, queue):
     global running, recording, out, setout, cam, inverted, camtype, cmap, path, filename, vidx, vidy
-    #
     # This is the main 'while' loop that utilizes threading to grab frames from the camera
     # Without threading, the program would run much more slowly and the GUI would hang during operation
-    #
     while running:
         frame = {}
         if camtype == 'FLIR':
@@ -233,28 +230,36 @@ def grab(fps, queue):
             img = image_result.GetNDArray()  # grab image as a numpy array
         if camtype == 'USB':
             grabbed, img = cam.read()  # read frame from webcam; grabbed = True if the frame isn't empty
-            if cam.isOpened():
-                if grabbed:
+            if cam.isOpened():  # check to see if the camera is actually opened
+                if grabbed:  # make sure the frame was actually collected
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert webcam to grayscale
-            if not cam.isOpened():
+            # TODO add error handling for if the camera isn't opened
+            if not cam.isOpened():  # give an error if the camera isn't detected
                 print('No camera detected')
-        frame["img"] = img
+        frame["img"] = img  # put the image in the frame
         if queue.qsize() < 50:
-            queue.put(frame)
-            if recording:
-                if not setout:
-                    setout = True
-                if inverted:
-                    img = np.invert(img)
-                img = cv2.resize(img, dsize=(int(vidx), int(vidy)), interpolation=cv2.INTER_CUBIC)
-                imc = np.uint8(cmap(img)*255)
+            queue.put(frame)  # put the frame in the queue
+            if recording:  # if recording video
+                if inverted:  # invert the image if the option is chosen
+                    img = np.invert(img)  # do this before resizing the image
+                img = cv2.resize(img, dsize=(int(vidx), int(vidy)), interpolation=cv2.INTER_CUBIC)  # resize the image
+                imc = np.uint8(cmap(img)*255)  # apply the active colormap
+                # The following step is important. Before the colormap is applied, the array 'img' is an (h by w) gray-
+                # scale array where each array entry is a single integer from 0-255 that represents white level of a
+                # corresponding pixel. Applying the colormap converts the array to an (h by w by 4) array, so now each
+                # pixel is represented by a tuple with 4 entries (red, green, blue, alpha), where the alpha channel
+                # dictates pixel opacity. This array is in the RGBA (RGB Alpha) format, which cannot be written by the
+                # MJPG codec. The following line of code converts this array to an RGB (h by w by 3) array by removing
+                # the 4th channel (alpha) of every tuple in the array. The following line of code takes this array and
+                # converts it to a BGR array (swaps the first and third channels) so the video is displayed properly.
                 imc = imc[:, :, 0:3]
-                imc = cv2.cvtColor(imc, cv2.COLOR_RGB2BGR)
-                out.write(imc)
+                imc = cv2.cvtColor(imc, cv2.COLOR_RGB2BGR)  # convert the RGB array to BGR
+                out.write(imc)  # write the frame to the video file
 
 
 # This is the code for the main FRHEED program window. The UI is coded in qt designer and saved as a FRHEED.ui file.
 # There are also certain file dependencies that the UI uses, which should be included on Github.
+# I highly recommend using qt designer if you wish to modify the appearance of the UI.
 class FRHEED(QtWidgets.QMainWindow, form_class):
     global config
 
@@ -353,45 +358,51 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.setHours.valueChanged.connect(self.changetime)
         self.setMinutes.valueChanged.connect(self.changetime)
         self.setSeconds.valueChanged.connect(self.changetime)
-        # Create window for live data plotting
-        self.plot1.plotItem.showGrid(True, True)
-        self.plot1.plotItem.setContentsMargins(0, 4, 10, 0)
-        self.plot1.setLimits(xMin=0)
-        self.plot1.setLabel('bottom', 'Time (s)')
-        self.proxy1 = pg.SignalProxy(self.plot1.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved1)
-        self.proxy2 = pg.SignalProxy(self.plot2.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved2)
-        self.proxy3 = pg.SignalProxy(self.plot3.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved3)
-        self.proxy4 = pg.SignalProxy(self.plotFFTred.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved4)
-        self.proxy5 = pg.SignalProxy(self.plotFFTgreen.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved5)
-        self.proxy6 = pg.SignalProxy(self.plotFFTblue.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved6)
-        self.plot2.plotItem.showGrid(True, True)
+
+        # Defining appearance of intensity data plotting windows
+        self.plot1.plotItem.showGrid(True, True)  # shows the grid for x and y axes
+        self.plot1.plotItem.setContentsMargins(0, 4, 10, 0)  # sets the plot margins so it shows up properly
+        self.plot1.setLimits(xMin=0)  # make sure the minimum x value (time axis) stays at 0
+        self.plot1.setLabel('bottom', 'Time (s)')  # add a label to the x-axis
+        self.plot2.plotItem.showGrid(True, True)  # repeat the same for the 'Newer' plot (plot2)
         self.plot2.plotItem.setContentsMargins(0, 4, 10, 0)
         self.plot2.setLimits(xMin=0)
         self.plot2.setLabel('bottom', 'Time (s)')
-        self.plot3.plotItem.showGrid(True, True)
+        self.plot3.plotItem.showGrid(True, True)  # repeat the same for the 'Older plot (plot3)
         self.plot3.plotItem.setContentsMargins(0, 4, 10, 0)
         self.plot3.setLimits(xMin=0)
         self.plot3.setLabel('bottom', 'Time (s)')
         self.redpen = pg.mkPen('r', width=1, style=QtCore.Qt.SolidLine)  # plot first line with red pen, 'r'
         self.greenpen = pg.mkPen('g', width=1, style=QtCore.Qt.SolidLine)  # plot first line with green pen, 'g'
         self.bluepen = pg.mkPen('b', width=1, style=QtCore.Qt.SolidLine)  # plot first line with blue pen, 'b'
-        # Create window for FFT plot
+
+        # Defining appearance of FFT plot windows
         self.plotFFTred.plotItem.showGrid(True, True)
         self.plotFFTred.plotItem.setContentsMargins(0, 4, 10, 0)
-        self.plotFFTred.setLabel('bottom', 'Frequency (Hz)')
+        self.plotFFTred.setLabel('bottom', 'Frequency (Hz)')  # add a label to the x-axis
         self.plotFFTgreen.plotItem.showGrid(True, True)
         self.plotFFTgreen.plotItem.setContentsMargins(0, 4, 10, 0)
         self.plotFFTgreen.setLabel('bottom', 'Frequency (Hz)')
         self.plotFFTblue.plotItem.showGrid(True, True)
         self.plotFFTblue.plotItem.setContentsMargins(0, 4, 10, 0)
         self.plotFFTblue.setLabel('bottom', 'Frequency (Hz)')
-        # Set timer to update the GUI every 1 millisecond
+
+        # Create signal proxies for detecting when the mouse moves in the plot windows to update the cursor coordinates
+        self.proxy1 = pg.SignalProxy(self.plot1.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved1)
+        self.proxy2 = pg.SignalProxy(self.plot2.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved2)
+        self.proxy3 = pg.SignalProxy(self.plot3.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved3)
+        self.proxy4 = pg.SignalProxy(self.plotFFTred.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved4)
+        self.proxy5 = pg.SignalProxy(self.plotFFTgreen.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved5)
+        self.proxy6 = pg.SignalProxy(self.plotFFTblue.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved6)
+
+        # Set a timer to update the GUI every 1 millisecond
         self.timer = QtCore.QTimer(self)  # create timer object
         self.timer.timeout.connect(self.update_frame)  # run the 'update_frame' function every millisecond
         self.timer.start(1)  # time in milliseconds
 
     # Start grabbing camera frames when Camera -> Connect is clicked
     def connectCamera(self):
+        # TODO this function still needs to be fully commented
         global running, grower, isfile, samplename, path, imnum, vidnum, basepath, grower, capture_thread
         if len(grower) == 0:
             grower, ok = QtWidgets.QInputDialog.getText(w, 'Enter grower', 'Who is growing? ')
@@ -422,6 +433,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.statusbar.showMessage('Starting camera...')
 
     # Change camera exposure
+    # TODO this function still needs to be fully commented
     def setExposure(self):
         global exposure, cam, camtype
         expo = self.changeExposure.value()
@@ -433,6 +445,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             cam.set(cv2.CAP_PROP_EXPOSURE, expo)  # setting webcam exposure
 
     # Set exposure time
+    # TODO this function still needs to be fully commented
     def setExposureTime(self):
         global exposure, cam, camtype
         expotime = self.changeExposureTime.value()
@@ -440,6 +453,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         cam.ExposureTime.SetValue(exposure)
 
     # Preset high exposure for taking images
+    # TODO this function still needs to be fully commented
     def highexposure(self):
         global exposure, cam, camtype
         expo = self.setHighExposure.value()
@@ -458,6 +472,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 config.write(configfile)
 
     # Preset low exposure for taking RHEED oscillations
+    # TODO this function still needs to be fully commented
     def lowexposure(self):
         global exposure, cam, camtype
         expo = int(self.setLowExposure.value())
@@ -705,6 +720,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 self.starttimerButton.setEnabled(False)  # disable the start timer button
 
     # Set background image
+    # TODO this function still needs to be fully commented
     def setbackground(self):
         global background, backgroundset
         frame = q.get()
@@ -714,7 +730,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
     # Clear background image
     def clearbackground(self):
-        global background,  backgroundset
+        global backgroundset
         backgroundset = False
 
     # Saving a single image using the "Capture" button
@@ -755,6 +771,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             QtWidgets.QMessageBox.warning(self, 'Error', 'Camera is not running')
 
     # Saving/recording video
+    # TODO this function still needs to be fully commented
     def record(self):
         global recording, isfile, filename, path, samplename, vidnum, out, fourcc, vidx, vidy
         vidx, vidy = self.scaled_w, self.scaled_h
@@ -788,7 +805,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         if not running:
             QtWidgets.QMessageBox.warning(self, 'Error', 'Camera is not running')
 
-    # Live plotting intensity data ####
+    # Live plotting intensity data
     def liveplot(self):
         global t0, avg1, avg2, avg3, t, oldert, olderavg1, olderavg2, olderavg3, oldt, oldavg1, oldavg2, oldavg3
         global running, liveplotting  # boolean global variables
@@ -828,6 +845,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             QtWidgets.QMessageBox.warning(self, 'Error', 'Camera is not running')
 
     # Show or hide shapes
+    # TODO this function still needs to be fully commented
     def showShapes(self):
         global drawing
         drawing = not drawing
@@ -839,6 +857,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             self.drawButton.setText('Show Shapes')
 
     # Enable or disable shape translational movement
+    # TODO this function still needs to be fully commented
     def moveshapes(self):
         global movingshapes
         movingshapes = not movingshapes
@@ -850,6 +869,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             self.moveshapesButton.setStyleSheet('QPushButton {color:black}')
 
     # Record position of mouse when you click a mouse button
+    # TODO this function still needs to be fully commented
     def mousePressEvent(self, event):
         global x1, y1, x2, y2, a1, b1, a2, b2, c1, d1, c2, d2, ic, jc, kc, xi1, xf1, xi2, xf2, xi3, xf3, l1i, l1f, i
         global red, blue, green, movingshapes
@@ -962,6 +982,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             self.selectColor()  # call the selectColor function
 
     # Update the rectangle as the mouse moves
+    # TODO this function still needs to be fully commented
     def mouseMoveEvent(self, event):
         global x1, y1, x2, y2, a1, b1, a2, b2, c1, d1, c2, d2, red, green, blue, movingshapes
         x, y = (event.pos().x() - 10), (event.pos().y() - 70)  # record the position of the mouse event (x, y)
@@ -1024,6 +1045,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                     d2 = self.d2o + (y - self.starty)
 
     # Record position of mouse when you release the button
+    # TODO this function still needs to be fully commented
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         global x1, y1, x2, y2, a1, b1, a2, b2, c1, d1, c2, d2, red, blue, green
         x, y = (event.pos().x() - 10), (event.pos().y() - 70)
@@ -1077,6 +1099,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.translation = False
 
     # Change which rectangle color you're editing
+    # TODO this function still needs to be fully commented
     def selectColor(self):
         global red, green, blue, i
         i += 1
@@ -1096,6 +1119,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             red, green, blue = False, False, True
 
     # Plot FFT of most recent data
+    # TODO this function still needs to be fully commented
     def plotFFT(self):
         global oldt, oldavg1, oldavg2, oldavg3
         # Plot FFT of data from red rectangle
@@ -1134,6 +1158,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.bluepeakLabel.show()
 
     # Change sample
+    # TODO this function still needs to be fully commented
     def changeSample(self):
         global samplename, grower, path, imnum, vidnum, isfile, basepath
         samplename, ok = QtWidgets.QInputDialog.getText(w, 'Change sample name', 'Enter sample name: ')
@@ -1147,6 +1172,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 os.makedirs(path)
 
     # Change grower
+    # TODO this function still needs to be fully commented
     def changeGrower(self):
         global samplename, grower, path, imnum, vidnum, basepath
         grower, ok = QtWidgets.QInputDialog.getText(w, 'Change grower', 'Who is growing? ')
@@ -1165,6 +1191,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         os.startfile(p)  # startfile only works on windows
 
     # Saving notes
+    # TODO this function still needs to be fully commented
     def saveNotes(self):
         global path, filename
         timestamp = time.strftime("%Y-%m-%d %I.%M.%S %p")  # formatting timestamp
@@ -1175,6 +1202,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.statusbar.showMessage('Notes saved to '+path+' as '+'Growth notes '+timestamp+'.txt')
 
     # Clearing notes
+    # TODO this function still needs to be fully commented
     def clearNotes(self):
         reply = QtGui.QMessageBox.question(w, 'Caution', 'Are you sure you want to clear all growth notes?',
                                            QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)  # default buttons: 'Yes' & 'No'
@@ -1200,11 +1228,12 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         global cmap
         cmap = cm.plasma
 
-    # Image inversion
+    # Toggle image inversion
     def invert(self):
         global inverted
         inverted = not inverted
 
+    # TODO these functions still need to be fully commented
     # Mouse tracking on live plot
     def mouseMoved1(self, evt):
         mousePoint1 = self.plot1.plotItem.vb.mapSceneToView(evt[0])
@@ -1248,6 +1277,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.bluecursor = str('x = '+str(self.x6)+', y = '+str(self.y6))
 
     # Start or stop stopwatch
+    # TODO this function still needs to be fully commented
     def stopwatch(self):
         global runstopwatch, tstart, stopwatch_active
         stopwatch_active = True
@@ -1262,6 +1292,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             self.savedtime = self.timenow
 
     # Clear the stopwatch (reset to 0.00)
+    # TODO this function still needs to be fully commented
     def clearstopwatch(self):
         global runstopwatch, stopwatch_active
         if not runstopwatch:
@@ -1270,6 +1301,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             stopwatch_active = False
 
     # Change the set time for the timer, i.e. what it counts down from
+    # TODO this function still needs to be fully commented
     def changetime(self):
         if not timing:
             self.starttimerButton.setText('Start')

@@ -1,17 +1,32 @@
-os
-sys
-configparser
-cv2
-numpy
-queue
-threading
-time
-colormap	pip install colormap			https://colormap.readthedocs.io
-matplotlib
-PIL
-PyQt5
-pyqtgraph
-scipy
-PySpin							Available from FLIR website at following links:
-							Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
-							Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
+Python 3.6 or higher
+Recommend using Anaconda as a package manager
+
+cv2		python -m pip install opencv-python
+		conda install -c conda-forge opencv
+
+numpy		python -m pip install numpy
+		conda install -c anaconda numpy
+
+colormap	python -m pip install colormap
+		conda install -c conda-forge colormap
+
+matplotlib	python -m pip install matplotlib
+		conda install -c conda-forge matplotlib
+
+PIL		python -m pip install Pillow
+		conda install -c anaconda pillow
+
+PyQt5		pip install PyQt5
+		conda install -c anaaconda pyqt
+
+pyqtgraph	python -m pip install pyqtgraph
+		conda install -c anaconda pyqtgraph
+
+scipy		python -m pip install scipy
+		conda install -c anaconda scipy
+
+PySpin		Available from FLIR website at following links:
+		Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
+		Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
+		Unzip the cp36 folder and open a command prompt there, then execute the command:
+			python -m pip install numpy spinnaker_python-1.15.0.63-cp36-cp36m-win_amd64.whl
