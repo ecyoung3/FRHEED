@@ -113,7 +113,7 @@ However, things more than likely did NOT go according to plan, so it's up to you
 
 ## License
 
-This project is licensed under the GNU GPL-3.0 (see [LICENSE.md](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details).
+This project is licensed under the GNU GPL-3.0. See [LICENSE.md](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details.
 
 ## Acknowledgments
 
