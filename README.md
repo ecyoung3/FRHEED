@@ -123,7 +123,7 @@ ecyoung@ucsb.edu
 
 ## License
 
-This project is licensed under the GNU General Public License. Please see [LICENSE](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details.
+This project is licensed under the GNU General Public License. Please see the [LICENSE](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details.
 
 ## Acknowledgments
 
