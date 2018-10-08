@@ -50,7 +50,7 @@ scipy
     conda install -c anaconda scipy
 
 PySpin		
-    Available from the FLIR website at the following links:
+    Available from the FLIR website at the following links (you may need to create a FLIR account):
 	Windows 10 (32-bit): https://www.ptgrey.com/support/downloads/11107/
 	Windows 10 (64-bit): https://www.ptgrey.com/support/downloads/11106/
 	
