@@ -118,7 +118,7 @@ However, things more than likely did NOT go according to plan, so it's up to you
 
 **Elliot Young**
 University of California, Santa Barbara
-Chris Palmstrøm Research Group ([Website](https://palmstrom.cnsi.ucsb.edu/))
+Chris Palmstrøm Research Group ( [Website](https://palmstrom.cnsi.ucsb.edu/) )
 ecyoung@ucsb.edu
 
 ## License
