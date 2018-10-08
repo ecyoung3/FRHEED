@@ -652,7 +652,6 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.growerLabel.setText('Current Grower: '+grower)
         # Update the annotation preview as the user types their input
         self.annotateSampleName.setText('Sample: '+self.setSampleName.text())  # sample name
-        self.annotateSampleName.resize()
         self.annotateOrientation.setText('Orientation: '+self.setOrientation.text())  # orientation
         self.annotateLayer.setText('Growth layer: '+self.setGrowthLayer.text())  # current growth layer
         self.annotateMisc.setText('Other notes: '+self.setMisc.text())  # other notes
