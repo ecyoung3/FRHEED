@@ -152,10 +152,12 @@ def FLIR(self):
     dialog.close()
 
 
+# Load the default FRHEED icon; it should be located in the same directory as FRHEED.py
+icon = QtGui.QIcon('FRHEED icon.ico')  # set icon of dialog window
+
 # Prompt user to select type of camera if not set in config
 if 'USB' not in camtype and 'FLIR' not in camtype:
     dialog = QtWidgets.QDialog()  # create new dialog window
-    icon = QtGui.QIcon('FRHEED icon.ico')  # set icon of dialog window; icon file should be in this same directory
     dialog.setWindowIcon(icon)  # set popup window icon
     dialog.setWindowTitle('Select Camera Type')  # set title of window
     dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)  # create vertical layout for window
@@ -564,13 +566,16 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
                 # Create a pixmap from the QImage and display it on the camera canvas
                 self.cameraCanvas.setPixmap(QtGui.QPixmap.fromImage(imc))
+
+                # Rescale the rectangles if the window size changes
+                if self.oldwidth != self.window_width or self.oldheight != self.window_height:
+                    newcoords = list(map(lambda x: int(x*scale), basecoords))  # scales all coordinates equally
+                    x1, x2, y1, y2, a1, a2, b1, b2, c1, c2, d1, d2 = newcoords  # collect the updated coordinates
+
             else:
                 print('Image is somehow still empty')
 
             # Resize the rectangles if the main window size changes
-            if self.oldwidth != self.window_width or self.oldheight != self.window_height:
-                newcoords = list(map(lambda x: int(x*scale), basecoords))  # this just scales all coordinates equally
-                x1, x2, y1, y2, a1, a2, b1, b2, c1, c2, d1, d2 = newcoords  # collect the updated rectangle coordinates
 
             # Updating and plotting live intensity data
             if liveplotting:
@@ -1402,6 +1407,7 @@ capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn'
 # This is where the main window is actually created and shown
 w = FRHEED(None)
 w.setWindowTitle('FRHEED')
+w.setWindowIcon(icon)
 w.show()
 app.exec_()
 
