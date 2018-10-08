@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>build/exe.win-amd64-3.6/FRHEED icon.ico</normaloff>build/exe.win-amd64-3.6/FRHEED icon.ico</iconset>
+    <normaloff>FRHEED icon.ico</normaloff>FRHEED icon.ico</iconset>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>false</bool>
@@ -293,7 +293,7 @@
          </widget>
          <widget class="QWidget" name="tabImagesettings">
           <attribute name="title">
-           <string>Display</string>
+           <string>Image</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_11">
            <item row="1" column="9">

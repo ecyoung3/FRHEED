@@ -42,8 +42,6 @@ try:
 except ImportError:
     importedPySpin = False
 
-os.path.expanduser('~')
-
 # Define global variables
 capture_thread = None  # no capture thread until defined at end of program
 running = False  # capture thread not running
@@ -66,10 +64,10 @@ vidnum = 1  # first video number is 1
 t0 = time.time()  # set start time is when program is opened
 
 # Initialize all variables for frame intensity plotting as empty arrays
-(t, avg1, avg2, avg3,  # variables for live plot
- oldt, oldavg1, oldavg2, oldavg3,  # variables for most recently collected data
- oldert, olderavg1, olderavg2, olderavg3,  # variables for older data
- background) = ([], ) * 13  # frame for background subtraction is empty
+t, avg1, avg2, avg3 = [], [], [], []  # variables for live plot
+oldt, oldavg1, oldavg2, oldavg3 = [], [], [], []  # variables for most recently collected data
+oldert, olderavg1, olderavg2, olderavg3 = [], [], [], []  # variables for older data
+background = []  # frame for background subtraction is empty
 
 # Default dimensions of rectangles: 640x480 centered in upper left corner (0,0)
 x1, y1, x2, y2 = 0, 0, 640, 480  # red rectangle
@@ -93,7 +91,7 @@ form_class = uic.loadUiType("FRHEED.ui")[0]  # UI file should be located in same
 q = queue.Queue()
 
 # Define video recording codec
-fourcc = cv2.VideoWriter_fourcc(*'MJPG') # MJPG works with .avi
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')  # MJPG works with .avi
 
 # Set default appearance of plots
 pg.setConfigOption('background', 'w')  # 'w' = white background
@@ -267,6 +265,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         # TODO make this section look prettier
         global samplename, exposure, x1, y1, x2, y2, grower, camtype, config
         QtWidgets.QMainWindow.__init__(self, parent)  # initialize the main window
+        self.buttons = QtWidgets.qApp.mouseButtons()  # shortcut to checking which mouse buttons are pressed
         self.setupUi(self)  # this is where the UI is actually constructed from the FRHEED.ui file
 
         # Defining local variables (these can be called by self.VAR_NAME by functions within the FRHEED class)
@@ -568,7 +567,6 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
             # Updating and plotting live intensity data
             if liveplotting:
-
                 # This section sorts coordinates such that x1 < x2 so taking the mean doesn't return a null value
                 c = [(x1, x2), (y1, y2), (a1, a2), (b1, b2), (c1, c2), (d1, d2)]  # create list of tuples to be sorted
                 k = []  # define k as an empty array
@@ -696,7 +694,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             self.timerScreen.display(self.formatted_time)  # display the formatted time on the timer screen
             # If the timer is up
             if self.remaining < 0:
-                self.timerScreen.setStyleSheet('QLCDNumber {color:red}')  # make the timer text red
+                self.starttimerButton.setText('Stop')  # set start timer button text to 'Stop'
+                self.starttimerButton.setStyleSheet('QPushButton {color:red}')  # make the timer button text red
+                self.timerScreen.setStyleSheet('QLCDNumber {color:red}')  # make the timer screen text red
                 # If the timer was not started from a pause, display the amount of overtime
                 if self.savedtime2 == 0.0:
                     self.overtime = time.time() - (self.timerstart + self.totaltime)
@@ -900,13 +900,13 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 self.editingshapes = False  # stop editing shapes (dragging sides) when left mouse button is clicked
                 if red:  # if modifying the red rectangle
                     x1, y1 = x, y  # origin point for the red rectangle is where the mouse was clicked
-                    x2, y2 = x1 + 1, y1 + 1  # specify different end position so the rectangle has nonzero dimensions
+                    x2, y2 = x1 - 1, y1 - 1  # specify different end position so the rectangle has nonzero dimensions
                 if green:  # if modifying the green rectangle
                     a1, b1 = x, y  # origin point for the green rectangle is where the mouse was clicked
-                    a2, b2 = a1 + 1, b1 + 1  # specify different end position so the rectangle has nonzero dimensions
+                    a2, b2 = a1 - 1, b1 - 1  # specify different end position so the rectangle has nonzero dimensions
                 if blue:
                     c1, d1 = x, y  # origin point for the blue rectangle is where the mouse was clicked
-                    c2, d2 = c1 + 1, d1 + 1  # specify different end position so the rectangle has nonzero dimensions
+                    c2, d2 = c1 - 1, d1 - 1  # specify different end position so the rectangle has nonzero dimensions
 
             # Update manual calculation for RHEED oscillations on newer data
             if self.plot1.underMouse():
@@ -976,8 +976,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                         self.grow = 'up'
                     if self.d2o < y < self.scaled_h and self.c1o < x < self.c2o:
                         self.grow = 'down'
+
         # If the scroll wheel is clicked while the mouse is over the drawing canvas, change the active rectangle color
-        if (event.button() == 4, self.drawCanvas.underMouse()):
+        if event.button() == 4 and self.drawCanvas.underMouse():
             self.selectColor()  # call the selectColor function
 
     # Update the rectangle as the mouse moves
@@ -985,9 +986,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     def mouseMoveEvent(self, event):
         global x1, y1, x2, y2, a1, b1, a2, b2, c1, d1, c2, d2, red, green, blue, movingshapes
         x, y = (event.pos().x() - 10), (event.pos().y() - 70)  # record the position of the mouse event (x, y)
-        if not self.editingshapes and (self.drawingshapes,  # if drawing shapes and not editing them
-                                       0 < x < self.scaled_w,  # if x is within the drawing frame width
-                                       0 < y < self.scaled_h,  # if y is within the drawing frame height
+        if not self.editingshapes and (self.drawingshapes and  # if drawing shapes and not editing them
+                                       0 < x < self.scaled_w and  # if x is within the drawing frame width
+                                       0 < y < self.scaled_h and  # if y is within the drawing frame height
                                        self.drawCanvas.underMouse()):  # if the mouse is over the drawing canvas
             if red:
                 x2, y2 = x, y
@@ -998,9 +999,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
             # TODO this section still needs work; translation doesn't currently work properly
             if movingshapes and self.translation:
-                if red and ((self.xtrans - x1) > x,
-                            (self.scaled_w - x) > (x2 - self.xtrans),
-                            (self.ytrans - y1) > y,
+                if red and ((self.xtrans - x1) > x and
+                            (self.scaled_w - x) > (x2 - self.xtrans) and
+                            (self.ytrans - y1) > y and
                             (self.scaled_h - y) > (y2 - self.ytrans)):
                         x1, y1 = x, y
                         x2, y2 = (x+self.xl), (y+self.yl)
@@ -1011,9 +1012,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                     if x > (self.xtrans - c1) and y > (self.ytrans - d1):
                         c1, d1 = x, y
 
-        if not self.drawingshapes and (self.editingshapes,  # if editing shapes and not drawing them
-                                       0 < x < self.scaled_w,  # if x is within the drawing frame width
-                                       0 < y < self.scaled_h,  # if y is within the drawing frame height
+        if not self.drawingshapes and (self.editingshapes and  # if editing shapes and not drawing them
+                                       0 < x < self.scaled_w and  # if x is within the drawing frame width
+                                       0 < y < self.scaled_h and  # if y is within the drawing frame height
                                        self.drawCanvas.underMouse()):  # if the mouse is over the drawing canvas
             if red:  # if modifying red
                 if self.grow == 'left' and not (self.x1o - (self.startx - x)) >= self.x2o:
@@ -1049,9 +1050,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         global x1, y1, x2, y2, a1, b1, a2, b2, c1, d1, c2, d2, red, blue, green
         x, y = (event.pos().x() - 10), (event.pos().y() - 70)
         if event.button() == 1:
-            if not self.editingshapes and (self.drawingshapes,  # if drawing shapes and not editing them
-                                           0 < x < self.scaled_w,  # x is within the drawing frame width
-                                           0 < y < self.scaled_h,  # y is within the drawing frame height
+            if not self.editingshapes and (self.drawingshapes and  # if drawing shapes and not editing them
+                                           0 < x < self.scaled_w and  # x is within the drawing frame width
+                                           0 < y < self.scaled_h and  # y is within the drawing frame height
                                            self.drawCanvas.underMouse()):  # if mouse is over the drawing canvas
                 if red:
                     x2, y2 = x, y
@@ -1060,9 +1061,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 if blue:
                     c2, d2 = x, y
         if event.button() == 2:  # event.button() == 2 indicates the right mouse button
-            if not self.drawingshapes and (self.editingshapes,  # if editing shapes and not drawing them
-                                           0 < x < self.scaled_w,  # x is within the drawing frame width
-                                           0 < y < self.scaled_h,  # y is within the drawing frame height
+            if not self.drawingshapes and (self.editingshapes and  # if editing shapes and not drawing them
+                                           0 < x < self.scaled_w and  # x is within the drawing frame width
+                                           0 < y < self.scaled_h and  # y is within the drawing frame height
                                            self.drawCanvas.underMouse()):  # if mouse is over the drawing canvas
                 # TODO comment this section of code
                 if red:
@@ -1295,7 +1296,8 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     def clearstopwatch(self):
         global runstopwatch, stopwatch_active
         if not runstopwatch:
-            self.savedtime, self.timenow = 0, 0
+            self.savedtime = 0
+            self.timenow = 0
             self.stopwatchScreen.display('%.2f') % self.savedtime
             stopwatch_active = False
 
@@ -1375,11 +1377,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             cam = cv2.VideoCapture(0)
             cam.release()
             print('Released camera...')
-        # Release video capturing
-        out.release()
         # TODO ensure program closes down and terminates threads correctly
         # Clean up the threads
-        q.terminate()
+        # q.terminate()
         # Release FLIR instance
         if camtype == 'FLIR':
             system.ReleaseInstance()
@@ -1391,10 +1391,8 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 if __name__ == '__main__':
     fps = 35.0  # this isn't actually used but if I take it out things don't work and I don't know why
     capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn't actually used but leave it alone
-
     # Run the program, show the main window and name it 'FRHEED'
     app = QtWidgets.QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
-
     # This is where the main window is actually created and shown
     w = FRHEED(None)
     w.setWindowTitle('FRHEED')
