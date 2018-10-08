@@ -60,7 +60,7 @@ PySpin
 
 ## Running FRHEED
 
-Once all required files are downloaded and located in the same folder and the required packages are installed, open FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly andwill prompt you to select your default save location and which type of camera your computer is using.
+Once all required files are downloaded and located in the same folder and the required packages are installed, open FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly and will prompt you to select your default save location and which type of camera your computer is using.
 
 However, things more than likely did NOT go according to plan, so it's up to you to troubleshoot. (sorry!)
 
