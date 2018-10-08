@@ -80,7 +80,7 @@ i = 1  # Index for which color rectangle is currently active: 1 = red, 2 = green
 ic = kc = jc = True
 
 # Default filename if nothing is selected
-filename = 'default'
+filename = 'Default'
 
 # Loading UI file from qt designer
 form_class = uic.loadUiType("FRHEED.ui")[0]  # UI file should be located in same directory as this script
@@ -89,7 +89,7 @@ form_class = uic.loadUiType("FRHEED.ui")[0]  # UI file should be located in same
 q = queue.Queue()
 
 # Define video recording codec
-fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')  # MJPG works with .avi
+fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')  # MJPG works with .avi; don't write as *'MJPG' to avoid errors
 
 # Set default appearance of plots
 pg.setConfigOption('background', 'w')  # 'w' = white background
@@ -99,7 +99,7 @@ pg.setConfigOption('foreground', 0.0)  # black axes lines and labels
 config = configparser.ConfigParser()  # create 'shortcut' for configparser
 config.read('config.ini')  # config file is named 'config.ini' and should be in the same directory as this .py file
 
-# Run the program, show the main window and name it 'FRHEED'
+# Initialize the QApplication so PyQt widgets can be displayed/executed
 app = QtWidgets.QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
 
 # Select default save location if none set
@@ -253,7 +253,9 @@ def grab(fps, queue):
                 # converts it to a BGR array (swaps the first and third channels) so the video is displayed properly.
                 imc = imc[:, :, 0:3]
                 imc = cv2.cvtColor(imc, cv2.COLOR_RGB2BGR)  # convert the RGB array to BGR
-                out.write(imc)  # write the frame to the video file
+                # Only start writing video once the video writer 'out' is defined
+                if out is not None:
+                    out.write(imc)  # write the frame to the video file
 
 
 # This is the code for the main FRHEED program window. The UI is coded in qt designer and saved as a FRHEED.ui file.
