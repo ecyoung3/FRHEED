@@ -5,7 +5,7 @@ A program for real-time Reflection High Energy Electron Diffraction (RHEED) anal
 
 Make sure that you have installed pip and Python 3.6 or higher. I recommend using Anaconda with the Spyder IDE.  
 
-Download the following files and move them to a folder of your choice:
+Download the following files from the main branch and move them to a folder of your choice:
 * FRHEED.py
 * FRHEED.ui
 * FRHEED icon.ico
