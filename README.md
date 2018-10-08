@@ -110,6 +110,9 @@ However, things more than likely did NOT go according to plan, so it's up to you
 
 * Spyder will require a kernel restart every time after running the program
 * The 'Annotation' frame flickers when resizing the main window
+* The program slows down considerably if the camera frame is scaled to larger than its native resolution
+	* This primarily affects webcams with low (640x480) native resolution
+	* Not really a "bug" since upscaling the image requires a cubic interpolation calculation, which takes time
 
 ## License
 
