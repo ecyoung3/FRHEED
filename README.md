@@ -113,6 +113,7 @@ However, things more than likely did NOT go according to plan, so it's up to you
 * The program slows down considerably if the camera frame is scaled to larger than its native resolution
 	* This primarily affects webcams with low (640x480) native resolution
 	* Not really a "bug" since upscaling the image requires a cubic interpolation calculation, which takes time
+* Starting and stopping the video recording multiple times causes the program to crash (likely an issue with opencv)
 	
 ## Known Errors
 **"This application failed to start because it could not find or load the Qt platform plugin "windows" in ""."**  
