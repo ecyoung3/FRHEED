@@ -256,8 +256,10 @@ def grab(fps, queue):
                 imc = imc[:, :, 0:3]
                 imc = cv2.cvtColor(imc, cv2.COLOR_RGB2BGR)  # convert the RGB array to BGR
                 # Only start writing video once the video writer 'out' is defined
-                if out is not None:
+                try:
                     out.write(imc)  # write the frame to the video file
+                except NameError:
+                    pass
 
 
 # This is the code for the main FRHEED program window. The UI is coded in qt designer and saved as a FRHEED.ui file.
@@ -1414,15 +1416,15 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
 # if __name__ == '__main__': ensures that the code executes when run directly, but not when called by another program
 # I've chosen to disable it here so that the function executes properly when packed into an .exe file.
-# if __name__ == '__main__':
-fps = 35.0  # this isn't actually used but if I take it out things don't work and I don't know why
-capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn't actually used but leave it alone
-# This is where the main window is actually created and shown
-w = FRHEED(None)
-w.setWindowTitle('FRHEED')
-w.setWindowIcon(icon)
-w.show()
-app.exec_()
+if __name__ == '__main__':
+    fps = 35.0  # this isn't actually used but if I take it out things don't work and I don't know why
+    capture_thread = threading.Thread(target=grab, args=(fps, q))  # again, fps isn't actually used but leave it alone
+    # This is where the main window is actually created and shown
+    w = FRHEED(None)
+    w.setWindowTitle('FRHEED')
+    w.setWindowIcon(icon)
+    w.show()
+    app.exec_()
 
 # TODO
 """
