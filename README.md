@@ -114,6 +114,7 @@ However, things more than likely did NOT go according to plan, so it's up to you
 	* This primarily affects webcams with low (640x480) native resolution
 	* Not really a "bug" since upscaling the image requires a cubic interpolation calculation, which takes time
 * Starting and stopping the video recording multiple times causes the program to crash (I think this happens when opencv creates a VideoWriter object with the same ID as a previously created video writer object)
+	* SOLVED: caused by Try/Except loop in grab() function that made sure 'out' was a defined variable
 	
 ## Known Errors
 **"This application failed to start because it could not find or load the Qt platform plugin "windows" in ""."**  
