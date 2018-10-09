@@ -60,7 +60,7 @@ PySpin
 
 ## Running FRHEED
 
-Once all required files are downloaded and located in the same folder and the required packages are installed, open FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly and will prompt you to select your default save location and which type of camera your computer is using.
+Once all required files are downloaded and located in the same folder and the required packages are installed, run FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly and will prompt you to select your default save location and which type of camera your computer is using.
 
 However, things more than likely did NOT go according to plan, so it's up to you to troubleshoot. (sorry!)
 
@@ -114,9 +114,16 @@ However, things more than likely did NOT go according to plan, so it's up to you
 	* This primarily affects webcams with low (640x480) native resolution
 	* Not really a "bug" since upscaling the image requires a cubic interpolation calculation, which takes time
 
+## Author
+
+### Elliot Young ###  
+University of California, Santa Barbara  
+[Chris Palmstrøm Research Group](https://palmstrom.cnsi.ucsb.edu/)  
+ecyoung@ucsb.edu
+
 ## License
 
-This project is licensed under the GNU General Public License. Please see [LICENSE](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details.
+This project is licensed under the GNU General Public License. Please see the [LICENSE](https://github.com/ecyoung3/FRHEED/blob/master/LICENSE) for details.
 
 ## Acknowledgments
 
