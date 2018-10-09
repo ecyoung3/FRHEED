@@ -279,12 +279,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         # is not defined earlier in the code.
         self.oldwidth = self.parentFrame.frameSize().width()
         self.oldheight = self.parentFrame.frameSize().height()
-        self.drawingshapes = False
-        self.editingshapes = False
-        self.timeset = 0.0
-        self.savedtime = 0.0
-        self.savedtime2 = 0.0
-        self.totaltime = 0.0
+        self.drawingshapes, self.editingshapes = False, False
+        self.timeset, self.savedtime, self.savedtime2, self.totaltime = 0.0, 0.0, 0.0, 0.0
+        self.hours, self.minutes, self.seconds = 0.0, 0.0, 0.0
         self.livecursor, self.newercursor, self.oldercursor = '', '', ''  # cursor positions on intensity data plots
         self.redcursor, self.greencursor, self.bluecursor = '', '', ''  # cursor positions on FFT plots
         self.rheed1cal, self.rheed2cal, self.rheed3cal = '', '', ''  # text for manually calculated RHEED oscillation
@@ -520,8 +517,10 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         # This prevents an error that can occur if the timer is started from zero while the stopwatch is running
         if self.totaltime == 0.0:
             self.starttimerButton.setEnabled(False)
+            self.resettimerButton.setEnabled(False)
         if self.totaltime > 0.0:
             self.starttimerButton.setEnabled(True)
+            self.resettimerButton.setEnabled(True)
 
         # Perform the following code if the queue is not empty (i.e. the camera is running)
         if not q.empty():
@@ -545,6 +544,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 img = img - background
 
             if img is not None:
+                notempty = True
                 # Scaling the image from the camera
                 img_height, img_width = img.shape[0], img.shape[1]  # img.shape gives image dimensions as (h, w)
                 scale_w = float(self.window_width) / float(img_width)  # calculate the width scale
@@ -581,6 +581,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                     x1, x2, y1, y2, a1, a2, b1, b2, c1, c2, d1, d2 = newcoords  # collect the updated coordinates
 
             else:
+                notempty = False
                 print('Image is somehow still empty')
 
             # Resize the rectangles if the main window size changes
@@ -658,11 +659,12 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
                 self.bluerect = qp.drawRect(c1, d1, c2 - c1, d2 - d1)  # draw the blue rectangle
                 qp.end()  # end the painting event (it will get started again next update)
                 self.drawCanvas.setPixmap(pixmap)  # update the canvas with the drawn-on pixmap containing the shapes
-            # Record the width and height of the window so that changes in window size can be detected
-            # This is used so the code knows when to scale the size of the drawn shapes
-            self.oldwidth, self.oldheight = self.window_width, self.window_height
-            # Similarly, record the current scale so that the shapes don't end up scaling exponentially
-            self.relativescale = scale
+
+            if notempty:
+                # This is used so the code knows when to scale the size of the drawn shapes
+                self.oldwidth, self.oldheight = self.window_width, self.window_height
+                # Similarly, record the current scale so that the shapes don't end up scaling exponentially
+                self.relativescale = scale
 
         # Update labels and buttons with the appropriate text. This code should eventually be moved to sections outside
         # of this continuously updating loop, i.e. only when the window is initialized or grower/sample is changed.
