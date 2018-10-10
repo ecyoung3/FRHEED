@@ -39,7 +39,7 @@ PIL
 
 PyQt5		
     pip install PyQt5
-    conda install -c anaaconda pyqt
+    conda install -c anaconda pyqt
 
 pyqtgraph	
     python -m pip install pyqtgraph
@@ -57,6 +57,10 @@ PySpin
 	Unzip the cp36 folder and open a command prompt there, then execute the command:
 	    python -m pip install numpy spinnaker_python-1.15.0.63-cp36-cp36m-win_amd64.whl
 ```
+
+You may also need to download or update easydev once finished installing other libraries.  
+
+If Spyder doesn't open after installing new libraries, run the command in Anaconda terminal "conda update qt" and it *should* fix any startup issues.  
 
 ## Running FRHEED
 
