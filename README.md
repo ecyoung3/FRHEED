@@ -64,8 +64,8 @@ If Spyder doesn't open after installing new libraries, run the command in Anacon
 
 ## Running FRHEED
 
-Once all required files are downloaded and located in the same folder and the required packages are installed, run FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly and will prompt you to select your default save location and which type of camera your computer is using.
-
+Once all required files are downloaded and located in the same folder and the required packages are installed, run FRHEED.py using Spyder (or your IDE of choice). If all went according to plan, it should run properly and will prompt you to select your default save location and which type of camera your computer is using.  
+![FRHEED screenshot](https://i.imgur.com/WWcNyBw.png)  
 However, things more than likely did NOT go according to plan, so it's up to you to troubleshoot. (sorry!)
 
 ## Features and Functions
