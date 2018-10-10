@@ -113,6 +113,18 @@ However, things more than likely did NOT go according to plan, so it's up to you
 * The program slows down considerably if the camera frame is scaled to larger than its native resolution
 	* This primarily affects webcams with low (640x480) native resolution
 	* Not really a "bug" since upscaling the image requires a cubic interpolation calculation, which takes time
+* Starting and stopping the video recording multiple times causes the program to crash (I think this happens when opencv creates a VideoWriter object with the same ID as a previously created video writer object)
+	* SOLVED: caused by Try/Except loop in grab() function that made sure 'out' was a defined variable
+	
+## Known Errors
+**"This application failed to start because it could not find or load the Qt platform plugin "windows" in ""."**  
+Solution: Add the "platforms" folder (included in the master branch) to the same folder as FRHEED.py  
+
+**Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll.**  
+Solution: Add mkl_intel_thread.dll (included in master branch) to the same folder as FRHEED.py 
+
+**[swscaler @ ...] bad dst imagae pointers**  
+Solution: Uninstall ffmpeg if it's installed on the system. Something about the codecs seems to cause a conflict.
 
 ## Author
 
