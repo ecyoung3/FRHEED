@@ -89,7 +89,7 @@ form_class = uic.loadUiType("FRHEED.ui")[0]  # UI file should be located in same
 q = queue.Queue()
 
 # Define video recording codec
-fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')  # MJPG works with .avi; don't write as *'MJPG' to avoid errors
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # MJPG works with .avi; mp4v works with .mp4
 
 # Set default appearance of plots
 pg.setConfigOption('background', 'w')  # 'w' = white background
@@ -819,11 +819,12 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
             # 'fourcc' which is defined at the beginning of this code. The '.avi' extension with 'MJPG' codec seems to
             # generally work for recording color video with relatively small file sizes.
             # Arguments for cv2.VideoWriter: (filename, codec, target fps, dimensions, color (False = 8-bit grayscale))
-            out = cv2.VideoWriter(path+filename+'.avi', fourcc, 35.0, (int(vidx), int(vidy)), True)
+            out = cv2.VideoWriter(path+filename+'.mp4', fourcc, 35.0, (int(vidx), int(vidy)), True)
         if not recording and running:
             self.statusbar.showMessage('Video saved to '+path+' as '+filename+'.avi')
             self.recordButton.setText('Record Video')
             out.release()  # release the capture so the video can be opened on the system
+            print('Released video capature')
         # Display an error popup if the camera is not running when the 'Record' button is clicked
         if not running:
             QtWidgets.QMessageBox.warning(self, 'Error', 'Camera is not running')
