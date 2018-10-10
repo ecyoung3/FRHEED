@@ -127,7 +127,7 @@ Solution: Add the "platforms" folder (included in the master branch) to the same
 **Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll.**  
 Solution: Add mkl_intel_thread.dll (included in master branch) to the same folder as FRHEED.py 
 
-**[swscaler @ ...] bad dst imagae pointers**  
+**[swscaler @ ...] bad dst image pointers**  
 Solution: Uninstall ffmpeg if it's installed on the system. Something about the codecs seems to cause a conflict.
 
 ## Author
