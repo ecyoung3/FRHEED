@@ -143,4 +143,4 @@ This project is licensed under the GNU General Public License. Please see the [L
 
 ## Acknowledgments
 
-* kSA and Riber for making RHEED software expensive enough to warrant the creation of FRHEED
+* Certain RHEED software companies for making RHEED software over-priced enough to warrant the creation of FRHEED
