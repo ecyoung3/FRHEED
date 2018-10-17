@@ -319,45 +319,47 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.annotateMisc.setStyleSheet('QLabel {color:white}')
         self.annotateOrientation.setStyleSheet('QLabel {color:white}')
         self.annotateSampleName.setStyleSheet('QLabel {color:white}')
-        # TODO eventually remove the pixmaps and just plot things directly from the matplotlib library
-#        self.grayscaleSample.setPixmap(QtGui.QPixmap('gray colormap.png'))  # display the sample for the  gray colormap
-#        self.greenSample.setPixmap(QtGui.QPixmap('green colormap.png'))  # display the sample for the green colormap
-#        self.hotSample.setPixmap(QtGui.QPixmap('hot colormap.png'))  # display the sample for the hot colormap
-#        self.plasmaSample.setPixmap(QtGui.QPixmap('plasma colormap.png'))  # display the sample for the plasma colormap
-        gradient = np.linspace(0, 1, 776)
-        gradient = np.vstack((gradient,)*34)
+        # Generate samples for each of the available colormaps
+        h = self.grayscaleSample.frameGeometry().height()  # get the height of the sample labels 
+        gradient = np.linspace(0, 1, 512)  # create a linear sequence from 0 to 512 with increments of 1 (0, 1, 2, etc)
+        gradient = np.vstack((gradient,)*h)  # stack the 'gradient' array on top of itself 'h' times, creating a 512xh array
+
+        # Listing available colormaps
         pixmaps = ['gist_gray', 'RHEEDgreen', 'hot', 'plasma', 'seismic', 'hsv']
+
+        # For all the available colormaps, get the appropriate matplotlib colormap object 
         i = 0
         for c in pixmaps:
             pixmaps[i] = cm.get_cmap(name=c)  # convert config cmap to the matplotlib format
             i += 1
 
-        g = np.uint8(pixmaps[0](gradient)*255)
-        gr = Image.fromarray(g)
-        gra = ImageQt.ImageQt(gr)
-        self.grayscaleSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+        # Create the grayscale colormap sample
+        g = np.uint8(pixmaps[0](gradient)*255)  # apply the 'grayscale' colormap to the 'gradient' array
+        gr = Image.fromarray(g)  # convert the array to an image
+        gra = ImageQt.ImageQt(gr)  # convert the image to a pixmap
+        self.grayscaleSample.setPixmap(QtGui.QPixmap.fromImage(gra))  # display the pixmap next to the grayscale button
 
-        g = np.uint8(pixmaps[1](gradient)*255)
+        g = np.uint8(pixmaps[1](gradient)*255) # 'RHEEDgreen' colormap
         gr = Image.fromarray(g)
         gra = ImageQt.ImageQt(gr)
         self.greenSample.setPixmap(QtGui.QPixmap.fromImage(gra))
 
-        g = np.uint8(pixmaps[2](gradient)*255)
+        g = np.uint8(pixmaps[2](gradient)*255)  # 'hot' colormap
         gr = Image.fromarray(g)
         gra = ImageQt.ImageQt(gr)
         self.hotSample.setPixmap(QtGui.QPixmap.fromImage(gra))
 
-        g = np.uint8(pixmaps[3](gradient)*255)
+        g = np.uint8(pixmaps[3](gradient)*255)  # 'plasma' colormap
         gr = Image.fromarray(g)
         gra = ImageQt.ImageQt(gr)
         self.plasmaSample.setPixmap(QtGui.QPixmap.fromImage(gra))
 
-        g = np.uint8(pixmaps[4](gradient)*255)
+        g = np.uint8(pixmaps[4](gradient)*255)  # 'seismic' colormap
         gr = Image.fromarray(g)
         gra = ImageQt.ImageQt(gr)
         self.seismicSample.setPixmap(QtGui.QPixmap.fromImage(gra))
 
-        g = np.uint8(pixmaps[5](gradient)*255)
+        g = np.uint8(pixmaps[5](gradient)*255)  # 'hsv' colormap
         gr = Image.fromarray(g)
         gra = ImageQt.ImageQt(gr)
         self.hsvSample.setPixmap(QtGui.QPixmap.fromImage(gra))
