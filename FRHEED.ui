@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1124</width>
-    <height>823</height>
+    <width>1661</width>
+    <height>878</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -82,7 +82,7 @@
           <enum>QTabWidget::Rounded</enum>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="tabAnnotate">
           <attribute name="title">
@@ -512,26 +512,14 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>0</y>
-                <width>679</width>
-                <height>192</height>
+                <y>-90</y>
+                <width>923</width>
+                <height>275</height>
                </rect>
               </property>
               <layout class="QFormLayout" name="formLayout_2">
                <item row="0" column="0">
                 <widget class="QPushButton" name="grayscaleButton">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>23</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>23</height>
-                  </size>
-                 </property>
                  <property name="text">
                   <string>Grayscale</string>
                  </property>
@@ -540,21 +528,15 @@
                <item row="0" column="1">
                 <widget class="QLabel" name="grayscaleSample">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>0</width>
-                   <height>23</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>600</width>
-                   <height>23</height>
+                   <width>776</width>
+                   <height>34</height>
                   </size>
                  </property>
                  <property name="text">
@@ -564,37 +546,32 @@
                </item>
                <item row="1" column="0">
                 <widget class="QPushButton" name="greenButton">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>23</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>23</height>
-                  </size>
-                 </property>
                  <property name="text">
                   <string>Green</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <widget class="QPushButton" name="hotButton">
+               <item row="1" column="1">
+                <widget class="QLabel" name="greenSample">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="minimumSize">
                   <size>
-                   <width>0</width>
-                   <height>23</height>
+                   <width>776</width>
+                   <height>34</height>
                   </size>
                  </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>23</height>
-                  </size>
+                 <property name="text">
+                  <string/>
                  </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QPushButton" name="hotButton">
                  <property name="text">
                   <string>Hot</string>
                  </property>
@@ -607,24 +584,25 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
-                <widget class="QLabel" name="greenSample">
+               <item row="5" column="0">
+                <widget class="QPushButton" name="hsvButton">
+                 <property name="text">
+                  <string>HSV</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QLabel" name="hotSample">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>0</width>
-                   <height>23</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>600</width>
-                   <height>23</height>
+                   <width>776</width>
+                   <height>34</height>
                   </size>
                  </property>
                  <property name="text">
@@ -634,31 +612,51 @@
                </item>
                <item row="3" column="1">
                 <widget class="QLabel" name="plasmaSample">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QLabel" name="hotSample">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>0</width>
-                   <height>23</height>
+                   <width>776</width>
+                   <height>34</height>
                   </size>
                  </property>
-                 <property name="maximumSize">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QLabel" name="hsvSample">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
                   <size>
-                   <width>600</width>
-                   <height>23</height>
+                   <width>776</width>
+                   <height>34</height>
                   </size>
                  </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QPushButton" name="seismicButton">
+                 <property name="text">
+                  <string>Seismic</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLabel" name="seismicSample">
                  <property name="text">
                   <string/>
                  </property>
@@ -1195,8 +1193,34 @@
            <string/>
           </property>
          </widget>
+         <widget class="QLabel" name="grayscaleSample_2">
+          <property name="geometry">
+           <rect>
+            <x>960</x>
+            <y>450</y>
+            <width>776</width>
+            <height>34</height>
+           </rect>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>776</width>
+            <height>34</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
          <zorder>cameraCanvas</zorder>
          <zorder>drawCanvas</zorder>
+         <zorder>grayscaleSample_2</zorder>
         </widget>
        </item>
        <item row="4" column="2" rowspan="2">
@@ -1440,8 +1464,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1124</width>
-     <height>21</height>
+     <width>1661</width>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

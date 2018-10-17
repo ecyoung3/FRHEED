@@ -103,7 +103,7 @@ config.read('config.ini')  # config file is named 'config.ini' and should be in 
 app = QtWidgets.QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
 
 # Select default save location if none set
-if config['Default']['pathset'] == 'False':
+if config['Default']['pathset'] != 'True':
     warning = QtWidgets.QMessageBox.warning(None,  'Notice', 'Please select a base directory for saving files.')
     file = str(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select Save Directory'))  # open file location dialog
     config['Default']['pathset'] = 'True'  # change config option to True
@@ -256,10 +256,13 @@ def grab(fps, queue):
                 imc = imc[:, :, 0:3]
                 imc = cv2.cvtColor(imc, cv2.COLOR_RGB2BGR)  # convert the RGB array to BGR
                 # Only start writing video once the video writer 'out' is defined
-                try:
+#                try:
+                if out.isOpened() and grabbed:
                     out.write(imc)  # write the frame to the video file
-                except NameError:
-                    pass
+                if not out.isOpened() or not grabbed:
+                    print('Video writer not instantiated')
+#                except NameError:
+#                    pass
 
 
 # This is the code for the main FRHEED program window. The UI is coded in qt designer and saved as a FRHEED.ui file.
@@ -317,16 +320,54 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.annotateOrientation.setStyleSheet('QLabel {color:white}')
         self.annotateSampleName.setStyleSheet('QLabel {color:white}')
         # TODO eventually remove the pixmaps and just plot things directly from the matplotlib library
-        self.grayscaleSample.setPixmap(QtGui.QPixmap('gray colormap.png'))  # display the sample for the  gray colormap
-        self.greenSample.setPixmap(QtGui.QPixmap('green colormap.png'))  # display the sample for the green colormap
-        self.hotSample.setPixmap(QtGui.QPixmap('hot colormap.png'))  # display the sample for the hot colormap
-        self.plasmaSample.setPixmap(QtGui.QPixmap('plasma colormap.png'))  # display the sample for the plasma colormap
+#        self.grayscaleSample.setPixmap(QtGui.QPixmap('gray colormap.png'))  # display the sample for the  gray colormap
+#        self.greenSample.setPixmap(QtGui.QPixmap('green colormap.png'))  # display the sample for the green colormap
+#        self.hotSample.setPixmap(QtGui.QPixmap('hot colormap.png'))  # display the sample for the hot colormap
+#        self.plasmaSample.setPixmap(QtGui.QPixmap('plasma colormap.png'))  # display the sample for the plasma colormap
+        gradient = np.linspace(0, 1, 776)
+        gradient = np.vstack((gradient,)*34)
+        pixmaps = ['gist_gray', 'RHEEDgreen', 'hot', 'plasma', 'seismic', 'hsv']
+        i = 0
+        for c in pixmaps:
+            pixmaps[i] = cm.get_cmap(name=c)  # convert config cmap to the matplotlib format
+            i += 1
+
+        g = np.uint8(pixmaps[0](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.grayscaleSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+
+        g = np.uint8(pixmaps[1](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.greenSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+
+        g = np.uint8(pixmaps[2](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.hotSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+
+        g = np.uint8(pixmaps[3](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.plasmaSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+
+        g = np.uint8(pixmaps[4](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.seismicSample.setPixmap(QtGui.QPixmap.fromImage(gra))
+
+        g = np.uint8(pixmaps[5](gradient)*255)
+        gr = Image.fromarray(g)
+        gra = ImageQt.ImageQt(gr)
+        self.hsvSample.setPixmap(QtGui.QPixmap.fromImage(gra))
 
         # Defining the starting displays of the timer and stopwatch screens
         self.stopwatchScreen.display('0.00')  # stopwatch screen display
         self.timerScreen.display('00:00:00.00')  # timer screen display
 
         # Setting button functionality, i.e. what function is called when clicked
+        # Toolbar buttons
         self.captureButton.clicked.connect(self.capture_image)
         self.recordButton.clicked.connect(self.record)
         self.liveplotButton.clicked.connect(self.liveplot)
@@ -337,17 +378,25 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         self.growerButton.clicked.connect(self.changeGrower)
         self.sampleButton.clicked.connect(self.changeSample)
         self.directoryButton.clicked.connect(self.openDirectory)
+        # Notepad buttons
         self.savenotesButton.clicked.connect(self.saveNotes)
         self.clearnotesButton.clicked.connect(self.clearNotes)
+        # Colormap buttons
         self.grayscaleButton.clicked.connect(self.mapGray)
         self.greenButton.clicked.connect(self.mapGreen)
         self.plasmaButton.clicked.connect(self.mapPlasma)
         self.hotButton.clicked.connect(self.mapHot)
+        self.seismicButton.clicked.connect(self.mapSeismic)
+        self.hsvButton.clicked.connect(self.mapHSV)
+        # Background settings
         self.backgroundButton.clicked.connect(self.setbackground)
         self.clearbackgroundButton.clicked.connect(self.clearbackground)
+        # Invert image
         self.invertButton.clicked.connect(self.invert)
+        # Changing exposure
         self.lowexposureButton.clicked.connect(self.lowexposure)
         self.highexposureButton.clicked.connect(self.highexposure)
+        # Timer and stopwatch
         self.starttimerButton.clicked.connect(self.timer)
         self.resettimerButton.clicked.connect(self.resettimer)
         self.startstopwatchButton.clicked.connect(self.stopwatch)
@@ -441,7 +490,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     # TODO this function still needs to be fully commented
     def setExposure(self):
         global exposure, cam, camtype
-        expo = self.changeExposure.value()
+        expo = int(self.changeExposure.value())
         if camtype == 'FLIR':
             exposure = float(1.2**expo)  # exponential scale for exposure (time in microseconds)
             self.changeExposureTime.setValue(int(exposure / 1000.0))
@@ -461,11 +510,11 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     # TODO this function still needs to be fully commented
     def highexposure(self):
         global exposure, cam, camtype
-        expo = self.setHighExposure.value()
+        expo = int(self.setHighExposure.value())
         if camtype == 'FLIR':
-            val = str(1000*expo)
-            cam.ExposureTime.SetValue(val)
-            config['VG']['highexposure'] = str(val)
+            val = 1000*expo
+            cam.ExposureTime.SetValue(int(val))
+            config['Default']['highexposure'] = str(val)
             # Update the high exposure default in the config file
             with open('config.ini', 'w') as configfile:
                 config.write(configfile)
@@ -482,9 +531,9 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         global exposure, cam, camtype
         expo = int(self.setLowExposure.value())
         if camtype == 'FLIR':
-            val = str(1000*expo)
-            cam.ExposureTime.SetValue(val)
-            config['VG']['lowexposure'] = str(val)
+            val = 1000*expo
+            cam.ExposureTime.SetValue(int(val))
+            config['Default']['lowexposure'] = str(val)
             # Update the high exposure default in the config file
             with open('config.ini', 'w') as configfile:
                 config.write(configfile)
@@ -798,35 +847,37 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
     def record(self):
         global recording, isfile, filename, path, samplename, vidnum, out, fourcc, vidx, vidy
         vidx, vidy = self.scaled_w, self.scaled_h
-        recording = not recording
-        if recording and running:
-            self.statusbar.showMessage('Recording video...')
-            self.recordButton.setText('Stop Recording')
-            vidnum_str = str(vidnum).zfill(2)
-            # Format timestamp as Year-Mo-Day Hours.Minutes.Seconds (AM/PM) i.e. 2018-10-07 03.19.23 PM
-            timestamp = time.strftime("%Y-%m-%d %I.%M.%S %p")
-            # Generate file name as sample name + video number + timestamp
-            filename = samplename+' '+vidnum_str+' '+timestamp
-            vidnum = int(vidnum) + 1  # increment the video number by 1
-            # Create path if it doesn't exist so video writing doesn't fail
-            if not os.path.exists(path):
-                os.makedirs(path)
-            # Set minimum video size to 640 by 480
-            if int(vidx) < 640 and int(vidy) < 480:
-                vidx, vidy = 640, 480
-            # Create object that will handle the video writing. This part can be complicated depending on which computer
-            # the program is running on, since not all file + codec combinations will work. The codec is determined by
-            # 'fourcc' which is defined at the beginning of this code. The '.avi' extension with 'MJPG' codec seems to
-            # generally work for recording color video with relatively small file sizes.
-            # Arguments for cv2.VideoWriter: (filename, codec, target fps, dimensions, color (False = 8-bit grayscale))
-            out = cv2.VideoWriter(path+filename+'.mp4', fourcc, 35.0, (int(vidx), int(vidy)), True)
-        if not recording and running:
-            self.statusbar.showMessage('Video saved to '+path+' as '+filename+'.avi')
-            self.recordButton.setText('Record Video')
-            out.release()  # release the capture so the video can be opened on the system
-            print('Released video capature')
+#        recording = not recording
+        if running:
+            if not recording:
+                self.statusbar.showMessage('Recording video...')
+                self.recordButton.setText('Stop Recording')
+                vidnum_str = str(vidnum).zfill(2)
+                # Format timestamp as Year-Mo-Day Hours.Minutes.Seconds (AM/PM) i.e. 2018-10-07 03.19.23 PM
+                timestamp = time.strftime("%Y-%m-%d %I.%M.%S %p")
+                # Generate file name as sample name + video number + timestamp
+                filename = str(samplename+' '+vidnum_str+' '+timestamp)
+                vidnum = int(vidnum) + 1  # increment the video number by 1
+                # Create path if it doesn't exist so video writing doesn't fail
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                # Set minimum video size to 640 by 480
+                if int(vidx) < 640 and int(vidy) < 480:
+                    vidx, vidy = 640, 480
+                # Create object that will handle the video writing. This part can be complicated depending on which
+                # computer the program is running on, since not all file + codec combinations will work. The codec is
+                # determined by 'fourcc' which is defined at the beginning of this code. The '.mp4' extension with
+                # 'mp4v' codec seems to generally work for recording color video with relatively small file sizes.
+                # Args for cv2.VideoWriter: (filename, codec, target fps, dimensions, color (False = 8-bit grayscale))
+                out = cv2.VideoWriter(str(path+filename+'.mp4'), fourcc, 30.0, (int(vidx), int(vidy)), True)
+                recording = True
+            else:
+                self.statusbar.showMessage('Video saved to '+path+' as '+filename+'.avi')
+                self.recordButton.setText('Record Video')
+                out.release()  # release the capture so the video can be opened on the system
+                recording = False
         # Display an error popup if the camera is not running when the 'Record' button is clicked
-        if not running:
+        else:
             QtWidgets.QMessageBox.warning(self, 'Error', 'Camera is not running')
 
     # Live plotting intensity data
@@ -1247,11 +1298,19 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
 
     def mapHot(self):
         global cmap
-        cmap = cm.seismic
+        cmap = cm.hot
 
     def mapPlasma(self):
         global cmap
         cmap = cm.plasma
+        
+    def mapSeismic(self):
+        global cmap
+        cmap = cm.seismic
+        
+    def mapHSV(self):
+        global cmap
+        cmap = cm.hsv
 
     # Toggle image inversion
     def invert(self):
@@ -1411,7 +1470,7 @@ class FRHEED(QtWidgets.QMainWindow, form_class):
         # Release FLIR instance
         if camtype == 'FLIR':
             system.ReleaseInstance()
-        time.sleep(0.2)
+        time.sleep(0.1)
         self.close()
 
 
