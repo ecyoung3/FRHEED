@@ -144,3 +144,6 @@ This project is licensed under the GNU General Public License. Please see the [L
 ## Acknowledgments
 
 * Certain companies for making RHEED software over-priced enough to warrant the creation of FRHEED
+* Google / Stack Overflow
+* Coffee
+
