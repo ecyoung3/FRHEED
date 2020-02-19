@@ -8,6 +8,7 @@ __pycache__/
 
 # Standard config options
 config.ini
+config_default.ini
 
 # Distribution / packaging
 .Python
