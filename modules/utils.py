@@ -42,61 +42,44 @@ def getConfig(configname: str = 'config.ini'):
 [Default]
 camera_type = 
 path = 
-fps = 30.0
 colormap = gist_gray
 user = Default
 sample = Default
-flir_gamma = 0.60
-flir_blacklevel = 0.00
-flir_gain = 25.00
-flir_exposure = 10000
-flir_low_exposure = 10000
-flir_high_exposure = 75000
-usb_exposure = -5
-usb_low_exposure = -9
-usb_high_exposure = -1
+flir_gamma = 0.6
+flir_blacklevel = 0.0
+flir_gain = 25.0
+flir_exposure = 3500
+usb_exposure = -4
 
 [Profile 1]
 profile_name = Profile 1
-inverted = False
-flir_exposure = 10000
-flir_low_exposure = 10000
-flir_high_exposure = 100000
-usb_exposure = -4
-usb_low_exposure = -1
-usb_high_exposure = -9
 colormap = gist_gray
+inverted = False
+usb_exposure = -4
+flir_exposure = 5000
 flir_gamma = 0.6
 flir_blacklevel = 0.0
-flir_gain = 25.00
+flir_gain = 25.0
 
 [Profile 2]
-profile_name = Profile 1
-inverted = False
-flir_exposure = 10000
-flir_low_exposure = 10000
-flir_high_exposure = 100000
-usb_exposure = -4
-usb_low_exposure = -1
-usb_high_exposure = -9
+profile_name = Profile 2
 colormap = gist_gray
+inverted = False
+usb_exposure = -4
+flir_exposure = 5000
 flir_gamma = 0.6
 flir_blacklevel = 0.0
-flir_gain = 25.00
+flir_gain = 25.0
 
 [Profile 3]
-profile_name = Profile 1
-inverted = False
-flir_exposure = 10000
-flir_low_exposure = 10000
-flir_high_exposure = 100000
-usb_exposure = -4
-usb_low_exposure = -1
-usb_high_exposure = -9
+profile_name = Profile 3
 colormap = gist_gray
+inverted = False
+usb_exposure = -4
+flir_exposure = 5000
 flir_gamma = 0.6
 flir_blacklevel = 0.0
-flir_gain = 25.00
+flir_gain = 25.0
 """
         with open(config_path, 'x') as c:
             c.write(config_default)
