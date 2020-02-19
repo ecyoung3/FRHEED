@@ -137,9 +137,8 @@ def setUser(parent):
         config.write(cfg)
 
 def setSample(parent):
-    configfile, config = getConfig()
-    basepath = config['Default']['path']
-    user = config['Default']['user']
+    basepath = parent.config['Default']['path']
+    user = parent.config['Default']['user']
     userpath = os.path.join(basepath, user, '')
     if not os.path.exists(basepath):
         basepath = setBasepath(parent)
@@ -156,9 +155,9 @@ def setSample(parent):
         return
     if not os.path.exists(samplepath):
         os.makedirs(samplepath)
-    config['Default']['sample'] = entry
-    with open(configfile, 'w') as cfg:
-        config.write(cfg)
+    parent.config['Default']['sample'] = entry
+    with open(parent.configfile, 'w') as cfg:
+        parent.config.write(cfg)
         
 # Open the current save directory
 def openDirectory():
