@@ -1,0 +1,9 @@
+ioPaths:
+  -
+    - "gui/*.ui"
+    - "%%FILENAME%%_ui.py"
+  -
+    - "resources/resources.qrc"
+    - "%%FILENAME%%_rc.py"
+uic_options: --from-imports
+force: False
