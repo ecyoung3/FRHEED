@@ -10,6 +10,10 @@ __pycache__/
 config.ini
 config_default.ini
 
+# Temp build files
+resources_rc.py
+FRHEED_ui.py
+
 # Distribution / packaging
 .Python
 build/
