@@ -51,6 +51,7 @@ import pyqtgraph as pg  # for plotting
 from scipy.fftpack import rfft  # for performing real FFT on data
 import PySpin # for connecting to and controlling the FLIR camera
 import pyqt5ac # for importing .qrc resource file for the UI
+import pathvalidate
 
 # Custom modules for running FRHEED
 from modules import cameras, utils, build, guifuncs
@@ -99,18 +100,45 @@ class FRHEED(QMainWindow, form_class):
             utils.setBasepath(self)
             
         # Load config options
-        self.base = self.basepath = self.config['Default']['path']
+        self.basepath = self.config['Default']['path']
+        
+        # Check to make sure the basepath is valid
+        test = os.path.join(self.basepath, '')
+        if not pathvalidate.is_valid_filepath(test,
+                                              platform = 'Windows'):
+            utils.setBasepath(self)
+            
+        # Check to make sure the user directory is valid and exists
         self.user = self.user = self.config['Default']['user']
-        self.sample = self.samplename = self.config['Default']['sample']
+        test = os.path.join(self.basepath, self.user, '')
+        if not pathvalidate.is_valid_filepath(test,
+                                              platform = 'Windows'):
+            utils.setUser(self, changesample = False)
+        elif not os.path.exists(test):
+            os.path.makesdirs(test)
+            
+        # Check to make sure the sample directory is valid and exists
+        self.sample = self.config['Default']['sample']
+        test = os.path.join(self.basepath, self.user, self.sample, '')
+        if not pathvalidate.is_valid_filepath(test,
+                                              platform = 'Windows'):
+            utils.setSample(self)
+        elif not os.path.exists(test):
+            os.makedirs(test)
+        
+        # Set the path that collected data will be saved into
+        self.activepath = os.path.join(self.basepath, self.user, 
+                                       self.sample, '')
+        
+        # Update user and sample text
+        self.sampleLabel.setText(self.sample)
+        self.userLabel.setText(self.user)
         
         # Set up the default colormap
         try:
             self.cmap = cm.get_cmap(self.config['Default']['colormap'])
         except:
             self.cmap = cm.get_cmap('gist_gray')
-        
-        # Set the path that collected data will be saved into
-        self.activepath = os.path.join(self.base, self.user, self.sample, '') # joining '' adds a / to the end
         
         # No camera selected by default
         self.camtype = None
@@ -231,7 +259,7 @@ class FRHEED(QMainWindow, form_class):
             self.shapes[ac]['end'] = None
             guifuncs.drawShapes(self, deleteshape = True)
         
-    def closeEvent(self, event):
+    def closeEvent(self, event, **kwargs):
         # Stop plotting
         self.plotting = False
         
@@ -243,8 +271,11 @@ class FRHEED(QMainWindow, form_class):
         self.running = False
         
         # Disconnect cameras
-        cameras.FLIR().disconnect(self.system)
-        cameras.USB().disconnect()
+        try:
+            cameras.FLIR().disconnect(self.system)
+            cameras.USB().disconnect()
+        except:
+            pass
         
         # Close the main window
         self.close()

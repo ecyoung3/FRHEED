@@ -21,7 +21,7 @@ Github: https://github.com/ecyoung3/FRHEED
 """
 
 from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy # GUI elements
-from PyQt5.QtGui import QPixmap, QTabWidget, QTabBar
+from PyQt5.QtGui import QPixmap, QTabWidget, QTabBar, QFont
 from PyQt5.QtCore import Qt # for the GUI
 import configparser
 from matplotlib import cm
@@ -203,17 +203,34 @@ def plots(self):
     self.oldDataTabs.tabCloseRequested.connect(lambda i: self.oldDataTabs.removeTab(i))
     
     # Styling the area intensity data plots
-    areaplots = [self.livePlotAxes, self.oldPlotAxes]
+    areaplots = [self.livePlotAxes]
     fftplots = [self.plotFFTred, self.plotFFTgreen, self.plotFFTblue]
     allplots = areaplots + fftplots
+    plotfont = QFont('Bahnschrift')
+    fontstyle = {
+        'color': 'white', 
+        'font-size': '11pt', 
+        'font-family': 'Bahnschrift SemiLight'}
+    tickstyle = {'tickTextOffset': 10}
+    plotfont.setPixelSize(12)
     for p in allplots:
-        p.plotItem.showGrid(True, True)
+        p.plotItem.showGrid(True, False)
+        p.plotItem.getAxis('bottom').tickFont = plotfont
+        p.plotItem.getAxis('bottom').setStyle(**tickstyle)
+        for axis in ['left', 'right', 'top']:
+            p.plotItem.getAxis(axis).show()
+            if axis != 'top':
+                p.plotItem.getAxis(axis).setWidth(6)
+            else:
+                p.plotItem.getAxis(axis).setHeight(6)
+            p.plotItem.getAxis(axis).setStyle(tickTextOffset = 30)
         
     for p in areaplots:
         p.setContentsMargins(0, 4, 10, 0)
         p.setLimits(xMin=0)
-        p.setLabel('bottom', 'Time (s)')
-    
+        p.setLabel('bottom', 'Time (s)', **fontstyle)
+        p.plotItem.getAxis('bottom').setTickSpacing(2, 1)
+        
 def camsettings(self):
     # Load config options
     self.scaled_gamma = float(self.config['Default']['flir_gamma'])
@@ -300,7 +317,7 @@ def variables(self):
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((228, 88, 101), width=1, ), 
+                        pen = pg.mkPen((228, 88, 101), width=1), 
                         clear = True),            
             },
         'green': {
@@ -344,6 +361,7 @@ def variables(self):
                         clear = False),
             },
         }
+    self.stored_data = {}
     self.colorindex = 0
     self.activecolor = list(self.shapes.keys())[self.colorindex]
 

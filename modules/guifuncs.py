@@ -516,6 +516,8 @@ def togglePlot(self):
         self.plotstart = time.time()
         self.plot_thread()
     else:
+        storeData(self, self.shapes)
+        plotStoredData(self)
         for col in self.shapes.keys():
             self.shapes[col]['data'] = []
             self.shapes[col]['time'] = []
@@ -560,23 +562,54 @@ def calculateIntensities(self, frame, finished, **kwargs):
     # Emit the finished signal (probably not essential)
     finished.emit()
 
-def updatePlots(self, finished, timespan: float = 30.0, **kwargs):
+def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
     while self.plotting:
+        # Count the number of active plots
+        numplots = sum(1 for col in self.shapes if self.shapes[col]['data'])
         for col in self.shapes.keys():
             t = self.shapes[col]['time']
             data = self.shapes[col]['data']
             pos = 0
             if t:
-                if max(t) > timespan:
+                if max(t)-min(t) > timespan:
                     pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
+                    self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
+                elif numplots <= 1:
+                    bot = np.amin([t[-1]-timespan, 0])
+                    self.livePlotAxes.setXRange(bot, t[-1], padding=0)
             self.shapes[col]['plot'].setData(
                 t[pos:], 
                 data[pos:]
                 )
-            # self.shapes[col]['plot'].setLogMode(False, True)
         time.sleep(0.03) # give time for the GUI to update
         finished.emit() # emit signal because otherwise the thread crashes
 
+def storeData(self, shapes: dict):
+    num_stored_datasets = len([x for x in self.stored_data.keys()])
+    new_entry = str(num_stored_datasets+1)
+    self.stored_data[new_entry] = {}
+    for color in shapes.keys():
+        self.stored_data[new_entry][color] = {}
+        t = shapes[color]['time']
+        data = shapes[color]['data']
+        self.stored_data[new_entry][color]['time'] = t
+        self.stored_data[new_entry][color]['data'] = data
+
+def plotStoredData(self):
+    dataset_list = [x for x in self.stored_data.keys()]
+    num_stored_datasets = len(dataset_list)
+    if num_stored_datasets == 0:
+        return
+    axes = utils.addPlotTab(self.oldDataTabs)
+    utils.formatPlots(axes)
+    newest_dataset = dataset_list[-1]
+    plots = utils.addPlots(axes)
+    for color in self.stored_data[newest_dataset]:
+        t = self.stored_data[newest_dataset][color]['time']
+        data = self.stored_data[newest_dataset][color]['data']
+        if t and data:
+            plots[color].setData(t, data)
+        
 def plotFFT(self):
     pass
 
