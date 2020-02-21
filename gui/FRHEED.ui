@@ -2369,7 +2369,7 @@ QSizeGrip {
                <bool>false</bool>
               </property>
               <property name="currentIndex">
-               <number>0</number>
+               <number>1</number>
               </property>
               <property name="tabsClosable">
                <bool>false</bool>
@@ -3440,7 +3440,7 @@ QSizeGrip {
               </widget>
               <widget class="QWidget" name="tabOldData">
                <attribute name="title">
-                <string>Saved Data</string>
+                <string>Stored Data</string>
                </attribute>
                <layout class="QGridLayout" name="gridLayout_8">
                 <property name="leftMargin">
@@ -10365,6 +10365,9 @@ QSizeGrip {
                   </property>
                   <property name="currentIndex">
                    <number>0</number>
+                  </property>
+                  <property name="movable">
+                   <bool>true</bool>
                   </property>
                   <widget class="QWidget" name="tabFFTred">
                    <attribute name="title">

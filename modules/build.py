@@ -217,7 +217,7 @@ def plots(self):
         p.plotItem.showGrid(True, False)
         p.plotItem.getAxis('bottom').tickFont = plotfont
         p.plotItem.getAxis('bottom').setStyle(**tickstyle)
-        for axis in ['left', 'right', 'top']:
+        for axis in ['right', 'top']:
             p.plotItem.getAxis(axis).show()
             if axis != 'top':
                 p.plotItem.getAxis(axis).setWidth(6)
@@ -229,7 +229,10 @@ def plots(self):
         p.setContentsMargins(0, 4, 10, 0)
         p.setLimits(xMin=0)
         p.setLabel('bottom', 'Time (s)', **fontstyle)
+        p.setLabel('left', 'Intensity (Counts/Pixel)', **fontstyle)
         p.plotItem.getAxis('bottom').setTickSpacing(2, 1)
+        p.plotItem.getAxis('bottom').setHeight(42)
+        p.plotItem.getAxis('left').setWidth(48)
         
 def camsettings(self):
     # Load config options

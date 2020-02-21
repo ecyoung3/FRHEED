@@ -354,7 +354,7 @@ def formatPlots(plotwidget, style: str = 'area'):
     plotwidget.plotItem.getAxis('bottom').tickFont = plotfont
     plotwidget.plotItem.getAxis('bottom').setStyle(**tickstyle)
     plotwidget.setContentsMargins(0, 4, 10, 0)
-    for axis in ['left', 'right', 'top']:
+    for axis in ['right', 'top']:
         plotwidget.plotItem.getAxis(axis).show()
         if axis != 'top':
             plotwidget.plotItem.getAxis(axis).setWidth(6)
@@ -364,7 +364,9 @@ def formatPlots(plotwidget, style: str = 'area'):
     if style == 'area':
         plotwidget.setLimits(xMin=0)
         plotwidget.setLabel('bottom', 'Time (s)', **fontstyle)
-        # plotwidget.plotItem.getAxis('bottom').setTickSpacing(2, 1)
+        plotwidget.setLabel('left', 'Intensity (Counts/Pixel)', **fontstyle)
+        plotwidget.plotItem.getAxis('bottom').setHeight(42)
+        plotwidget.plotItem.getAxis('left').setWidth(48)
 
 # =============================================================================
 # GRAVEYARD
