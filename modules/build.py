@@ -307,8 +307,8 @@ def variables(self):
     self.realfps = None
     self.recording = False
     self.plotting = False
-    self.readytoplot = False
     self.drawing = False
+    self.plotspaused = False
     self.visibleshapes = True
     self.timeset, self.savedtime, self.savedtime2, self.totaltime = 0.0, 0.0, 0.0, 0.0
     self.hours, self.minutes, self.seconds = 0.0, 0.0, 0.0

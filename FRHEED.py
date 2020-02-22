@@ -92,6 +92,10 @@ class FRHEED(QMainWindow, form_class):
         # Build components of UI that don't depend on camera selection
         build.core_ui(self)
         
+        # Load sample image for RHEED simulation
+        self.rheed_sample_img = np.array(Image.open('rheed_spots.png'))
+        self.frameindex = 0
+        
         # Initialize configuration file
         self.configfile, self.config = utils.getConfig()
         
@@ -254,11 +258,12 @@ class FRHEED(QMainWindow, form_class):
                 pass
             # eventually make it so ctrl + scroll zooms the image
         if event.key() == Qt.Key_Delete and self.drawCanvas.underMouse():
-            ac = self.activecolor
-            self.shapes[ac]['start'] = None
-            self.shapes[ac]['end'] = None
-            guifuncs.drawShapes(self, deleteshape = True)
-        
+            if not self.plotting:
+                ac = self.activecolor
+                self.shapes[ac]['start'] = None
+                self.shapes[ac]['end'] = None
+                guifuncs.drawShapes(self, deleteshape = True)
+
     def closeEvent(self, event, **kwargs):
         # Stop plotting
         self.plotting = False
@@ -331,21 +336,16 @@ if __name__ == '__main__':
 
 # TODO LIST
 """
-- update Github
-- update plot tab names and plotting backend (try to switch from 
-      pyqtgraph to matplotlib w/ blitting)
+- figure out why FLIR camera becomes incredibly laggy after long time
+    idling in Spyder (i.e. overnight)
 - get Vimba/Firewire cameras working
 - adding video playback/analysis
 - fix tooltips
-- improve shape drawing coordinate system
-- still need to fix what happens when you input invalid characters 
-      into user/sample
 - ability to popout camera
 - shape translational motion
 - add 1D line plot for strain analysis
 - 3D plotting
 - arbitrary masks
-- overhaul code structure & formatting to be more professional
 - update method of inputting timer amount
 """
 '''

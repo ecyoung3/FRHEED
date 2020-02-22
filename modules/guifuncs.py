@@ -38,6 +38,7 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap, QColor, QPen, QPainter
 from PyQt5.QtGui import QMouseEvent, QCursor
 from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot
 import pyqtgraph as pg
+from scipy.ndimage import gaussian_filter
 
 from . import cameras, utils
 
@@ -45,11 +46,22 @@ from . import cameras, utils
 # THREADED FUNCTIONS
 # =============================================================================
 
-def liveStream(self, ready, recframe, plotframe, **kwargs):
+def liveStream(
+        self, 
+        ready, 
+        recframe, 
+        plotframe, 
+        simulated: bool = True, 
+        **kwargs
+        ):
+    
     while self.running:
         # Grab the camera frame
-        img = cameras.grabImage(self)
-        
+        if not simulated:
+            img = cameras.grabImage(self)
+        else:
+            img = simulateRHEED(self)
+            
         # Go back to the start of the while loop (skip subsequent code) if img is None
         if img is None:
             continue
@@ -522,8 +534,14 @@ def togglePlot(self):
             self.shapes[col]['data'] = []
             self.shapes[col]['time'] = []
             self.shapes[col]['plot'].clear()
-
-def calculateIntensities(self, frame, finished, **kwargs):
+            
+def calculateIntensities(
+        self, 
+        frame, 
+        finished, 
+        mode: str = 'average', 
+        offset: int = 100,
+        **kwargs):
     if not self.plotting or not self.liveplotButton.isChecked():
         return
     plotnum = 0
@@ -543,14 +561,13 @@ def calculateIntensities(self, frame, finished, **kwargs):
             # Sum the intensities
             cts = np.sum(cut)
 
-            # Scale the intensity counts (divide by number of pixels in mask)
-            rel_cts = cts/cut.size
-            
-            # Append the data point
-            data.append(rel_cts)
-            
-            # Shift the plot to try to avoid overlapping with other plots
-            data = data*(1+plotnum)
+            # Append the data point depending on the type of intensity calc mode
+            if mode == 'average':
+                # Scale the intensity counts (divide by number of pixels in mask)
+                rel_cts = cts/cut.size
+                data.append(rel_cts + offset*plotnum)
+            elif mode == 'sum':
+                data.append(cts + offset*plotnum)
             
             # Store the time data
             t = time.time() - self.plotstart
@@ -567,10 +584,11 @@ def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
         # Count the number of active plots
         numplots = sum(1 for col in self.shapes if self.shapes[col]['data'])
         for col in self.shapes.keys():
+            start = self.shapes[col]['start']
             t = self.shapes[col]['time']
             data = self.shapes[col]['data']
             pos = 0
-            if t:
+            if t and start:
                 if max(t)-min(t) > timespan:
                     pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
                     self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
@@ -613,6 +631,28 @@ def plotStoredData(self):
 def plotFFT(self):
     pass
 
+def simulateRHEED(self, **kwargs):
+    img = self.rheed_sample_img
+    
+    def changeBrightness(img, brightness):
+        img = img.astype('float32')
+        img += brightness
+        img = np.clip(img, 0, 255)
+        img = img.astype('uint8')
+        return img
+    
+    t = time.time()
+    sec = float(str(t-int(t))[1:])
+    
+    amplitude = np.sin(2*np.pi*sec)
+    
+    img = changeBrightness(img, 50*amplitude)
+
+    self.frameindex += 1
+    
+    return img
+        
+        
 # =============================================================================
 # FUNCTIONS FOR MODIFYING SHAPE OVERLAYS AND IMAGE SELECTION AREA
 # =============================================================================
