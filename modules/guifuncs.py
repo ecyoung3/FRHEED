@@ -23,6 +23,7 @@ import sys
 import os
 import configparser
 import numpy as np
+from numpy.linalg import norm
 import queue
 import time
 import datetime
@@ -36,7 +37,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox, QInputDialog
 from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QColor, QPen, QPainter
 from PyQt5.QtGui import QMouseEvent, QCursor
-from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot
+from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot, QPoint
 import pyqtgraph as pg
 from scipy.ndimage import gaussian_filter
 
@@ -51,13 +52,12 @@ def liveStream(
         ready, 
         recframe, 
         plotframe, 
-        simulated: bool = True, 
         **kwargs
         ):
     
     while self.running:
         # Grab the camera frame
-        if not simulated:
+        if not self.simulateRHEED:
             img = cameras.grabImage(self)
         else:
             img = simulateRHEED(self)
@@ -530,6 +530,7 @@ def togglePlot(self):
     else:
         storeData(self, self.shapes)
         plotStoredData(self)
+        self.livePlotAxes.setXRange(0, 10, padding=0)
         for col in self.shapes.keys():
             self.shapes[col]['data'] = []
             self.shapes[col]['time'] = []
@@ -546,14 +547,14 @@ def calculateIntensities(
         return
     plotnum = 0
     for col in self.shapes.keys():
-        start = self.shapes[col]['start']
-        end = self.shapes[col]['end']
-        if start is not None and end is not None:
+        tl = self.shapes[col]['top left']
+        br = self.shapes[col]['bottom right']
+        if None not in [tl, br]:
             data = self.shapes[col]['data']
             
             # Get the min/max coordinates for the mask shape
-            xmin, xmax = tuple(sorted([start.x(), end.x()]))
-            ymin, ymax = tuple(sorted([start.y(), end.y()]))
+            xmin, xmax = tuple(sorted([tl.x(), br.x()]))
+            ymin, ymax = tuple(sorted([tl.y(), br.y()]))
             
             # Cut the frame data for extracting intensity
             cut = frame[ymin:ymax, xmin:xmax]
@@ -575,7 +576,7 @@ def calculateIntensities(
             
             # Increment plot number for vertical shifting
             plotnum += 1
-            
+
     # Emit the finished signal (probably not essential)
     finished.emit()
 
@@ -584,11 +585,13 @@ def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
         # Count the number of active plots
         numplots = sum(1 for col in self.shapes if self.shapes[col]['data'])
         for col in self.shapes.keys():
-            start = self.shapes[col]['start']
+            tl = self.shapes[col]['top left']
             t = self.shapes[col]['time']
             data = self.shapes[col]['data']
             pos = 0
-            if t and start:
+            if t and tl:
+                # if col == 'red':
+                #     openGLPlot(self)
                 if max(t)-min(t) > timespan:
                     pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
                     self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
@@ -599,9 +602,9 @@ def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
                 t[pos:], 
                 data[pos:]
                 )
-        time.sleep(0.03) # give time for the GUI to update
+        time.sleep(0.04) # give time for the GUI to update
         finished.emit() # emit signal because otherwise the thread crashes
-
+        
 def storeData(self, shapes: dict):
     num_stored_datasets = len([x for x in self.stored_data.keys()])
     new_entry = str(num_stored_datasets+1)
@@ -631,7 +634,7 @@ def plotStoredData(self):
 def plotFFT(self):
     pass
 
-def simulateRHEED(self, **kwargs):
+def simulateRHEED(self):
     img = self.rheed_sample_img
     
     def changeBrightness(img, brightness):
@@ -646,12 +649,11 @@ def simulateRHEED(self, **kwargs):
     
     amplitude = np.sin(2*np.pi*sec)
     
-    img = changeBrightness(img, 50*amplitude)
+    img = changeBrightness(img, 10*amplitude)
 
     self.frameindex += 1
     
     return img
-        
         
 # =============================================================================
 # FUNCTIONS FOR MODIFYING SHAPE OVERLAYS AND IMAGE SELECTION AREA
@@ -696,28 +698,172 @@ def drawShapes(self, deleteshape: bool = False):
     # Set the brush color
     pen = QtGui.QPen(QColor(*color))
     qp.setPen(pen)
-    if not deleteshape:
-        qp.drawRect(QRect(self.beginpos, self.currpos))
-
+    
+    # Re-draw the active rectangle if not deleting or resizing the shape
+    if not deleteshape and not self.resizing:
+        self.app.setOverrideCursor(Qt.ArrowCursor)
+        rect = QRect(self.beginpos, self.currpos)
+        self.shapes[self.activecolor]['rect'] = rect
+        qp.drawRect(rect)
+    elif self.resizing and self.shapes[self.activecolor]['rect'] is not None:
+        rect = self.shapes[self.activecolor]['rect']
+        qp.drawRect(rect)
+        
     # x, y = self.beginpos.x(), self.beginpos.y()
     # w, h = self.currpos.x() - x, self.currpos.y() - y
     # qp.drawEllipse(x, y, w, h)
     
-    # Paint existing shapes
+    # Paint existing shapes other than the active color
     for col in self.shapes.keys():
-        if col is not self.activecolor or deleteshape:
-            start = self.shapes[col]['start']
-            end = self.shapes[col]['end']
-            if start is not None and end is not None:
-                p = QPen(QColor(*self.shapes[col]['color']))
-                qp.setPen(p)
-                qp.drawRect(QRect(start, end))
+        rect = self.shapes[col]['rect']
+        tl = self.shapes[col]['top left']
+        br = self.shapes[col]['bottom right']
+        p = QPen(QColor(*self.shapes[col]['color']))
+        qp.setPen(p)
+        if col != self.activecolor or deleteshape:
+            if rect is not None:
+                qp.drawRect(rect)
+            elif None not in [tl, br]:
+                self.shapes[col]['rect'] = QRect(tl, br)
+                qp.drawRect(QRect(tl, br))
 
     # End the QPainter event otherwise the GUI will crash
     qp.end()
+    
     # Show the drawn shapes on the drawing canvas
     self.drawCanvas.setPixmap(pmap)
         
+def highlightSide(self, pos: QPoint):
+    # Get point coordinates
+    pos = [pos.x(), pos.y()]
+
+    corners = getCorners(self, self.activecolor)
+    
+    if corners is None:
+        return
+    
+    # Calculate separation between cursor and each side to determine which side
+    # is the nearest. List of coordinates is [[x1, y1], [x2, y2]]
+    sides = {
+        'left': [corners['top left'], corners['bottom left']],
+        'right': [corners['top right'], corners['bottom right']],
+        'bottom': [corners['bottom left'], corners['bottom right']],
+        'top': [corners['top left'], corners['top right']]
+        }
+    
+    sideseps = []
+    for side, seg in sides.items():
+        sideseps.append([utils.distFromSegment(pos, seg), side])
+        
+    # Calculate distance from each corner
+    cornerseps = []
+    for pt in corners.keys():
+        diff = utils.pythagDist(corners[pt], pos)
+        cornerseps.append([diff, pt])
+        
+    # Sort side separations to find the smallest
+    sideseps = sorted(sideseps)
+    smin = sideseps[0]
+    
+    # Sort corner separations to find the smallest
+    cornerseps = sorted(cornerseps)
+    cmin = cornerseps[0]
+    
+    # Sort all separations to find the smallest
+    allseps = sorted(sideseps + cornerseps)
+    allmin = allseps[0]
+    
+    # If the smallest corner separation is within the threshold (15px), use
+    # that separation instead (for corner-resizing)
+    if cmin[0] < 15:
+        dist = cmin[0]
+        where = cmin[1]
+    else:
+        dist = allmin[0]
+        where = allmin[1]
+    
+    # 15px threshold separation for resizing the shapes
+    if dist < 15 or self.movingside is not None:
+        self.cursornearshape = True
+        # Don't change the cursor if the shape is being drawn w/ left click
+        if self.leftpressed:
+            return
+        
+        # Don't change the cursor unless the cursor is close when it is clicked
+        # (ignore events when the RMB is clicked far from shape and moved near)
+        if self.rightpressed and not self.resizing:
+            return
+        
+        # If currently resizing, don't look for another side to move
+        if self.movingside is not None:
+            resizeShape(self, pos, self.activecolor, self.movingside)
+            return
+        
+        # Change the cursor to show resizing is available depending on which
+        # side or corner is closest to the cursor (within 15px separation)
+        if where in ['left', 'right']:
+            self.app.setOverrideCursor(Qt.SizeHorCursor)
+        elif where in ['top', 'bottom']:
+            self.app.setOverrideCursor(Qt.SizeVerCursor)
+        elif where in ['top left', 'bottom right']:
+            self.app.setOverrideCursor(Qt.SizeFDiagCursor)
+        elif where in ['top right', 'bottom left']:
+            self.app.setOverrideCursor(Qt.SizeBDiagCursor)
+        
+        # Resize from wherever the cursor is closest to
+        resizeShape(self, pos, self.activecolor, where)
+      
+    # If the mouse isn't close to the shape, make the cursor normal
+    else:
+        self.cursornearshape = False
+        self.movingside = None
+        self.app.setOverrideCursor(Qt.ArrowCursor)
+ 
+def resizeShape(self, cursorpos, color, side):
+    if not self.resizing or self.shapes[color]['rect'] is None:
+        return
+    
+    self.movingside = side
+    sides = side.split(' ')
+    
+    x, y = cursorpos[0], cursorpos[1]
+    
+    rect = self.shapes[color]['rect']
+
+    for s in sides:
+        if s == 'top':
+            rect.setTop(y)
+        elif s == 'bottom':
+            rect.setBottom(y)
+        elif s == 'left':
+            rect.setLeft(x)
+        elif s == 'right':
+            rect.setRight(x)
+        
+    self.shapes[color]['rect'] = rect
+    
+def getCorners(self, color):
+    # Get the rectangle to determine absolute corner coordinates for
+    rect = self.shapes[color]['rect']
+    if rect is None:
+        return
+
+    # This method is used to make sure the *actual* corners are retrieved
+    # It can get confusing if there are negative dimensions in the rectangle
+    # .normalized() could solve this but I'm doing it this way ¯\_(ツ)_/¯
+    coords = list(rect.getCoords())
+    xmin, xmax = sorted([coords[0], coords[2]])
+    ymin, ymax = sorted([coords[1], coords[3]])
+
+    corners = {
+        'top left': [xmin, ymin],
+        'top right': [xmax, ymin],
+        'bottom right': [xmax, ymax],
+        'bottom left': [xmin, ymax],
+        }
+
+    return corners
+    
 def moveShapes(self):
     pass
 

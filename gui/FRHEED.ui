@@ -212,6 +212,9 @@
     <bold>false</bold>
    </font>
   </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
   <property name="focusPolicy">
    <enum>Qt::StrongFocus</enum>
   </property>
@@ -817,6 +820,9 @@ QSizeGrip {
      <bold>false</bold>
     </font>
    </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
    <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
     <property name="leftMargin">
      <number>2</number>
@@ -1012,6 +1018,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
@@ -1218,6 +1227,9 @@ QSizeGrip {
            </disabled>
           </palette>
          </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -1408,6 +1420,9 @@ QSizeGrip {
              </colorrole>
             </disabled>
            </palette>
+          </property>
+          <property name="mouseTracking">
+           <bool>true</bool>
           </property>
           <layout class="QGridLayout" name="gridLayout_23">
            <property name="leftMargin">
@@ -1604,6 +1619,9 @@ QSizeGrip {
                 </colorrole>
                </disabled>
               </palette>
+             </property>
+             <property name="mouseTracking">
+              <bool>true</bool>
              </property>
              <property name="frameShape">
               <enum>QFrame::NoFrame</enum>
@@ -1805,6 +1823,9 @@ QSizeGrip {
                 </disabled>
                </palette>
               </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
               <property name="verticalScrollBarPolicy">
                <enum>Qt::ScrollBarAsNeeded</enum>
               </property>
@@ -1837,6 +1858,9 @@ QSizeGrip {
                  <width>320</width>
                  <height>240</height>
                 </size>
+               </property>
+               <property name="mouseTracking">
+                <bool>true</bool>
                </property>
                <widget class="QLabel" name="cameraCanvas">
                 <property name="geometry">
@@ -2030,6 +2054,9 @@ QSizeGrip {
                    </colorrole>
                   </disabled>
                  </palette>
+                </property>
+                <property name="mouseTracking">
+                 <bool>true</bool>
                 </property>
                 <property name="lineWidth">
                  <number>0</number>
@@ -2365,6 +2392,9 @@ QSizeGrip {
                 <bold>false</bold>
                </font>
               </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
               <property name="autoFillBackground">
                <bool>false</bool>
               </property>
@@ -2568,6 +2598,9 @@ QSizeGrip {
                     </disabled>
                    </palette>
                   </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string/>
                   </property>
@@ -2765,6 +2798,9 @@ QSizeGrip {
                     <bold>false</bold>
                    </font>
                   </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
+                  </property>
                   <property name="text">
                    <string>Number of peaks:</string>
                   </property>
@@ -2955,6 +2991,9 @@ QSizeGrip {
                      </colorrole>
                     </disabled>
                    </palette>
+                  </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
                   </property>
                   <property name="text">
                    <string/>
@@ -3222,6 +3261,9 @@ QSizeGrip {
                     <bold>false</bold>
                    </font>
                   </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
+                  </property>
                   <property name="wrapping">
                    <bool>false</bool>
                   </property>
@@ -3427,6 +3469,9 @@ QSizeGrip {
                      </colorrole>
                     </disabled>
                    </palette>
+                  </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
                   </property>
                   <property name="styleSheet">
                    <string notr="true"/>
@@ -3672,6 +3717,9 @@ QSizeGrip {
             </disabled>
            </palette>
           </property>
+          <property name="mouseTracking">
+           <bool>true</bool>
+          </property>
           <layout class="QGridLayout" name="gridLayout_25">
            <property name="leftMargin">
             <number>0</number>
@@ -3702,6 +3750,9 @@ QSizeGrip {
                <height>999999</height>
               </size>
              </property>
+             <property name="mouseTracking">
+              <bool>true</bool>
+             </property>
              <property name="frameShape">
               <enum>QFrame::NoFrame</enum>
              </property>
@@ -3722,6 +3773,9 @@ QSizeGrip {
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">
                <property name="leftMargin">
@@ -3924,6 +3978,9 @@ QSizeGrip {
                     </colorrole>
                    </disabled>
                   </palette>
+                 </property>
+                 <property name="mouseTracking">
+                  <bool>true</bool>
                  </property>
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
@@ -4130,6 +4187,9 @@ QSizeGrip {
                     <italic>false</italic>
                     <bold>false</bold>
                    </font>
+                  </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
                   </property>
                   <property name="autoFillBackground">
                    <bool>false</bool>
@@ -4379,6 +4439,9 @@ QSizeGrip {
                         <bold>false</bold>
                        </font>
                       </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
+                      </property>
                       <property name="frameShape">
                        <enum>QFrame::StyledPanel</enum>
                       </property>
@@ -4592,6 +4655,9 @@ QSizeGrip {
                             </colorrole>
                            </disabled>
                           </palette>
+                         </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
                          </property>
                          <property name="frameShape">
                           <enum>QFrame::NoFrame</enum>
@@ -4822,6 +4888,9 @@ QSizeGrip {
                                </disabled>
                               </palette>
                              </property>
+                             <property name="mouseTracking">
+                              <bool>true</bool>
+                             </property>
                              <property name="autoFillBackground">
                               <bool>false</bool>
                              </property>
@@ -5050,6 +5119,9 @@ QSizeGrip {
                                     <bold>false</bold>
                                    </font>
                                   </property>
+                                  <property name="mouseTracking">
+                                   <bool>true</bool>
+                                  </property>
                                   <property name="text">
                                    <string>Orientation:  </string>
                                   </property>
@@ -5253,6 +5325,9 @@ QSizeGrip {
                                     <bold>false</bold>
                                    </font>
                                   </property>
+                                  <property name="mouseTracking">
+                                   <bool>true</bool>
+                                  </property>
                                   <property name="text">
                                    <string>Sample:  </string>
                                   </property>
@@ -5449,6 +5524,9 @@ QSizeGrip {
                                     <italic>false</italic>
                                     <bold>false</bold>
                                    </font>
+                                  </property>
+                                  <property name="mouseTracking">
+                                   <bool>true</bool>
                                   </property>
                                   <property name="text">
                                    <string>Growth Layer:  </string>
@@ -5649,6 +5727,9 @@ QSizeGrip {
                                     <italic>false</italic>
                                     <bold>false</bold>
                                    </font>
+                                  </property>
+                                  <property name="mouseTracking">
+                                   <bool>true</bool>
                                   </property>
                                   <property name="text">
                                    <string>Notes:</string>
@@ -5955,6 +6036,9 @@ QSizeGrip {
                            </disabled>
                           </palette>
                          </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
+                         </property>
                          <property name="frame">
                           <bool>true</bool>
                          </property>
@@ -6245,6 +6329,9 @@ QSizeGrip {
                            </disabled>
                           </palette>
                          </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
+                         </property>
                          <property name="frame">
                           <bool>true</bool>
                          </property>
@@ -6450,6 +6537,9 @@ QSizeGrip {
                            <italic>false</italic>
                            <bold>false</bold>
                           </font>
+                         </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
                          </property>
                          <property name="text">
                           <string>Sample:</string>
@@ -6744,6 +6834,9 @@ QSizeGrip {
                            </disabled>
                           </palette>
                          </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
+                         </property>
                          <property name="text">
                           <string/>
                          </property>
@@ -6956,6 +7049,9 @@ QSizeGrip {
                            <bold>false</bold>
                           </font>
                          </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
+                         </property>
                          <property name="text">
                           <string>Orientation:</string>
                          </property>
@@ -7164,6 +7260,9 @@ QSizeGrip {
                            <italic>false</italic>
                            <bold>false</bold>
                           </font>
+                         </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
                          </property>
                          <property name="text">
                           <string>Other Notes:</string>
@@ -7458,6 +7557,9 @@ QSizeGrip {
                            </disabled>
                           </palette>
                          </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
+                         </property>
                          <property name="frame">
                           <bool>true</bool>
                          </property>
@@ -7663,6 +7765,9 @@ QSizeGrip {
                            <italic>false</italic>
                            <bold>false</bold>
                           </font>
+                         </property>
+                         <property name="mouseTracking">
+                          <bool>true</bool>
                          </property>
                          <property name="text">
                           <string>Growth Layer:</string>
@@ -7954,6 +8059,9 @@ QSizeGrip {
                         </disabled>
                        </palette>
                       </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
+                      </property>
                       <property name="toolTip">
                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change annotation text color&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                       </property>
@@ -8234,6 +8342,9 @@ QSizeGrip {
                          </colorrole>
                         </disabled>
                        </palette>
+                      </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
                       </property>
                       <property name="toolTip">
                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change annotation background color&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -10360,6 +10471,9 @@ QSizeGrip {
                     <bold>false</bold>
                    </font>
                   </property>
+                  <property name="mouseTracking">
+                   <bool>true</bool>
+                  </property>
                   <property name="autoFillBackground">
                    <bool>false</bool>
                   </property>
@@ -10563,6 +10677,9 @@ QSizeGrip {
                         </disabled>
                        </palette>
                       </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
+                      </property>
                       <property name="text">
                        <string/>
                       </property>
@@ -10745,6 +10862,9 @@ QSizeGrip {
                         </disabled>
                        </palette>
                       </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
+                      </property>
                       <property name="text">
                        <string/>
                       </property>
@@ -10926,6 +11046,9 @@ QSizeGrip {
                          </colorrole>
                         </disabled>
                        </palette>
+                      </property>
+                      <property name="mouseTracking">
+                       <bool>true</bool>
                       </property>
                       <property name="frameShape">
                        <enum>QFrame::NoFrame</enum>
@@ -11163,6 +11286,9 @@ QSizeGrip {
           </disabled>
          </palette>
         </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
@@ -11370,6 +11496,9 @@ QSizeGrip {
           </disabled>
          </palette>
         </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
@@ -11558,6 +11687,9 @@ QSizeGrip {
           </disabled>
          </palette>
         </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="frameShadow">
          <enum>QFrame::Plain</enum>
         </property>
@@ -11664,6 +11796,9 @@ QSizeGrip {
            </colorrole>
           </disabled>
          </palette>
+        </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
@@ -11872,6 +12007,9 @@ QSizeGrip {
           </disabled>
          </palette>
         </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -11984,6 +12122,9 @@ QSizeGrip {
            </colorrole>
           </disabled>
          </palette>
+        </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
@@ -12180,6 +12321,9 @@ QSizeGrip {
           </disabled>
          </palette>
         </property>
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="frameShadow">
          <enum>QFrame::Plain</enum>
         </property>
@@ -12190,6 +12334,9 @@ QSizeGrip {
       </item>
       <item row="0" column="0">
        <widget class="Line" name="line_8">
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="frameShadow">
          <enum>QFrame::Plain</enum>
         </property>
@@ -12383,6 +12530,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Toggle image autoscaling&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
@@ -12568,6 +12718,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="frameShadow">
        <enum>QFrame::Plain</enum>
       </property>
@@ -12750,6 +12903,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="frameShadow">
        <enum>QFrame::Plain</enum>
       </property>
@@ -12856,6 +13012,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -12983,6 +13142,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -13181,6 +13343,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -13296,6 +13461,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -13416,6 +13584,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -13622,6 +13793,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="text">
        <string>Zoom:</string>
       </property>
@@ -13728,6 +13902,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -13949,6 +14126,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="focusPolicy">
        <enum>Qt::WheelFocus</enum>
       </property>
@@ -14161,6 +14341,9 @@ QSizeGrip {
         </disabled>
        </palette>
       </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="text">
        <string>100%</string>
       </property>
@@ -14270,6 +14453,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -14397,6 +14583,9 @@ QSizeGrip {
          </colorrole>
         </disabled>
        </palette>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
       </property>
       <property name="focusPolicy">
        <enum>Qt::NoFocus</enum>
@@ -14646,6 +14835,7 @@ QSizeGrip {
      <string>&amp;Camera</string>
     </property>
     <addaction name="changesourceButton"/>
+    <addaction name="actionSimulate_RHEED"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_Camera"/>
@@ -14748,10 +14938,18 @@ QSizeGrip {
    <property name="text">
     <string>&amp;Change Source</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
   </action>
   <action name="menuChangeDirectory">
    <property name="text">
     <string>Change Base Directory</string>
+   </property>
+  </action>
+  <action name="actionSimulate_RHEED">
+   <property name="text">
+    <string>Simulate RHEED</string>
    </property>
   </action>
  </widget>

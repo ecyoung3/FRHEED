@@ -33,6 +33,9 @@ import threading
 from PyQt5 import QtWidgets, QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import PlotWidget
+import math
+import numpy as np
+from numpy.linalg import norm
 
 from . import utils
 
@@ -241,6 +244,54 @@ def openDirectory():
     p = os.path.realpath(path)
     os.startfile(p)  # startfile only works on Windows
 
+def pythagDist(pt1, pt2):
+    [x1, y1], [x2, y2] = [pt1[0], pt1[1]], [pt2[0], pt2[1]]
+    dist = math.sqrt((x2-x1)**2 + (y2-y1)**2)
+    return dist
+
+def distFromSegment(point: list, segment: list) -> float:
+    '''
+    This determines if a point is within a certain distance of a line segment.
+    Works for segments that are either vertical or horizontal.
+    '''
+    # Points which define the line segment
+    p1, p2 = segment[0], segment[1]
+    x1, y1, x2, y2 = p1[0], p1[1], p2[0], p2[1]
+    
+    # Compute min/max values
+    xmin, xmax = sorted([x1, x2])
+    ymin, ymax = sorted([y1, y2])
+    
+    # The point of interest
+    x, y = point[0], point[1]
+    
+    # Convert points to arrays so we can use the numpy library
+    P1, P2 = np.asarray(p1), np.asarray(p2)
+    pt = np.asarray(point)
+    
+    # Calculate the distance from the point in question to each endpoint
+    dist1 = math.sqrt((x-x1)**2 + (y-y1)**2)
+    dist2 = math.sqrt((x-x2)**2 + (y-y2)**2)
+    
+    # Determine if the point in question is inside or outisde of the endpoints
+    if x1 == x2:
+        between = ymin < y < ymax
+    elif y1 == y2:
+        between = xmin < x < xmax
+    
+    # Calculate the point's perpendicular distance from the line projection
+    # if the point is between the segment endpoints
+    if between:
+        perpdist = norm(np.cross(P2-P1, P1-pt))/norm(P2-P1)
+    else:
+        perpdist = min(dist1, dist2)
+    
+    # Determine which of the computed distances is closest to get the answer
+    dist = min(dist1, dist2, perpdist)
+    
+    return dist
+    
+
 def addPlotTab(tabwidget, *args, **kwargs):
     tabnum = tabwidget.count() + 1
     tabwidget.setTabsClosable(True)
@@ -341,6 +392,17 @@ def addPlots(axes: object, *args, **kwargs) -> dict:
                         clear = False),
         }
     return plots
+
+def enableMouseTracking(self, flag):
+    def recursive_set(parent):
+        for child in parent.findChildren(QtCore.QObject):
+            try:
+                child.setMouseTracking(flag)
+            except:
+                pass
+            recursive_set(child)
+    QtGui.QWidget.setMouseTracking(self, flag)
+    recursive_set(self)
 
 def formatPlots(plotwidget, style: str = 'area'):
     plotfont = QtGui.QFont('Bahnschrift')

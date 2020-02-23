@@ -19,76 +19,54 @@ Github: https://github.com/ecyoung3/FRHEED
 
 """
 
-import os  # for checking/creating computer directories
-import sys  # for system-specific parameters
-import ctypes # for setting the taskbar icon in Windows 10
-import configparser  # for reading a configuration file
-import cv2  # for image processing
-import numpy as np  # for math and array processing
-import queue  # for handling threads
-import threading  # for threading
-import multiprocessing as mupro
-import concurrent.futures
-import time  # for keeping track of time
+import os
+import sys
+import ctypes
+import numpy as np
+import time
 import datetime
-import atexit # exit event handling
 import traceback
 
-from colormap import Colormap  # for creating custom colormaps
-from matplotlib import cm  # for using colormaps
-import matplotlib.figure as mpl_fig
-import matplotlib.animation as anim
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from PIL import Image, ImageQt  # for image processing
-from PyQt5 import uic, QtWidgets, QtGui  # for the GUI
-from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QVBoxLayout # stuff for main GUI window
-from PyQt5.QtWidgets import QDialog, QMessageBox, QInputDialog # popup windows
-from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy # GUI elements
-from PyQt5.QtGui import QIcon, QImage, QMouseEvent, QCursor, QPixmap, QColor, QPen, QPainter # for the GUI
-from PyQt5.QtCore import QSize, Qt, QTimer, QRunnable, QThreadPool, pyqtSlot, pyqtSignal, QObject # for the GUI
-import qimage2ndarray
-import pyqtgraph as pg  # for plotting
-from scipy.fftpack import rfft  # for performing real FFT on data
-import PySpin # for connecting to and controlling the FLIR camera
-import pyqt5ac # for importing .qrc resource file for the UI
+from matplotlib import cm
+from PIL import Image
+from PyQt5 import uic, QtGui
+from PyQt5.QtWidgets import QApplication, qApp, QMainWindow
+from PyQt5.QtCore import Qt, QRunnable, QThreadPool, pyqtSlot, pyqtSignal, QObject
+import pyqtgraph as pg
+import pyqt5ac
 import pathvalidate
 
 # Custom modules for running FRHEED
 from modules import cameras, utils, build, guifuncs
 
-try:
-    from pymba import Vimba, Frame # for connecting to Allied Vision Stingray firewire cameras
-    pymba_imported = True
-except Exception as ex:
-    pymba_imported = False
-    print('ERROR: {}'.format(ex))
-
 # Find and load the resource file
 pyqt5ac.main(config='resources/resources config.yml')
 
-# Give Windows 10 the app information so it can set the taskbar icon correctly
+# Give Windows 10 information so it can set the taskbar icon correctly
 app_id = 'FRHEED.FRHEED.FRHEED.FRHEED'
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
-# Load the UI file, which should be located in the same folder as FRHEED.py
+# Load the UI file; should be located in the same folder as FRHEED.py
 form_class = uic.loadUiType('gui/FRHEED.ui')[0]
 
-# Set default appearance of plots. Not needed if using a comprehensive stylesheet/palette
-pg.setConfigOption('background', (25, 35, 45)) # background color
-pg.setConfigOption('foreground', (255, 255, 255))  # white axes lines and labels
+# Set default appearance of pyqtgraph plots
+pg.setConfigOption('background', (25, 35, 45))
+pg.setConfigOption('foreground', (255, 255, 255))
 
-# Initialize the QApplication so PyQt widgets can be displayed/executed
-app = QApplication(sys.argv)  # run the app with the command line arguments (sys.argv) passed to it
+# Initialize the QApplication
+app = QApplication(sys.argv)
 
 class FRHEED(QMainWindow, form_class):
     def __init__(self, parent=None):
         # Set up the main UI. Do this so parent classes can inherit the appearance/properties.
-        QMainWindow.__init__(self, parent) # initialize the main window
-        self.buttons = qApp.mouseButtons() # shortcut to checking which mouse buttons are pressed
-        self.setupUi(self) # this is where the UI is actually constructed from the FRHEED.ui file
+        QMainWindow.__init__(self, parent)
+        
+        # Construct the main window from the .ui file
+        self.setupUi(self)
         self.setWindowTitle('FRHEED')
-        self.show() # show the window and all children windows (e.g. dialogs)
+        self.show()
         self.app = app
+        
         # Build components of UI that don't depend on camera selection
         build.core_ui(self)
         
@@ -219,49 +197,99 @@ class FRHEED(QMainWindow, form_class):
         pass
     
     def mousePressEvent(self, event):
-        # Left button click
-        if event.button() == Qt.LeftButton and self.drawCanvas.underMouse():
+        if event.button() == Qt.LeftButton:
+            self.leftpressed = True
+        elif event.button() == Qt.RightButton:
+            self.rightpressed = True
+        elif event.button() == Qt.MidButton:
+            self.midpressed = True
+        
+        # Drawing shapes
+        if (event.button() == Qt.LeftButton and self.drawCanvas.underMouse()):
             self.beginpos = self.drawCanvas.mapFrom(self, event.pos())
             
             # Only draw shapes if they're toggled on
             if self.visibleshapes:
                 
-                # Begin drawing
+                # Begin drawing shapes
                 self.drawCanvas.raise_()
                 self.drawing = True
             
-        # Scroll wheel click
+        # Resizing shapes
+        if event.button() == Qt.RightButton and self.drawCanvas.underMouse():
+            # Only resize if the cursor is near the shape when clicked
+            if self.cursornearshape:
+                self.resizing = True
+                self.drawing = True
+            
+        # Change active shape
         if event.button() == Qt.MidButton and self.drawCanvas.underMouse():
             guifuncs.cycleColors(self)
             
     def mouseReleaseEvent(self, event):
         # Left button release
+        if event.button() == Qt.LeftButton:
+            self.leftpressed = False
+            self.drawing = False
+            
+            # Normalize rectangle
+            rect = self.shapes[self.activecolor]['rect']
+            if rect is not None:
+                self.shapes[self.activecolor]['rect'] = rect.normalized()
+            
         if event.button() == Qt.LeftButton and self.drawCanvas.underMouse():
             # Record the position where the mouse was released
             self.endpos = self.drawCanvas.mapFrom(self, event.pos())
 
-            # Stop drawing
-            self.drawing = False
-            
             # Store the shape coordinates
-            self.shapes[self.activecolor]['start'] = self.beginpos
-            self.shapes[self.activecolor]['end'] = self.endpos
+            self.shapes[self.activecolor]['top left'] = self.beginpos
+            self.shapes[self.activecolor]['bottom right'] = self.endpos
+        
+        if event.button() == Qt.RightButton:
+            self.rightpressed = False
+            self.drawing = False
+            self.resizing = False
+            self.movingside = None
+            
+            # Normalize rectangle
+            rect = self.shapes[self.activecolor]['rect']
+            if rect is not None:
+                self.shapes[self.activecolor]['rect'] = rect.normalized()
+            
+        if event.button() == Qt.MidButton:
+            self.midpressed = False
     
     def mouseMoveEvent(self, event):
-        if self.drawCanvas.underMouse() and self.drawing:
-            self.currpos = self.drawCanvas.mapFrom(self, event.pos())
-            guifuncs.drawShapes(self)
+        # Cursor position relative to the draw canvas
+        draw_pos = self.drawCanvas.mapFrom(self, event.pos())
+        
+        # If the mouse is over the drawing canvas
+        if self.drawCanvas.underMouse():
+            
+            # Detect cursor proximity to active shape to determine if
+            # right clicking will begin resizing the shape
+            if self.shapes[self.activecolor]['rect'] is not None:
+                guifuncs.highlightSide(self, draw_pos)
+                
+            # Draw shapes
+            if self.drawing:
+                self.currpos = draw_pos
+                guifuncs.drawShapes(self)
             
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         if event.key() == Qt.Key_Control:
             if self.drawCanvas.underMouse():
                 pass
             # eventually make it so ctrl + scroll zooms the image
+            
+        # Clear active shape if the 'Delete' key is pressed while the
+        # mouse is over the draw canvas while not live plotting
         if event.key() == Qt.Key_Delete and self.drawCanvas.underMouse():
             if not self.plotting:
                 ac = self.activecolor
-                self.shapes[ac]['start'] = None
-                self.shapes[ac]['end'] = None
+                self.shapes[ac]['top left'] = None
+                self.shapes[ac]['bottom right'] = None
+                self.shapes[ac]['rect']= None
                 guifuncs.drawShapes(self, deleteshape = True)
 
     def closeEvent(self, event, **kwargs):

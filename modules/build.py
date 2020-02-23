@@ -20,15 +20,16 @@ Github: https://github.com/ecyoung3/FRHEED
 
 """
 
-from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy # GUI elements
+from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QShortcut
 from PyQt5.QtGui import QPixmap, QTabWidget, QTabBar, QFont
-from PyQt5.QtCore import Qt # for the GUI
+from PyQt5.QtCore import Qt
 import configparser
 from matplotlib import cm
-import pyqtgraph as pg  # for plotting
+import pyqtgraph as pg
 import numpy as np
-from PIL import Image, ImageQt  # for image processing
+from PIL import Image, ImageQt
 from colormap import Colormap
+import pyqtgraph.opengl as gl
 
 # =============================================================================
 # 
@@ -50,7 +51,7 @@ def toolbar(self):
     toolbuttons = {
                   'captureButton': lambda: self.grab_frame(),
                   'recordButton': lambda: guifuncs.recordVideo(self),
-                   'liveplotButton': lambda: guifuncs.togglePlot(self),
+                  'liveplotButton': lambda: guifuncs.togglePlot(self),
                   'drawButton': lambda: guifuncs.showShapes(self),
                   'moveshapesButton': lambda: guifuncs.moveShapes(self),
                   'rectButton': lambda: guifuncs.cycleColors(self),
@@ -214,7 +215,7 @@ def plots(self):
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
     for p in allplots:
-        p.plotItem.showGrid(True, False)
+        p.plotItem.showGrid(True, False, 0.1)
         p.plotItem.getAxis('bottom').tickFont = plotfont
         p.plotItem.getAxis('bottom').setStyle(**tickstyle)
         for axis in ['right', 'top']:
@@ -308,25 +309,38 @@ def variables(self):
     self.recording = False
     self.plotting = False
     self.drawing = False
-    self.plotspaused = False
     self.visibleshapes = True
+    self.adjusting = None
+    self.resizing = False
+    self.cursornearshape = False
+    self.movingside = None
+    self.leftpressed = False
+    self.rightpressed = False
+    self.midpressed = False
+    self.simulateRHEED = False
     self.timeset, self.savedtime, self.savedtime2, self.totaltime = 0.0, 0.0, 0.0, 0.0
     self.hours, self.minutes, self.seconds = 0.0, 0.0, 0.0
     self.shapes = {
         'red': {
-            'start': None,
-            'end':   None,
+            'top left': None,
+            'bottom right': None,
             'color': (228, 88, 101),
+            'rect': None,
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
                         pen = pg.mkPen((228, 88, 101), width=1), 
-                        clear = True),            
+                        clear = True),        
+            'line': gl.GLLinePlotItem(
+                        color = (228, 88, 101),
+                        antialias = True
+                        )
             },
         'green': {
-            'start': None,
-            'end':   None,               
+            'top left': None,
+            'bottom right': None,             
             'color': (155, 229, 100),
+            'rect': None,
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
@@ -334,9 +348,10 @@ def variables(self):
                         clear = False),            
             },
         'blue': {
-            'start': None,
-            'end':   None,
+            'top left': None,
+            'bottom right': None,
             'color': (0, 167, 209),
+            'rect': None,
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
@@ -344,9 +359,10 @@ def variables(self):
                         clear = False),            
             },
         'orange': {
-            'start': None,
-            'end':   None,
+            'top left': None,
+            'bottom right': None,
             'color': (244, 187, 71),
+            'rect': None,
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
@@ -354,9 +370,10 @@ def variables(self):
                         clear = False),            
             },
         'purple': {
-            'start': None,
-            'end':   None,
+            'top left': None,
+            'bottom right': None,
             'color': (125, 43, 155),
+            'rect': None,
             'time': [],
             'data': [],
             'plot': self.livePlotAxes.plot(
@@ -367,6 +384,9 @@ def variables(self):
     self.stored_data = {}
     self.colorindex = 0
     self.activecolor = list(self.shapes.keys())[self.colorindex]
+
+def shortcuts(self):
+    pass
 
 def core_ui(self):
     variables(self)
