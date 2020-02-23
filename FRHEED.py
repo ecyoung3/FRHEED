@@ -262,10 +262,10 @@ class FRHEED(QMainWindow, form_class):
     def mouseMoveEvent(self, event):
         # Cursor position relative to the draw canvas
         draw_pos = self.drawCanvas.mapFrom(self, event.pos())
-        
+        if not self.cursornearshape:
+            self.app.restoreOverrideCursor()
         # If the mouse is over the drawing canvas
         if self.drawCanvas.underMouse():
-            
             # Detect cursor proximity to active shape to determine if
             # right clicking will begin resizing the shape
             if self.shapes[self.activecolor]['rect'] is not None:
@@ -291,6 +291,12 @@ class FRHEED(QMainWindow, form_class):
                 self.shapes[ac]['bottom right'] = None
                 self.shapes[ac]['rect']= None
                 guifuncs.drawShapes(self, deleteshape = True)
+                self.cursornearshape = False
+                # Disable the live plot button if no shapes are drawn
+                numshapes = sum(1 for col in self.shapes if 
+                                self.shapes[col]['top left'])
+                if numshapes == 0:
+                    self.liveplotButton.setEnabled(False)
 
     def closeEvent(self, event, **kwargs):
         # Stop plotting
@@ -363,23 +369,30 @@ if __name__ == '__main__':
     app.exec_()
 
 # TODO LIST
-"""
-- figure out why FLIR camera becomes incredibly laggy after long time
-    idling in Spyder (i.e. overnight)
-- get Vimba/Firewire cameras working
-- adding video playback/analysis
-- fix tooltips
-- ability to popout camera
-- shape translational motion
-- add 1D line plot for strain analysis
-- 3D plotting
-- arbitrary masks
-- update method of inputting timer amount
-"""
 '''
-BUGS:
-    - Zooming the image too quickly (i.e. via scroll wheel) will crash
-        the program
-    
+FEATURES TO ADD:
+    - renaming plot tabs for stored data
+    - shape translational motion
+    - shortcuts for common buttons
+    - cycle backwards through colors
+    - selectively show/hide lines on plotted data
+    - get Vimba/Firewire cameras working
+    - adding video playback/analysis
+    - shape translational motion
+    - add 1D line plot for strain analysis
+    - 3D plotting
+    - arbitrary image masks
+    - update method of inputting timer amount
+'''
+'''
+THINGS TO FIX:
+    - the goddamn zooming/crashing bug apparently isn't fixed...
+        - signal proxy to limit signal rate?
+        - change zooming mode to have user drag-select an area instead
+            of having a scroll bar?
+    - figure out why FLIR camera becomes incredibly laggy after long
+         time idling in Spyder (i.e. overnight)
+    - tooltips
+    - line overlap with y-axis in data plots
     
 '''

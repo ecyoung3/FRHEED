@@ -37,7 +37,7 @@ import math
 import numpy as np
 from numpy.linalg import norm
 
-from . import utils
+from . import utils, guifuncs
 
 def getConfig(configname: str = 'config.ini'):
     working_dir = os.getcwd() # get the current working directory that this script is running from
@@ -291,88 +291,6 @@ def distFromSegment(point: list, segment: list) -> float:
     
     return dist
     
-
-def addPlotTab(tabwidget, *args, **kwargs):
-    tabnum = tabwidget.count() + 1
-    tabwidget.setTabsClosable(True)
-    tabwidget.setMovable(True)
-    tabwidget.setTabBarAutoHide(False)
-    newtab = QtWidgets.QWidget()
-    # newtab.setObjectName("tab")
-    layout = QtWidgets.QGridLayout(newtab)
-    # layout.setObjectName("gridLayout_20")
-    axes = PlotWidget(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, 
-                                       QtWidgets.QSizePolicy.MinimumExpanding)
-    sizePolicy.setHeightForWidth(axes.sizePolicy().hasHeightForWidth())
-    axes.setSizePolicy(sizePolicy)
-    palette = QtGui.QPalette()
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Button, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ButtonText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Base, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Window, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Button, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Text, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ButtonText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Base, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Window, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.WindowText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Button, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Text, brush)
-    brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ButtonText, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Base, brush)
-    brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
-    brush.setStyle(QtCore.Qt.SolidPattern)
-    palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
-    axes.setPalette(palette)
-    axes.setStyleSheet('')
-    axes.setFrameShape(QtWidgets.QFrame.NoFrame)
-    axes_name = f'StoredDataAxes{tabwidget.indexOf(newtab)}'
-    axes.setObjectName(axes_name)
-    layout.addWidget(axes, 0, 0, 1, 1)
-    tabwidget.addTab(newtab, '')
-    tabnum_txt = str(tabnum).zfill(2)
-    tabtext = f'Data {tabnum_txt}'
-    tabwidget.setTabText(tabwidget.indexOf(newtab), tabtext)
-    return axes
-
 def addPlots(axes: object, *args, **kwargs) -> dict:
     plots = {
         'red':      axes.plot(
@@ -412,11 +330,12 @@ def formatPlots(plotwidget, style: str = 'area'):
         'font-family': 'Bahnschrift SemiLight'}
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
-    plotwidget.plotItem.showGrid(True, False)
+    # plotwidget.plotItem.setLogMode(False, True)
+    plotwidget.plotItem.showGrid(True, False, 0.05)
     plotwidget.plotItem.getAxis('bottom').tickFont = plotfont
     plotwidget.plotItem.getAxis('bottom').setStyle(**tickstyle)
     plotwidget.setContentsMargins(0, 4, 10, 0)
-    for axis in ['right', 'top']:
+    for axis in ['right', 'top', 'left']:
         plotwidget.plotItem.getAxis(axis).show()
         if axis != 'top':
             plotwidget.plotItem.getAxis(axis).setWidth(6)
@@ -428,8 +347,13 @@ def formatPlots(plotwidget, style: str = 'area'):
         plotwidget.setLabel('bottom', 'Time (s)', **fontstyle)
         plotwidget.setLabel('left', 'Intensity (Counts/Pixel)', **fontstyle)
         plotwidget.plotItem.getAxis('bottom').setHeight(42)
-        plotwidget.plotItem.getAxis('left').setWidth(48)
+        plotwidget.plotItem.getAxis('left').setWidth(24) # previously 48
 
+def sendCursorPos(self, plot):
+    plot.scene().sigMouseMoved.connect(
+                    lambda event, p=plot: guifuncs.getCursorPos(self, event, p)
+                    )
+    
 # =============================================================================
 # GRAVEYARD
 # =============================================================================

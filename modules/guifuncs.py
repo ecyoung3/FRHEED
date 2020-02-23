@@ -41,7 +41,7 @@ from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot, QPoint
 import pyqtgraph as pg
 from scipy.ndimage import gaussian_filter
 
-from . import cameras, utils
+from . import cameras, utils, addtab
 
 # =============================================================================
 # THREADED FUNCTIONS
@@ -541,11 +541,16 @@ def calculateIntensities(
         frame, 
         finished, 
         mode: str = 'average', 
-        offset: int = 100,
+        offset: int = 0,
         **kwargs):
+    
+    # Pass if not plotting or the plotbutton isn't checked 
     if not self.plotting or not self.liveplotButton.isChecked():
         return
+    
+    # Keep track of the number of plots shown for vertical shifting
     plotnum = 0
+    
     for col in self.shapes.keys():
         tl = self.shapes[col]['top left']
         br = self.shapes[col]['bottom right']
@@ -563,10 +568,12 @@ def calculateIntensities(
             cts = np.sum(cut)
 
             # Append the data point depending on the type of intensity calc mode
+            # Scale the intensity counts (divide by number of pixels in mask)
             if mode == 'average':
-                # Scale the intensity counts (divide by number of pixels in mask)
                 rel_cts = cts/cut.size
                 data.append(rel_cts + offset*plotnum)
+                
+            # Just add up the intensity of every pixel in the region
             elif mode == 'sum':
                 data.append(cts + offset*plotnum)
             
@@ -590,18 +597,16 @@ def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
             data = self.shapes[col]['data']
             pos = 0
             if t and tl:
-                # if col == 'red':
-                #     openGLPlot(self)
                 if max(t)-min(t) > timespan:
                     pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
                     self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
                 elif numplots <= 1:
                     bot = np.amin([t[-1]-timespan, 0])
                     self.livePlotAxes.setXRange(bot, t[-1], padding=0)
-            self.shapes[col]['plot'].setData(
-                t[pos:], 
-                data[pos:]
-                )
+                self.shapes[col]['plot'].setData(
+                    t[pos:], 
+                    data[pos:]
+                    )
         time.sleep(0.04) # give time for the GUI to update
         finished.emit() # emit signal because otherwise the thread crashes
         
@@ -617,14 +622,28 @@ def storeData(self, shapes: dict):
         self.stored_data[new_entry][color]['data'] = data
 
 def plotStoredData(self):
+    # Make sure there is actually stored data to plot
     dataset_list = [x for x in self.stored_data.keys()]
     num_stored_datasets = len(dataset_list)
     if num_stored_datasets == 0:
         return
-    axes = utils.addPlotTab(self.oldDataTabs)
+    
+    # Make a new tab for plotting the data
+    axes = addtab.addPlotTab(self.oldDataTabs)
+    
+    # Enable cursor tracking for the new axes
+    utils.sendCursorPos(self, axes)
+    
+    # Format the axes
     utils.formatPlots(axes)
+    
+    # Get the newest dataset from the dictionary
     newest_dataset = dataset_list[-1]
+    
+    # Add plot to the axes
     plots = utils.addPlots(axes)
+    
+    # Plot all stored lines in the dataset
     for color in self.stored_data[newest_dataset]:
         t = self.stored_data[newest_dataset][color]['time']
         data = self.stored_data[newest_dataset][color]['data']
@@ -634,27 +653,38 @@ def plotStoredData(self):
 def plotFFT(self):
     pass
 
-def simulateRHEED(self):
-    img = self.rheed_sample_img
+def getCursorPos(self, event, plot, **kwargs):
+    pos = plot.plotItem.vb.mapSceneToView(event)
+    axesname = plot.objectName()
+    name = axesname.strip('Axes')
+    print('PLOT NAME:',name)
+    try:
+        freqlabel = f'{name}FreqLabel'
+        freqlabel = self.findChild(QLabel, freqlabel)
+    except:
+        pass
     
-    def changeBrightness(img, brightness):
-        img = img.astype('float32')
-        img += brightness
-        img = np.clip(img, 0, 255)
-        img = img.astype('uint8')
-        return img
+    try:
+        tequals = f'{name}TEqualsLabel'
+        tequals = self.findChild(QLabel, tequals)
+        tequals.setText('Time  =  ')
+    except:
+        pass
     
-    t = time.time()
-    sec = float(str(t-int(t))[1:])
+    try:
+        tlabel = f'{name}TLabel'
+        tlabel = self.findChild(QLabel, tlabel)
+        tlabel.setText('{:.2f} s'.format(pos.x()))
+    except:
+        pass
     
-    amplitude = np.sin(2*np.pi*sec)
+    try:
+        flabel = f'{name}FLabel'
+        flabel = self.findChild(QLabel, flabel)
+        flabel.setText('{:.2f} Hz'.format(pos.x()))
+    except:
+        pass
     
-    img = changeBrightness(img, 10*amplitude)
-
-    self.frameindex += 1
-    
-    return img
-        
 # =============================================================================
 # FUNCTIONS FOR MODIFYING SHAPE OVERLAYS AND IMAGE SELECTION AREA
 # =============================================================================
@@ -732,6 +762,11 @@ def drawShapes(self, deleteshape: bool = False):
     
     # Show the drawn shapes on the drawing canvas
     self.drawCanvas.setPixmap(pmap)
+    
+    # Enable the live plot button if there are shapes drawn
+    numshapes = sum(1 for col in self.shapes if self.shapes[col]['rect'])
+    if numshapes > 0:
+        self.liveplotButton.setEnabled(True)
         
 def highlightSide(self, pos: QPoint):
     # Get point coordinates
@@ -763,7 +798,6 @@ def highlightSide(self, pos: QPoint):
         
     # Sort side separations to find the smallest
     sideseps = sorted(sideseps)
-    smin = sideseps[0]
     
     # Sort corner separations to find the smallest
     cornerseps = sorted(cornerseps)
@@ -809,7 +843,7 @@ def highlightSide(self, pos: QPoint):
             self.app.setOverrideCursor(Qt.SizeFDiagCursor)
         elif where in ['top right', 'bottom left']:
             self.app.setOverrideCursor(Qt.SizeBDiagCursor)
-        
+
         # Resize from wherever the cursor is closest to
         resizeShape(self, pos, self.activecolor, where)
       
@@ -817,7 +851,7 @@ def highlightSide(self, pos: QPoint):
     else:
         self.cursornearshape = False
         self.movingside = None
-        self.app.setOverrideCursor(Qt.ArrowCursor)
+        self.app.restoreOverrideCursor()
  
 def resizeShape(self, cursorpos, color, side):
     if not self.resizing or self.shapes[color]['rect'] is None:
@@ -919,4 +953,28 @@ def showSerial(self):
             pass
     else:
         self.serialstatus.setText('')
+        
+# =============================================================================
+# SIMULATING RHEED IMAGE / OSCILLATIONS
+# =============================================================================
 
+def simulateRHEED(self):
+    img = self.rheed_sample_img
+    
+    def changeBrightness(img, brightness):
+        img = img.astype('float32')
+        img += brightness
+        img = np.clip(img, 0, 255)
+        img = img.astype('uint8')
+        return img
+    
+    t = time.time()
+    sec = float(str(t-int(t))[1:])
+    
+    amplitude = np.sin(2*np.pi*sec)
+    
+    img = changeBrightness(img, 10*amplitude)
+
+    self.frameindex += 1
+    
+    return img

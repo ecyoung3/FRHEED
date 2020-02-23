@@ -1,5 +1,8 @@
 <RCC>
   <qresource prefix="icons">
+    <file>../icons/update plot icon disabled.png</file>
+    <file>../icons/plot icon disabled.png</file>
+    <file>../icons/plot icon disabled.png</file>
     <file>../icons/blue rect.png</file>
     <file>../icons/change user icon.png</file>
     <file>../icons/checkbox.png</file>

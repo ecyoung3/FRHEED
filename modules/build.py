@@ -205,7 +205,8 @@ def plots(self):
     
     # Styling the area intensity data plots
     areaplots = [self.livePlotAxes]
-    fftplots = [self.plotFFTred, self.plotFFTgreen, self.plotFFTblue]
+    fftplots = [self.redFFTAxes, self.greenFFTAxes, self.blueFFTAxes,
+                self.orangeFFTAxes, self.purpleFFTAxes]
     allplots = areaplots + fftplots
     plotfont = QFont('Bahnschrift')
     fontstyle = {
@@ -215,25 +216,34 @@ def plots(self):
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
     for p in allplots:
-        p.plotItem.showGrid(True, False, 0.1)
+        p.plotItem.showGrid(True, False, 0.05)
+        # p.plotItem.setLogMode(False, True)
         p.plotItem.getAxis('bottom').tickFont = plotfont
         p.plotItem.getAxis('bottom').setStyle(**tickstyle)
-        for axis in ['right', 'top']:
+        for axis in ['right', 'top', 'left']:
             p.plotItem.getAxis(axis).show()
             if axis != 'top':
-                p.plotItem.getAxis(axis).setWidth(6)
+                p.plotItem.getAxis(axis).setWidth(4)
             else:
-                p.plotItem.getAxis(axis).setHeight(6)
-            p.plotItem.getAxis(axis).setStyle(tickTextOffset = 30)
+                p.plotItem.getAxis(axis).setHeight(4)
+            p.plotItem.getAxis(axis).setStyle(tickTextOffset = 200)
         
     for p in areaplots:
         p.setContentsMargins(0, 4, 10, 0)
         p.setLimits(xMin=0)
         p.setLabel('bottom', 'Time (s)', **fontstyle)
         p.setLabel('left', 'Intensity (Counts/Pixel)', **fontstyle)
-        p.plotItem.getAxis('bottom').setTickSpacing(2, 1)
+        # p.plotItem.getAxis('bottom').setTickSpacing(2, 1)
         p.plotItem.getAxis('bottom').setHeight(42)
-        p.plotItem.getAxis('left').setWidth(48)
+        p.plotItem.getAxis('left').setWidth(24) # previously 48 if ticks shown
+        
+    # Add the PlotCuveItems to the live plot
+    for s in self.shapes.keys():
+        self.livePlotAxes.addItem(self.shapes[s]['plot'])
+        
+    # Set up signals for showing cursor position in each plot
+    for p in allplots:
+        utils.sendCursorPos(self, p)
         
 def camsettings(self):
     # Load config options
@@ -328,13 +338,9 @@ def variables(self):
             'rect': None,
             'time': [],
             'data': [],
-            'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((228, 88, 101), width=1), 
-                        clear = True),        
-            'line': gl.GLLinePlotItem(
-                        color = (228, 88, 101),
-                        antialias = True
-                        )
+            'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((228, 88, 101), width=1)
+                        ),        
             },
         'green': {
             'top left': None,
@@ -343,9 +349,9 @@ def variables(self):
             'rect': None,
             'time': [],
             'data': [],
-            'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((155, 229, 100), width=1), 
-                        clear = False),            
+            'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((155, 229, 100), width=1)
+                        ),            
             },
         'blue': {
             'top left': None,
@@ -354,9 +360,9 @@ def variables(self):
             'rect': None,
             'time': [],
             'data': [],
-            'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((0, 167, 209), width=1), 
-                        clear = False),            
+            'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((0, 167, 209), width=1)
+                        ),            
             },
         'orange': {
             'top left': None,
@@ -365,9 +371,9 @@ def variables(self):
             'rect': None,
             'time': [],
             'data': [],
-            'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((244, 187, 71), width=1), 
-                        clear = False),            
+            'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((244, 187, 71), width=1)
+                        ),            
             },
         'purple': {
             'top left': None,
@@ -376,9 +382,9 @@ def variables(self):
             'rect': None,
             'time': [],
             'data': [],
-            'plot': self.livePlotAxes.plot(
-                        pen = pg.mkPen((125, 43, 155), width=1), 
-                        clear = False),
+            'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((125, 43, 155), width=1)
+                        ),
             },
         }
     self.stored_data = {}

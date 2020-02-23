@@ -176,7 +176,7 @@ class FLIR:
                     # properly, and after enough dropped frame accumulate, the stream
                     # will begin to lag. Restarting the acquisition every 10 dropped
                     # frames flushes the buffer and makes sure the stream doesn't lag.
-                    if parent.droppedframes % 5 == 0:
+                    if parent.droppedframes % 3 == 0:
                         cam.EndAcquisition()
                         cam.BeginAcquisition()
                     
