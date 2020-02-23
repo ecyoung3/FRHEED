@@ -330,6 +330,7 @@ def formatPlots(plotwidget, style: str = 'area'):
         'font-family': 'Bahnschrift SemiLight'}
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
+    plotwidget.setXRange(0, 1, padding=0)
     # plotwidget.plotItem.setLogMode(False, True)
     plotwidget.plotItem.showGrid(True, False, 0.05)
     plotwidget.plotItem.getAxis('bottom').tickFont = plotfont
@@ -352,6 +353,11 @@ def formatPlots(plotwidget, style: str = 'area'):
 def sendCursorPos(self, plot):
     plot.scene().sigMouseMoved.connect(
                     lambda event, p=plot: guifuncs.getCursorPos(self, event, p)
+                    )
+    
+def sendClickPos(self, plot):
+    plot.scene().sigMouseClicked.connect(
+                    lambda event, p=plot: guifuncs.addVerticalLine(self, event, p)
                     )
     
 # =============================================================================

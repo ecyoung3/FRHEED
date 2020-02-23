@@ -22,7 +22,9 @@ Github: https://github.com/ecyoung3/FRHEED
 from PyQt5 import QtWidgets, QtGui, QtCore
 from pyqtgraph import PlotWidget
 
-def addPlotTab(tabwidget, *args, **kwargs):
+from . import guifuncs
+
+def addPlotTab(self, tabwidget, *args, **kwargs):
     '''
     EDIT TAB WIDGET PROPERTIES
     '''
@@ -60,7 +62,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     ADDING THE FREQUENCY LABEL
     '''
     freqlabel = QtWidgets.QLabel(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, 
+    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, 
                                        QtWidgets.QSizePolicy.Preferred)
     sizePolicy.setHorizontalStretch(0)
     sizePolicy.setVerticalStretch(0)
@@ -71,6 +73,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     freqlabel.setText('')
     freqlabelname = f'{tabname}FreqLabel'
     freqlabel.setObjectName(freqlabelname)
+    freqlabel.setAlignment(QtCore.Qt.AlignCenter)
     freqlabel.setIndent(6)
     topleftlayout.addWidget(freqlabel, 0, 0, 1, 1)
     layout.addLayout(topleftlayout, 0, 0, 1, 1)    
@@ -79,7 +82,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     ADDING THE NUMBER OF PEAKS LABEL
     '''
     numpeakslabel = QtWidgets.QLabel(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, 
+    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, 
                                        QtWidgets.QSizePolicy.Preferred)
     sizePolicy.setHorizontalStretch(0)
     sizePolicy.setVerticalStretch(0)
@@ -97,7 +100,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     numpeakslabel.setText('Peaks:')
     numpeakslabel.setMouseTracking(True)
     numpeakslabel.setAlignment(QtCore.Qt.AlignCenter)
-    numpeakslabel.setIndent(2)
+    numpeakslabel.setIndent(0)
     numpeakslabel.setObjectName("numpeaks1Label")
     topcenterlayout.addWidget(numpeakslabel, 0, 0, 1, 1)
 
@@ -129,8 +132,14 @@ def addPlotTab(tabwidget, *args, **kwargs):
     numpeaks.setMinimum(1)
     numpeaks.setMaximum(99)
     numpeaks.setProperty('value', 10)
+    numpeaksname = f'{tabname}NumPeaks'
+    numpeaks.setObjectName(numpeaksname)
     topcenterlayout.addWidget(numpeaks, 0, 1, 1, 1)
     layout.addLayout(topcenterlayout, 0, 1, 1, 1)
+    
+    # Connect the spinbox the the manual frequency calculation function
+    numpeaks.valueChanged.connect(lambda: guifuncs.manualFreqCalc(self,
+                                                                  axes))
     
     '''
     ADDING THE T = LABEL
@@ -142,7 +151,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     sizePolicy.setVerticalStretch(0)
     sizePolicy.setHeightForWidth(tequals.sizePolicy().hasHeightForWidth())
     tequals.setSizePolicy(sizePolicy)
-    tequals.setMinimumSize(QtCore.QSize(60, 0))
+    tequals.setMinimumSize(QtCore.QSize(65, 0))
     tequals.setText('')
     tequalsname = f'{tabname}TEqualsLabel'
     tequals.setObjectName(tequalsname)
@@ -160,7 +169,7 @@ def addPlotTab(tabwidget, *args, **kwargs):
     sizePolicy.setVerticalStretch(0)
     sizePolicy.setHeightForWidth(tlabel.sizePolicy().hasHeightForWidth())
     tlabel.setSizePolicy(sizePolicy)
-    tlabel.setMinimumSize(QtCore.QSize(70, 0))
+    tlabel.setMinimumSize(QtCore.QSize(65, 0))
     tlabel.setPalette(standardPalette())
     tlabel.setMouseTracking(True)
     tlabel.setText('')

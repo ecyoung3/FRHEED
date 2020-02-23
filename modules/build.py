@@ -216,6 +216,7 @@ def plots(self):
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
     for p in allplots:
+        p.setXRange(0, 1, padding=0)
         p.plotItem.showGrid(True, False, 0.05)
         # p.plotItem.setLogMode(False, True)
         p.plotItem.getAxis('bottom').tickFont = plotfont
@@ -244,6 +245,12 @@ def plots(self):
     # Set up signals for showing cursor position in each plot
     for p in allplots:
         utils.sendCursorPos(self, p)
+        utils.sendClickPos(self, p)
+        
+    # Make it so the manual frequency calculation updates when the spinbox changes
+    self.livePlotNumPeaks.valueChanged.connect(lambda: guifuncs.manualFreqCalc(
+                                                            self,
+                                                            self.livePlotAxes))
         
 def camsettings(self):
     # Load config options
@@ -390,6 +397,7 @@ def variables(self):
     self.stored_data = {}
     self.colorindex = 0
     self.activecolor = list(self.shapes.keys())[self.colorindex]
+    self.vlines = {}
 
 def shortcuts(self):
     pass

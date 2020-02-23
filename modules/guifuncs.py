@@ -629,10 +629,13 @@ def plotStoredData(self):
         return
     
     # Make a new tab for plotting the data
-    axes = addtab.addPlotTab(self.oldDataTabs)
+    axes = addtab.addPlotTab(self, self.oldDataTabs)
     
     # Enable cursor tracking for the new axes
     utils.sendCursorPos(self, axes)
+    
+    # Enable addition of vertical lines
+    utils.sendClickPos(self, axes)
     
     # Format the axes
     utils.formatPlots(axes)
@@ -653,17 +656,109 @@ def plotStoredData(self):
 def plotFFT(self):
     pass
 
-def getCursorPos(self, event, plot, **kwargs):
-    pos = plot.plotItem.vb.mapSceneToView(event)
-    axesname = plot.objectName()
-    name = axesname.strip('Axes')
-    print('PLOT NAME:',name)
+def addVerticalLine(self, event, plot, **kwargs):
+    # Accept the event so other slots don't connect to it
+    event.accept()
+    
+    # Transform the click position from pixels to plot coordinates
+    pos = event.scenePos()
+    pos = plot.plotItem.vb.mapSceneToView(pos)
+    x = pos.x()
+    
+    # Get the number of current vlines in this plot
+    name = plot.objectName()
+    numlines = 0
+    if not name in self.vlines:
+        self.vlines[name] = {}
+    else:
+        numlines = len(self.vlines[name].keys())
+        # Delete the lines by shift clicking
+        if event.modifiers() == Qt.ShiftModifier:
+            for line in self.vlines[name].values():
+                plot.removeItem(line)
+            self.vlines[name] = {}
+            # Get the frequency label for showing the results of calculation
+            try:
+                freqlabel = '{}FreqLabel'.format(name.strip('Axes'))
+                freqlabel = self.findChild(QLabel, freqlabel)
+                freqlabel.setText('')
+            except:
+                return
+            return
+
+    # Create a vertical, movable line at the click x position
+    vline = pg.InfiniteLine(pos=x, angle=90)
+    vline.setMovable(True)
+
+    # Define the normal (non-hovered) line style
+    normal = pg.mkPen((255, 241, 157), width=1.0)
+    vline.setPen(normal)
+    
+    # Define the hovered line style
+    hover = pg.mkPen((255, 241, 157), width=1.5)
+    vline.setHoverPen(hover)
+    
+    # Add the line to the plot
+    plot.addItem(vline)
+    
+    # Set the name of the line so it can be removed later
+    numlines += 1
+    vline.setName(str(numlines))
+    
+    # Remove the oldest line if there are already 2 lines on the plot
+    if numlines > 2:
+        lines = [line for line in self.vlines[name].keys()]
+        plot.removeItem(self.vlines[name][lines[0]])
+        self.vlines[name][lines[0]] = self.vlines[name][lines[1]]
+        self.vlines[name][lines[1]] = vline
+    else:
+        self.vlines[name][str(numlines)] = vline
+        if numlines == 1:
+            return
+     
+    # Update the manually calculated frequency
+    manualFreqCalc(self, plot)
+    
+    # Connect the vline moved signal to the manual frequency calculation slot
+    vline.sigDragged.connect(lambda: manualFreqCalc(self, plot))
+
+def manualFreqCalc(self, plot):
+    # Calculate the frequency based on the number of peaks selected and the
+    # distance between the two vertical lines
+    plotname = plot.objectName()
+    name = plotname.strip('Axes')
+    
+    # Get the spinbox object
+    try:
+        numpeaks = f'{name}NumPeaks'
+        numpeaks = self.findChild(QtWidgets.QSpinBox, numpeaks)
+    except:
+        return
+    
+    # Get the frequency label for showing the results of calculation
     try:
         freqlabel = f'{name}FreqLabel'
         freqlabel = self.findChild(QLabel, freqlabel)
     except:
-        pass
+        return
     
+    # Get the number of peaks between points
+    peaks = numpeaks.value()
+    
+    # Get the position of both lines
+    values = [line.value() for line in self.vlines[plotname].values()]
+    if len(values) < 2:
+        return
+    
+    # Calculate the frequency
+    freq = peaks/(abs(values[0]-values[1]))
+    freqlabel.setText('{:.3f} Hz'.format(freq))
+
+def getCursorPos(self, event, plot, **kwargs):
+    pos = plot.plotItem.vb.mapSceneToView(event)
+    axesname = plot.objectName()
+    name = axesname.strip('Axes')
+
     try:
         tequals = f'{name}TEqualsLabel'
         tequals = self.findChild(QLabel, tequals)
@@ -684,6 +779,8 @@ def getCursorPos(self, event, plot, **kwargs):
         flabel.setText('{:.2f} Hz'.format(pos.x()))
     except:
         pass
+    
+    return pos
     
 # =============================================================================
 # FUNCTIONS FOR MODIFYING SHAPE OVERLAYS AND IMAGE SELECTION AREA
