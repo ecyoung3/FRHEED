@@ -30,7 +30,7 @@ import traceback
 from matplotlib import cm
 from PIL import Image
 from PyQt5 import uic, QtGui
-from PyQt5.QtWidgets import QApplication, qApp, QMainWindow
+from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QLabel
 from PyQt5.QtCore import Qt, QRunnable, QThreadPool, pyqtSlot, pyqtSignal, QObject
 import pyqtgraph as pg
 import pyqt5ac

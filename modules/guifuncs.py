@@ -57,7 +57,7 @@ def liveStream(
     
     while self.running:
         # Grab the camera frame
-        if not self.simulateRHEED:
+        if not self.enableSimulationButton.isChecked():
             img = cameras.grabImage(self)
         else:
             img = simulateRHEED(self)
@@ -1183,6 +1183,23 @@ def showSerial(self):
 # =============================================================================
 # SIMULATING RHEED IMAGE / OSCILLATIONS
 # =============================================================================
+
+def enableSimulation(self):
+    if self.enableSimulationButton.isChecked():
+        enabled = True
+        self.enableSimulationButton.setText('Disable RHEED Simulation')
+    else:
+        enabled = False
+        self.enableSimulationButton.setText('Enable RHEED Simulation')
+        
+    # Enable or disable all buttons, checkboxes, and spinboxes
+    widgets = [self.intensityCheckbox, self.intensityFrequencySpinbox,
+               self.intensityVarianceLabel, self.intensityVarianceSpinbox, 
+               self.spacingCheckbox, self.spacingFrequencySpinbox,
+               self.spacingVarianceLabel, self.spacingVarianceSpinbox, 
+               self.simulatedShutterButton]
+    for widget in widgets:
+        widget.setEnabled(enabled)
 
 def simulateRHEED(self):
     img = self.rheed_sample_img

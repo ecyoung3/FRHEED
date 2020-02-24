@@ -311,6 +311,9 @@ def cambuttons(self):
               self.saveProfile1, self.saveProfile2, self.saveProfile3):
         b.clicked.connect(lambda: guifuncs.setImageProfile(self))
 
+def simulation(self):
+    self.enableSimulationButton.clicked.connect(lambda: guifuncs.enableSimulation(self))
+
 def variables(self):
     self.inverted = False
     self.background = None
@@ -428,6 +431,7 @@ def core_ui(self):
     timing(self)
     notebook(self)
     plots(self)
+    simulation(self)
     
 def camera_ui(self):
     camsettings(self)
