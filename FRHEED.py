@@ -147,7 +147,7 @@ class FRHEED(QMainWindow, form_class):
         
         # Create threadpool
         self.threadpool = QThreadPool()
-        # self.threadpool.setMaxThreadCount(6)
+        self.threadpool.setMaxThreadCount(8)
         maxthreads = self.threadpool.maxThreadCount()
         print(f'Maximum number of threads: {maxthreads}')
               
@@ -170,13 +170,14 @@ class FRHEED(QMainWindow, form_class):
         
     def calc_thread(self, frame):
         worker = Worker(guifuncs.calculateIntensities, self, frame)
+        worker.signals.finished.connect(self.finished_notice)
         self.threadpool.start(worker)
         
     def plot_thread(self, **kwargs):
         worker = Worker(guifuncs.updatePlots, self)
         worker.signals.finished.connect(self.finished_notice)
         self.threadpool.start(worker)
-          
+        
     def grab_frame(self):
         worker = Worker(guifuncs.captureImage, self)
         self.threadpool.start(worker)
@@ -192,6 +193,12 @@ class FRHEED(QMainWindow, form_class):
         rectime = (time.time() - self.recstart)
         disptime = str(datetime.timedelta(seconds=rectime))[:-5]
         self.mainstatus.setText(f'Current recording duration: {disptime}')
+      
+    def alarm_thread(self):
+        if not self.beeping:
+            self.beeping = True
+            worker = Worker(utils.playAlarm, self)
+            self.threadpool.start(worker)
         
     def resizeEvent(self, event):
         pass
@@ -299,6 +306,9 @@ class FRHEED(QMainWindow, form_class):
                     self.liveplotButton.setEnabled(False)
 
     def closeEvent(self, event, **kwargs):
+        # Stop any alarms
+        self.beeping = False
+        
         # Stop plotting
         self.plotting = False
         
@@ -315,6 +325,9 @@ class FRHEED(QMainWindow, form_class):
             cameras.USB().disconnect()
         except:
             pass
+        
+        # Clear the threadpool so code doesn't execute after exiting
+        self.threadpool.clear()
         
         # Close the main window
         self.close()
@@ -371,6 +384,10 @@ if __name__ == '__main__':
 # TODO LIST
 '''
 FEATURES TO ADD:
+    - audio alarm when timer is finished
+    - hover color for right click menus
+    - all user to change live plot viewbox during plotting
+    - add laps to stopwatch
     - renaming plot tabs for stored data
     - shape translational motion
     - shortcuts for common buttons

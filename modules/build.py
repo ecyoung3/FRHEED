@@ -19,10 +19,9 @@ Originally created October 2018.
 Github: https://github.com/ecyoung3/FRHEED
 
 """
-
 from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QShortcut
 from PyQt5.QtGui import QPixmap, QTabWidget, QTabBar, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 import configparser
 from matplotlib import cm
 import pyqtgraph as pg
@@ -109,9 +108,11 @@ def statusbar(self):
     s.addPermanentWidget(self.fpsstatus)
   
 def splitters(self):
-    # Change splitter behavior
-    self.cam_index = self.topSplitter.indexOf(self.parentScrollArea) # get the index of the camera display in the splitter
-    self.topSplitter.setCollapsible(self.cam_index, False) # make it so that the camera display can't be completely collapsed
+    # Get the index of the camera display in the splitter
+    self.cam_index = self.topSplitter.indexOf(self.parentScrollArea) 
+    
+    # Make it so that the camera display can't be completely collapsed
+    self.topSplitter.setCollapsible(self.cam_index, False) 
     self.horizontalSplitter.setCollapsible(self.cam_index, False)
  
 def annotation(self):
@@ -175,7 +176,7 @@ def colormaps(self):
 def timing(self):
     # Define actions of timer spinboxes
     for b in self.setHours, self.setMinutes, self.setSeconds:
-        b.valueChanged.connect(guifuncs.changeTime)
+        b.valueChanged.connect(lambda: guifuncs.changeTime(self))
     
     # Defining the starting displays of the timer and stopwatch screens
     self.stopwatchScreen.display('0.00')  # stopwatch screen display
@@ -187,10 +188,6 @@ def timing(self):
     self.startstopwatchButton.clicked.connect(lambda: guifuncs.runStopwatch(self))
     self.resetstopwatchButton.clicked.connect(lambda: guifuncs.clearStopwatch(self))
     
-    # Setting stylesheets
-    self.starttimerButton.setStyleSheet('color: #9be564') # green text
-    self.startstopwatchButton.setStyleSheet('color: #9be564') # green text
-
 def notebook(self):
     # Notepad buttons
     self.savenotesButton.clicked.connect(lambda: guifuncs.saveNotes(self))
@@ -335,6 +332,7 @@ def variables(self):
     self.rightpressed = False
     self.midpressed = False
     self.simulateRHEED = False
+    self.beeping = False
     self.timeset, self.savedtime, self.savedtime2, self.totaltime = 0.0, 0.0, 0.0, 0.0
     self.hours, self.minutes, self.seconds = 0.0, 0.0, 0.0
     self.shapes = {
@@ -398,6 +396,24 @@ def variables(self):
     self.colorindex = 0
     self.activecolor = list(self.shapes.keys())[self.colorindex]
     self.vlines = {}
+    self.stopwatch = {
+        'clock': QTimer(),
+        'paused': False,
+        'tstart': 0,
+        'tpause': 0
+        }
+    self.timer = {
+        'clock': QTimer(),
+        'running': False,
+        'paused': False,
+        'hours': 0,
+        'minutes': 0,
+        'seconds': 0,
+        'tstart': 0,
+        'tpause': 0,
+        'runtime': 0,
+        'remaining': 0,
+        }
 
 def shortcuts(self):
     pass

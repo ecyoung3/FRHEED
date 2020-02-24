@@ -36,6 +36,8 @@ from pyqtgraph import PlotWidget
 import math
 import numpy as np
 from numpy.linalg import norm
+import winsound
+import time
 
 from . import utils, guifuncs
 
@@ -359,6 +361,16 @@ def sendClickPos(self, plot):
     plot.scene().sigMouseClicked.connect(
                     lambda event, p=plot: guifuncs.addVerticalLine(self, event, p)
                     )
+    
+def playAlarm(parent, **kwargs):
+    # Each 'cycle' of the alarm will have 4 beeps (3 fast, 1 longer) and will
+    # take exactly 1 second to complete
+    while parent.beeping:
+        for i in range(3):
+            winsound.Beep(2500, 75)
+            time.sleep(0.01)
+        winsound.Beep(2500, 175)
+        time.sleep(0.57)
     
 # =============================================================================
 # GRAVEYARD

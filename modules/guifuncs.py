@@ -39,7 +39,7 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap, QColor, QPen, QPainter
 from PyQt5.QtGui import QMouseEvent, QCursor
 from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot, QPoint
 import pyqtgraph as pg
-from scipy.ndimage import gaussian_filter
+import winsound
 
 from . import cameras, utils, addtab
 
@@ -530,11 +530,12 @@ def togglePlot(self):
     else:
         storeData(self, self.shapes)
         plotStoredData(self)
-        self.livePlotAxes.setXRange(0, 10, padding=0)
+        # self.livePlotAxes.setXRange(0, 10, padding=0)
         for col in self.shapes.keys():
-            self.shapes[col]['data'] = []
+            self.shapes[col]['plot'].setData(self.shapes[col]['time'],
+                                             self.shapes[col]['data'])
             self.shapes[col]['time'] = []
-            self.shapes[col]['plot'].clear()
+            self.shapes[col]['data'] = []
             
 def calculateIntensities(
         self, 
@@ -652,6 +653,9 @@ def plotStoredData(self):
         data = self.stored_data[newest_dataset][color]['data']
         if t and data:
             plots[color].setData(t, data)
+            
+    # Autoscale the plot to show all data
+    axes.enableAutoRange()
         
 def plotFFT(self):
     pass
@@ -744,6 +748,9 @@ def manualFreqCalc(self, plot):
     
     # Get the number of peaks between points
     peaks = numpeaks.value()
+    
+    if plotname not in self.vlines:
+        return
     
     # Get the position of both lines
     values = [line.value() for line in self.vlines[plotname].values()]
@@ -1023,19 +1030,141 @@ def clearNotes(self):
 # =============================================================================
 
 def runStopwatch(self):
-    pass
+    clock = self.stopwatch['clock']
+    if self.startstopwatchButton.isChecked():
+        self.resetstopwatchButton.setEnabled(True)
+        self.stopwatch['tstart'] = time.time()
+        self.startstopwatchButton.setText('Pause')
+        clock.timeout.connect(lambda: updateStopwatch(self))
+        clock.start(10)
+    else:
+        try:
+            clock.timeout.disconnect()
+        except:
+            pass
+        clock.stop()
+        self.stopwatch['tpause'] = (time.time() - self.stopwatch['tstart'] + 
+                                    self.stopwatch['tpause'])
+        self.stopwatch['paused'] = True
+        self.startstopwatchButton.setText('Resume')
+        
+def updateStopwatch(self):
+    t = time.time() - self.stopwatch['tstart'] + self.stopwatch['tpause']
+    tdisp = '{:.2f}'.format(t)
+    self.stopwatchScreen.display(tdisp)
 
 def clearStopwatch(self):
-    pass
-
-def changeTime(self):
-    pass
+    clock = self.stopwatch['clock']
+    try:
+        clock.timeout.disconnect()
+    except:
+        pass
+    clock.stop()
+    self.startstopwatchButton.setChecked(False)
+    self.resetstopwatchButton.setEnabled(False)
+    self.stopwatchScreen.display('       0.00')
+    self.stopwatch['tstart'] = 0
+    self.stopwatch['tpause'] = 0
+    self.stopwatch['paused'] = False
+    self.startstopwatchButton.setText('Start')
 
 def runTimer(self):
-    pass
+    clock = self.timer['clock']
+    if self.starttimerButton.isChecked():
+        self.resettimerButton.setEnabled(True)
+        self.timer['tstart'] = time.time()
+        self.timer['running'] = True
+        self.starttimerButton.setText('Pause')
+        clock.timeout.connect(lambda: updateTimer(self))
+        clock.start(1)
+    else:
+        try:
+            clock.timeout.disconnect()
+        except:
+            pass
+        clock.stop()
+        self.timer['tpause'] = (time.time() - self.timer['tstart'] + 
+                                    self.timer['tpause'])
+        self.timer['paused'] = True
+        if self.timer['remaining'] > 0:
+            self.starttimerButton.setText('Resume')
+        else:
+            self.starttimerButton.setEnabled(False)
+    
+def updateTimer(self):
+    # Load time values from timer dictionary
+    runtime = self.timer['runtime']
+    tstart = self.timer['tstart']
+    tpause = self.timer['tpause']
+    
+    # Calculate time to display
+    elapsed = time.time() - tstart + tpause
+    remaining = runtime - elapsed
+    self.timer['remaining'] = remaining
+    hrs, rem = divmod(abs(remaining), 3600)
+    mins, secs = divmod(rem, 60)
+    
+    # Format the display time
+    disptime = '{:0>2}:{:0>2}:{:05.2f}'.format(int(hrs), int(mins), secs)
+    self.timerScreen.display(disptime)
+    
+    # If the time has expired, change the text color
+    if remaining < 0:
+        self.starttimerButton.setText('Time\'s Up')
+        self.starttimerButton.setEnabled(False)
+        self.timerScreen.setEnabled(False)
+        self.alarm_thread()
+            
+def changeTime(self, resetting: bool = False):
+    # Only change the display if the timer isn't active
+    if self.timer['running'] and not resetting:
+        return
+    
+    # Update the number of hours
+    hrs = self.setHours.value()
+    self.timer['hours'] = hrs
+    hrs_txt = str(hrs).zfill(2)
+    
+    # Update the number of minutes
+    mins = self.setMinutes.value()
+    self.timer['minutes'] = mins
+    mins_txt = str(mins).zfill(2)
+    
+    # Update the number of seconds
+    secs = self.setSeconds.value()
+    self.timer['seconds'] = secs
+    secs_txt = str(secs).zfill(2)
+    
+    # Update the timer display
+    disptime = f'{hrs_txt}:{mins_txt}:{secs_txt}.00'
+    self.timerScreen.display(disptime)
+    
+    # Calculate the timer's runtime
+    self.timer['runtime'] = hrs*60*60 + mins*60 + secs
+    
+    # Enable the start button if a time is set
+    if self.timer['runtime'] > 0:
+        self.starttimerButton.setEnabled(True)
+    else:
+        self.starttimerButton.setEnabled(False)
     
 def resetTimer(self):
-    pass
+    clock = self.timer['clock']
+    try:
+        clock.timeout.disconnect()
+    except:
+        pass
+    clock.stop()
+    self.beeping = False
+    self.timerScreen.setEnabled(True)
+    self.starttimerButton.setChecked(False)
+    self.resettimerButton.setEnabled(False)
+    changeTime(self, resetting=True)
+    self.timer['tstart'] = 0
+    self.timer['tpause'] = 0
+    self.timer['paused'] = False
+    self.starttimerButton.setText('Start')
+    self.timer['remaining'] = self.timer['runtime']
 
 # =============================================================================
 # FUNCTIONS FOR UPDATING THE STATUSBAR
