@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""FRHEED
+'''
+FRHEED
 
 This is a real-time RHEED (Reflection High Energy Electron Diffraction)
 analysis program designed for use with USB or FLIR GigE cameras.
@@ -17,7 +18,7 @@ Originally created October 2018.
 
 Github: https://github.com/ecyoung3/FRHEED
 
-"""
+'''
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from pyqtgraph import PlotWidget
@@ -71,6 +72,7 @@ def addPlotTab(self, tabwidget, *args, **kwargs):
     freqlabel.setPalette(standardPalette())
     freqlabel.setMouseTracking(True)
     freqlabel.setText('')
+    freqlabel.setMinimumSize(QtCore.QSize(90, 0))
     freqlabelname = f'{tabname}FreqLabel'
     freqlabel.setObjectName(freqlabelname)
     freqlabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -82,7 +84,7 @@ def addPlotTab(self, tabwidget, *args, **kwargs):
     ADDING THE NUMBER OF PEAKS LABEL
     '''
     numpeakslabel = QtWidgets.QLabel(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, 
+    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, 
                                        QtWidgets.QSizePolicy.Preferred)
     sizePolicy.setHorizontalStretch(0)
     sizePolicy.setVerticalStretch(0)
@@ -145,17 +147,19 @@ def addPlotTab(self, tabwidget, *args, **kwargs):
     ADDING THE T = LABEL
     '''
     tequals = QtWidgets.QLabel(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, 
+    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, 
                                        QtWidgets.QSizePolicy.Preferred)
     sizePolicy.setHorizontalStretch(0)
     sizePolicy.setVerticalStretch(0)
     sizePolicy.setHeightForWidth(tequals.sizePolicy().hasHeightForWidth())
     tequals.setSizePolicy(sizePolicy)
-    tequals.setMinimumSize(QtCore.QSize(65, 0))
+    tequals.setMinimumSize(QtCore.QSize(45, 0))
     tequals.setText('')
     tequalsname = f'{tabname}TEqualsLabel'
     tequals.setObjectName(tequalsname)
-    tequals.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+    tequals.setAlignment(QtCore.Qt.AlignRight|
+                         QtCore.Qt.AlignTrailing|
+                         QtCore.Qt.AlignVCenter)
     toprightlayout.addWidget(tequals, 0, 0, 1, 1)
     layout.addLayout(toprightlayout, 0, 2, 1, 1)
     
@@ -163,19 +167,21 @@ def addPlotTab(self, tabwidget, *args, **kwargs):
     LABEL TO DISPLAY CURSOR POSITION
     '''
     tlabel = QtWidgets.QLabel(newtab)
-    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, 
+    sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, 
                                        QtWidgets.QSizePolicy.Preferred)
     sizePolicy.setHorizontalStretch(0)
     sizePolicy.setVerticalStretch(0)
     sizePolicy.setHeightForWidth(tlabel.sizePolicy().hasHeightForWidth())
     tlabel.setSizePolicy(sizePolicy)
-    tlabel.setMinimumSize(QtCore.QSize(65, 0))
+    tlabel.setMinimumSize(QtCore.QSize(45, 0))
     tlabel.setPalette(standardPalette())
     tlabel.setMouseTracking(True)
     tlabel.setText('')
     tlabelname = f'{tabname}TLabel'
     tlabel.setObjectName(tlabelname)
-    tlabel.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+    tlabel.setAlignment(QtCore.Qt.AlignLeading|
+                        QtCore.Qt.AlignLeft|
+                        QtCore.Qt.AlignVCenter)
     tlabel.setIndent(-1)
     toprightlayout.addWidget(tlabel, 0, 1, 1, 1)
     
@@ -200,6 +206,10 @@ def addPlotTab(self, tabwidget, *args, **kwargs):
     layout.addWidget(axes, 1, 0, 1, 3)
     
     return axes
+
+# =============================================================================
+# COLOR PALETTES FOR WIDGETS
+# =============================================================================
 
 def standardPalette():
     palette = QtGui.QPalette()
@@ -257,6 +267,7 @@ def standardPalette():
     brush = QtGui.QBrush(QtGui.QColor(25, 35, 45))
     brush.setStyle(QtCore.Qt.SolidPattern)
     palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
+    
     return palette
 
 def spinboxPalette():

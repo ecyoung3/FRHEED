@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""FRHEED
+'''
+FRHEED
 
 This is a real-time RHEED (Reflection High Energy Electron Diffraction)
 analysis program designed for use with USB or FLIR GigE cameras.
@@ -17,7 +18,7 @@ Originally created October 2018.
 
 Github: https://github.com/ecyoung3/FRHEED
 
-"""
+'''
 
 import sys
 import os
@@ -40,6 +41,7 @@ from PyQt5.QtGui import QMouseEvent, QCursor
 from PyQt5.QtCore import QSize, Qt, QTimer, QRect, pyqtSlot, QPoint
 import pyqtgraph as pg
 import winsound
+from scipy import signal
 
 from . import cameras, utils, addtab
 
@@ -469,7 +471,7 @@ def recordVideo(self):
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         
         # Create video writer object that will save the frames to an .mp4
-        fps = int(self.realfps) if self.realfps is not None else 20
+        fps = int(self.realfps) if self.realfps is not None else 30
         self.writer = cv2.VideoWriter(filename = filepath, 
                                       fourcc = fourcc, 
                                       fps = fps, 
@@ -478,7 +480,8 @@ def recordVideo(self):
                                       )
 
     if not self.recording:
-        self.mainstatus.setText(f'Video saved as {self.vidname}')
+        txt = f'Video saved as {self.vidname}'
+        self.mainstatus.setText(txt)
         try:
             if self.writer.isOpened():
                 self.writer.release()
@@ -541,7 +544,7 @@ def calculateIntensities(
         self, 
         frame, 
         finished, 
-        mode: str = 'average', 
+        mode: str = 'sum', 
         offset: int = 0,
         **kwargs):
     
@@ -585,29 +588,69 @@ def calculateIntensities(
             # Increment plot number for vertical shifting
             plotnum += 1
 
-    # Emit the finished signal (probably not essential)
+    # Emit the finished signal to keep thread happy
     finished.emit()
 
-def updatePlots(self, finished, timespan: float = 5.0, **kwargs):
+def updatePlots(
+        self, 
+        finished, 
+        timespan: 
+        float = 5.0, 
+        scrolling: bool = False,
+        filtering: bool = True,
+        window: int = 11,
+        **kwargs
+        ):
+    
     while self.plotting:
         # Count the number of active plots
         numplots = sum(1 for col in self.shapes if self.shapes[col]['data'])
+        
+        # Enable manual FFT button if there is data
+        if numplots > 0:
+            self.fftButton.setEnabled(True)
+        else:
+            self.fftButton.setEnabled(False)
+            
         for col in self.shapes.keys():
             tl = self.shapes[col]['top left']
             t = self.shapes[col]['time']
             data = self.shapes[col]['data']
             pos = 0
             if t and tl:
-                if max(t)-min(t) > timespan:
-                    pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
-                    self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
-                elif numplots <= 1:
-                    bot = np.amin([t[-1]-timespan, 0])
-                    self.livePlotAxes.setXRange(bot, t[-1], padding=0)
+                if scrolling:
+                    if max(t)-min(t) > timespan:
+                        pos = list(map(lambda s: s > t[-1]-timespan, t)).index(True)
+                        self.livePlotAxes.setXRange(t[pos], t[-1], padding=0)
+                        
+                    elif numplots <= 1:
+                        bot = np.amin([t[-1]-timespan, 0])
+                        self.livePlotAxes.setXRange(bot, t[-1], padding=0)
+                    
+                if not len(data) == len(t):
+                    min_l = min(len(data), len(t))
+                    data = data[:min_l]
+                    t = t[:min_l]
+                    
+                if len(data) > 2*window and filtering:
+                    filt = signal.savgol_filter(
+                                    x = data, 
+                                    window_length = window, 
+                                    polyorder = 3
+                                    )
+                    t, filt = utils.equalizeDataLengths(t, filt)
+                    self.shapes[col]['filtered'].setData(
+                                                t[pos:-window], 
+                                                filt[pos:-window]
+                                                )
+                    
+                # Plot unfiltered data
+                t, data = utils.equalizeDataLengths(t, data)
                 self.shapes[col]['plot'].setData(
-                    t[pos:], 
-                    data[pos:]
-                    )
+                                            t[pos:], 
+                                            data[pos:]
+                                            )
+                
         time.sleep(0.04) # give time for the GUI to update
         finished.emit() # emit signal because otherwise the thread crashes
         
@@ -656,9 +699,79 @@ def plotStoredData(self):
             
     # Autoscale the plot to show all data
     axes.enableAutoRange()
+     
+def liveFFT(self, finished, rate: float = 0.5, **kwargs):
+    # Limit the rate (run maximum 6 times per second)
+    wait = utils.rateLimiter(6)
+    if not wait:
+        return
+    
+    if self.fftButton.isChecked():
+        # Iterate over shapes and plot for populated datasets
+        for col in self.shapes.keys():
+            # Load the data to plot FFT of
+            t = self.shapes[col]['time']
+            data = self.shapes[col]['data']
+            
+            # The plot line object where the data wil be displayed
+            line = self.shapes[col]['fftline']
+            
+            # Calculate FFT from data
+            freq, psd = calculateFFT(self, t, data, line)
+            
+            # Skip this data if calculation fails
+            if freq is None or psd is None:
+                continue
         
-def plotFFT(self):
-    pass
+        finished.emit()
+                
+def calculateFFT(self, x, y, line):
+    # Make sure data exists in the dictionary
+    if not x or not y or line is None:
+        return None, None
+    
+    # Equalize data lengths
+    x, y = utils.equalizeDataLengths(x, y)
+    
+    # Create evenly-spaced list of sample points 
+    numsamples = len(x)
+    samplespacing = (x[-1]-x[0])/numsamples
+    
+    # Generate array of frequencies
+    try:
+        freq = np.fft.rfftfreq(numsamples, d=samplespacing)
+    except:
+        return None, None
+    
+    # Remove DC signal from the y-data
+    y -= np.mean(y)
+    
+    # Apply Hanning filter to smooth edge discontinuities
+    window = np.hanning(numsamples+1)[:-1]
+    if len(y) != len(window):
+        return
+    hann = y*window
+
+    # Calculate real FFT
+    fftdata = np.fft.rfft(hann)
+    
+    # Normalize FFT data
+    psd = abs(fftdata)**2/(np.abs(hann)**2).sum()
+    psd = (psd*2)**0.5
+    
+    # Sometimes the arrays can become different lengths and throw errors
+    freq, psd = utils.equalizeDataLengths(freq, psd)
+    
+    # Add the data to the provided line plot
+    line.setData(
+        freq,
+        psd
+        )
+    
+    if line not in self.fftPlotAxes.listDataItems():
+        self.fftPlotAxes.addItem(line)
+    
+    return freq, psd
 
 def addVerticalLine(self, event, plot, **kwargs):
     # Accept the event so other slots don't connect to it
@@ -749,6 +862,7 @@ def manualFreqCalc(self, plot):
     # Get the number of peaks between points
     peaks = numpeaks.value()
     
+    # Exit if there are no vertical lines on the current plot
     if plotname not in self.vlines:
         return
     
@@ -757,8 +871,8 @@ def manualFreqCalc(self, plot):
     if len(values) < 2:
         return
     
-    # Calculate the frequency
-    freq = peaks/(abs(values[0]-values[1]))
+    # Calculate the frequency and prevent divide by zero error
+    freq = peaks/max((abs(values[0]-values[1])), 1e-3)
     freqlabel.setText('{:.3f} Hz'.format(freq))
 
 def getCursorPos(self, event, plot, **kwargs):
@@ -769,7 +883,7 @@ def getCursorPos(self, event, plot, **kwargs):
     try:
         tequals = f'{name}TEqualsLabel'
         tequals = self.findChild(QLabel, tequals)
-        tequals.setText('Time  =  ')
+        tequals.setText('t  =  ')
     except:
         pass
     
@@ -843,10 +957,6 @@ def drawShapes(self, deleteshape: bool = False):
         rect = self.shapes[self.activecolor]['rect']
         qp.drawRect(rect)
         
-    # x, y = self.beginpos.x(), self.beginpos.y()
-    # w, h = self.currpos.x() - x, self.currpos.y() - y
-    # qp.drawEllipse(x, y, w, h)
-    
     # Paint existing shapes other than the active color
     for col in self.shapes.keys():
         rect = self.shapes[col]['rect']
@@ -1211,13 +1321,10 @@ def simulateRHEED(self):
         img = img.astype('uint8')
         return img
     
-    t = time.time()
-    sec = float(str(t-int(t))[1:])
+    sec = utils.getSeconds()
     
     amplitude = np.sin(2*np.pi*sec)
     
     img = changeBrightness(img, 10*amplitude)
 
-    self.frameindex += 1
-    
     return img

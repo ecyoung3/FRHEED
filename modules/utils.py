@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""FRHEED
+'''
+FRHEED
 
 This is a real-time RHEED (Reflection High Energy Electron Diffraction)
 analysis program designed for use with USB or FLIR GigE cameras.
@@ -17,7 +18,7 @@ Originally created October 2018.
 
 Github: https://github.com/ecyoung3/FRHEED
 
-"""
+'''
 
 # =============================================================================
 #
@@ -112,6 +113,7 @@ def setBasepath(parent, change: bool = False):
             parent.close()
             parent.app.quit()
             sys.exit()
+            
     # Set base path to config
     userpath = os.path.join(parent.basepath, user, '')
     samplepath = os.path.join(userpath, sample, '')
@@ -151,7 +153,7 @@ def setUser(parent, changesample: bool = True):
               'User name contains invalid characters for folder creation.')
         setUser(parent, False)
         
-    # If no username is entered, exit prematurely
+    # If no username is entered, exit
     elif entry == '':
         setUser(parent, False)
     
@@ -254,7 +256,7 @@ def pythagDist(pt1, pt2):
 def distFromSegment(point: list, segment: list) -> float:
     '''
     This determines if a point is within a certain distance of a line segment.
-    Works for segments that are either vertical or horizontal.
+    Works only for segments that are either vertical or horizontal.
     '''
     # Points which define the line segment
     p1, p2 = segment[0], segment[1]
@@ -313,17 +315,6 @@ def addPlots(axes: object, *args, **kwargs) -> dict:
         }
     return plots
 
-def enableMouseTracking(self, flag):
-    def recursive_set(parent):
-        for child in parent.findChildren(QtCore.QObject):
-            try:
-                child.setMouseTracking(flag)
-            except:
-                pass
-            recursive_set(child)
-    QtGui.QWidget.setMouseTracking(self, flag)
-    recursive_set(self)
-
 def formatPlots(plotwidget, style: str = 'area'):
     plotfont = QtGui.QFont('Bahnschrift')
     fontstyle = {
@@ -333,7 +324,6 @@ def formatPlots(plotwidget, style: str = 'area'):
     tickstyle = {'tickTextOffset': 10}
     plotfont.setPixelSize(12)
     plotwidget.setXRange(0, 1, padding=0)
-    # plotwidget.plotItem.setLogMode(False, True)
     plotwidget.plotItem.showGrid(True, False, 0.05)
     plotwidget.plotItem.getAxis('bottom').tickFont = plotfont
     plotwidget.plotItem.getAxis('bottom').setStyle(**tickstyle)
@@ -363,46 +353,30 @@ def sendClickPos(self, plot):
                     )
     
 def playAlarm(parent, **kwargs):
-    # Each 'cycle' of the alarm will have 4 beeps (3 fast, 1 longer) and will
+    # Each 'cycle' of the alarm will have 4 beeps (3 short, 1 longer) and will
     # take exactly 1 second to complete
     while parent.beeping:
         for i in range(3):
-            winsound.Beep(2500, 75)
+            winsound.Beep(2500, 75) # frequency (Hz) and duration (ms)
             time.sleep(0.01)
         winsound.Beep(2500, 175)
         time.sleep(0.57)
     
-# =============================================================================
-# GRAVEYARD
-# =============================================================================
+def equalizeDataLengths(first, second):
+    min_length = min(len(first), len(second))
+    first = first[:min_length]
+    second = second[:min_length]
+    return first, second
+    
+def getSeconds():
+    return float(str(time.time()-int(time.time()))[1:])
 
-# def makeThread(func, args):
-#     p = threading.Thread(target=func, args=args)  # again, fps isn't actually used but leave it
-#     return p
-
-# def convertExposure(level: int):
-#     lvl = str(level)
-#     # USB exposure level on the left, estimated exposure time on the right (in ms)
-#     # Source: http://www.principiaprogramatica.com/2017/06/11/setting-manual-exposure-in-opencv/
-#     realtimes = {
-#         '-1':   640,
-#         '-2':   320,
-#         '-3':   160,
-#         '-4':   80,
-#         '-5':   40,
-#         '-6':   20,
-#         '-7':   10,
-#         '-8':   5,
-#         '-9':   2.5,
-#         '-10':  1.25,
-#         '-11':  0.650,
-#         '-12':  0.312,
-#         '-13':  0.150,
-#         }
-#     if lvl in realtimes.keys():
-#         exptime = realtimes[lvl]
-        
-#     else:
-#         exptime = lvl
-        
-#     return exptime
+def rateLimiter(frequency) -> bool:
+    '''
+    frequency : float
+        Frequency in Hertz.
+    '''
+    frequency = max(abs(frequency), 1e-3)
+    t = getSeconds()
+    quotient, remainder = divmod(t, 1./frequency)
+    return False if remainder > 0.01 else True

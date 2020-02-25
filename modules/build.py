@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # -*- coding: utf-8 -*-
-"""FRHEED
+'''
+FRHEED
 
 This is a real-time RHEED (Reflection High Energy Electron Diffraction)
 analysis program designed for use with USB or FLIR GigE cameras.
@@ -18,17 +19,15 @@ Originally created October 2018.
 
 Github: https://github.com/ecyoung3/FRHEED
 
-"""
-from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QShortcut
-from PyQt5.QtGui import QPixmap, QTabWidget, QTabBar, QFont
+'''
+from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy
+from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QTimer
-import configparser
 from matplotlib import cm
 import pyqtgraph as pg
 import numpy as np
 from PIL import Image, ImageQt
 from colormap import Colormap
-import pyqtgraph.opengl as gl
 
 # =============================================================================
 # 
@@ -54,7 +53,7 @@ def toolbar(self):
                   'drawButton': lambda: guifuncs.showShapes(self),
                   'moveshapesButton': lambda: guifuncs.moveShapes(self),
                   'rectButton': lambda: guifuncs.cycleColors(self),
-                  'fftButton': lambda: guifuncs.plotFFT(self),
+                  'fftButton': lambda: self.fft_thread(),
                   'userButton': lambda: utils.setUser(self),
                   'sampleButton': lambda: utils.setSample(self),
                   'directoryButton': lambda: utils.openDirectory(),
@@ -98,6 +97,7 @@ def statusbar(self):
     self.droppedframestatus.setText('Total dropped frames: 0 ')
     self.droppedframestatus.setFixedWidth(176)
     self.droppedframestatus.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+    
     # Add the statusbar widgets
     s = self.statusBar()
     s.addWidget(self.mainstatus)
@@ -129,7 +129,7 @@ def annotation(self):
     self.setGrowthLayer.textChanged.connect(lambda: guifuncs.annotationLayerText(self))
     self.setMisc.textChanged.connect(lambda: guifuncs.annotationMiscText(self))
     
-    # Set annotation height
+    # Set annotation frame height
     self.anno_height = 70
         
 def colormaps(self):
@@ -194,6 +194,10 @@ def notebook(self):
     self.clearnotesButton.clicked.connect(lambda: guifuncs.clearNotes(self))
 
 def plots(self):
+    # Set default appearance of pyqtgraph plots
+    pg.setConfigOption('background', (25, 35, 45))
+    pg.setConfigOption('foreground', (255, 255, 255))
+    
     # The line below can be used to disable the Close button on specific tabs
     # QTabWidget.tabBar(self.oldDataTabs).setTabButton(0, QTabBar.RightSide, None)
     
@@ -202,8 +206,7 @@ def plots(self):
     
     # Styling the area intensity data plots
     areaplots = [self.livePlotAxes]
-    fftplots = [self.redFFTAxes, self.greenFFTAxes, self.blueFFTAxes,
-                self.orangeFFTAxes, self.purpleFFTAxes]
+    fftplots = [self.fftPlotAxes]
     allplots = areaplots + fftplots
     plotfont = QFont('Bahnschrift')
     fontstyle = {
@@ -215,7 +218,6 @@ def plots(self):
     for p in allplots:
         p.setXRange(0, 1, padding=0)
         p.plotItem.showGrid(True, False, 0.05)
-        # p.plotItem.setLogMode(False, True)
         p.plotItem.getAxis('bottom').tickFont = plotfont
         p.plotItem.getAxis('bottom').setStyle(**tickstyle)
         for axis in ['right', 'top', 'left']:
@@ -231,17 +233,20 @@ def plots(self):
         p.setLimits(xMin=0)
         p.setLabel('bottom', 'Time (s)', **fontstyle)
         p.setLabel('left', 'Intensity (Counts/Pixel)', **fontstyle)
-        # p.plotItem.getAxis('bottom').setTickSpacing(2, 1)
         p.plotItem.getAxis('bottom').setHeight(42)
         p.plotItem.getAxis('left').setWidth(24) # previously 48 if ticks shown
         
     # Add the PlotCuveItems to the live plot
     for s in self.shapes.keys():
         self.livePlotAxes.addItem(self.shapes[s]['plot'])
+        self.livePlotAxes.addItem(self.shapes[s]['filtered'])
+        self.fftPlotAxes.addItem(self.shapes[s]['fftline'])
         
     # Set up signals for showing cursor position in each plot
     for p in allplots:
         utils.sendCursorPos(self, p)
+        p.enableAutoRange()
+    for p in areaplots:
         utils.sendClickPos(self, p)
         
     # Make it so the manual frequency calculation updates when the spinbox changes
@@ -312,6 +317,10 @@ def cambuttons(self):
         b.clicked.connect(lambda: guifuncs.setImageProfile(self))
 
 def simulation(self):
+    # Load sample image for RHEED simulation
+    self.rheed_sample_img = np.array(Image.open('rheed_spots.png'))
+    
+    # Define widget functionality
     self.enableSimulationButton.clicked.connect(lambda: guifuncs.enableSimulation(self))
 
 def variables(self):
@@ -336,8 +345,6 @@ def variables(self):
     self.midpressed = False
     self.simulateRHEED = False
     self.beeping = False
-    self.timeset, self.savedtime, self.savedtime2, self.totaltime = 0.0, 0.0, 0.0, 0.0
-    self.hours, self.minutes, self.seconds = 0.0, 0.0, 0.0
     self.shapes = {
         'red': {
             'top left': None,
@@ -348,7 +355,13 @@ def variables(self):
             'data': [],
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((228, 88, 101), width=1)
-                        ),        
+                        ), 
+            'filtered': pg.PlotCurveItem(
+                        pen = pg.mkPen((228, 133, 133), width=1)
+                        ), 
+            'fftline': pg.PlotCurveItem(
+                        pen = pg.mkPen((228, 88, 101), width=1)
+                        ), 
             },
         'green': {
             'top left': None,
@@ -359,7 +372,13 @@ def variables(self):
             'data': [],
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((155, 229, 100), width=1)
-                        ),            
+                        ),
+            'filtered': pg.PlotCurveItem(
+                        pen = pg.mkPen((155, 229, 100), width=1)
+                        ),
+            'fftline': pg.PlotCurveItem(
+                        pen = pg.mkPen((155, 229, 100), width=1)
+                        ),  
             },
         'blue': {
             'top left': None,
@@ -370,7 +389,13 @@ def variables(self):
             'data': [],
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((0, 167, 209), width=1)
-                        ),            
+                        ),   
+            'filtered': pg.PlotCurveItem(
+                        pen = pg.mkPen((0, 167, 209), width=1)
+                        ),  
+            'fftline': pg.PlotCurveItem(
+                        pen = pg.mkPen((0, 167, 209), width=1)
+                        ), 
             },
         'orange': {
             'top left': None,
@@ -381,7 +406,13 @@ def variables(self):
             'data': [],
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((244, 187, 71), width=1)
-                        ),            
+                        ),   
+            'filtered': pg.PlotCurveItem(
+                        pen = pg.mkPen((244, 187, 71), width=1)
+                        ),  
+            'fftline': pg.PlotCurveItem(
+                        pen = pg.mkPen((244, 187, 71), width=1)
+                        ), 
             },
         'purple': {
             'top left': None,
@@ -391,6 +422,12 @@ def variables(self):
             'time': [],
             'data': [],
             'plot': pg.PlotCurveItem(
+                        pen = pg.mkPen((125, 43, 155), width=1)
+                        ),
+            'filtered': pg.PlotCurveItem(
+                        pen = pg.mkPen((125, 43, 155), width=1)
+                        ),
+            'fftline': pg.PlotCurveItem(
                         pen = pg.mkPen((125, 43, 155), width=1)
                         ),
             },
@@ -417,9 +454,6 @@ def variables(self):
         'runtime': 0,
         'remaining': 0,
         }
-
-def shortcuts(self):
-    pass
 
 def core_ui(self):
     variables(self)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""FRHEED
+'''
+FRHEED
 
 This is a real-time RHEED (Reflection High Energy Electron Diffraction)
 analysis program designed for use with USB or FLIR GigE cameras.
@@ -17,22 +18,20 @@ Originally created October 2018.
 
 Github: https://github.com/ecyoung3/FRHEED
 
-"""
+'''
 
 import os
 import sys
 import ctypes
-import numpy as np
 import time
 import datetime
 import traceback
 
 from matplotlib import cm
-from PIL import Image
 from PyQt5 import uic, QtGui
-from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QLabel
-from PyQt5.QtCore import Qt, QRunnable, QThreadPool, pyqtSlot, pyqtSignal, QObject
-import pyqtgraph as pg
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtCore import Qt, QObject
+from PyQt5.QtCore import QRunnable, QThreadPool, pyqtSlot, pyqtSignal
 import pyqt5ac
 import pathvalidate
 
@@ -46,19 +45,14 @@ pyqt5ac.main(config='resources/resources config.yml')
 app_id = 'FRHEED.FRHEED.FRHEED.FRHEED'
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
-# Load the UI file; should be located in the same folder as FRHEED.py
+# Load the UI file
 form_class = uic.loadUiType('gui/FRHEED.ui')[0]
-
-# Set default appearance of pyqtgraph plots
-pg.setConfigOption('background', (25, 35, 45))
-pg.setConfigOption('foreground', (255, 255, 255))
 
 # Initialize the QApplication
 app = QApplication(sys.argv)
 
 class FRHEED(QMainWindow, form_class):
     def __init__(self, parent=None):
-        # Set up the main UI. Do this so parent classes can inherit the appearance/properties.
         QMainWindow.__init__(self, parent)
         
         # Construct the main window from the .ui file
@@ -70,10 +64,6 @@ class FRHEED(QMainWindow, form_class):
         # Build components of UI that don't depend on camera selection
         build.core_ui(self)
         
-        # Load sample image for RHEED simulation
-        self.rheed_sample_img = np.array(Image.open('rheed_spots.png'))
-        self.frameindex = 0
-        
         # Initialize configuration file
         self.configfile, self.config = utils.getConfig()
         
@@ -81,7 +71,7 @@ class FRHEED(QMainWindow, form_class):
         if not os.path.exists(self.config['Default']['path']):
             utils.setBasepath(self)
             
-        # Load config options
+        # Check config options for base save location
         self.basepath = self.config['Default']['path']
         
         # Check to make sure the basepath is valid
@@ -127,8 +117,8 @@ class FRHEED(QMainWindow, form_class):
         
         # Detect cameras and choose one to connect to
         *items, = cameras.FLIR().connectCam()
-        self.flir_result, self.system, self.cam_list, self.flir_cam = items
-        if self.flir_result:
+        self.flir_connected, self.system, self.cam_list, self.flir_cam = items
+        if self.flir_connected:
             self.serial_number = self.flir_cam.GetUniqueID()
         self.usb_cam = cameras.USB().connectCam()
         cameras.selectionDialog(self).chooseCamera(self.system, quitting=True)
@@ -151,7 +141,7 @@ class FRHEED(QMainWindow, form_class):
         maxthreads = self.threadpool.maxThreadCount()
         print(f'Maximum number of threads: {maxthreads}')
               
-        # Start updating the GUI
+        # Start displaying the camera feed
         self.frame_thread()
         
     def frame_thread(self):
@@ -175,6 +165,11 @@ class FRHEED(QMainWindow, form_class):
         
     def plot_thread(self, **kwargs):
         worker = Worker(guifuncs.updatePlots, self)
+        worker.signals.finished.connect(self.fft_thread)
+        self.threadpool.start(worker)
+        
+    def fft_thread(self):
+        worker = Worker(guifuncs.liveFFT, self)
         worker.signals.finished.connect(self.finished_notice)
         self.threadpool.start(worker)
         
@@ -190,9 +185,10 @@ class FRHEED(QMainWindow, form_class):
             return
         
         # Show the recording time in the statusbar
-        rectime = (time.time() - self.recstart)
-        disptime = str(datetime.timedelta(seconds=rectime))[:-5]
-        self.mainstatus.setText(f'Current recording duration: {disptime}')
+        if self.recording:
+            rectime = (time.time() - self.recstart)
+            disptime = str(datetime.timedelta(seconds=rectime))[:-5]
+            self.mainstatus.setText(f'Current recording duration: {disptime}')
       
     def alarm_thread(self):
         if not self.beeping:
@@ -239,7 +235,7 @@ class FRHEED(QMainWindow, form_class):
             self.leftpressed = False
             self.drawing = False
             
-            # Normalize rectangle
+            # Normalize rectangle (prevent coordinates with negative values)
             rect = self.shapes[self.activecolor]['rect']
             if rect is not None:
                 self.shapes[self.activecolor]['rect'] = rect.normalized()
@@ -252,6 +248,7 @@ class FRHEED(QMainWindow, form_class):
             self.shapes[self.activecolor]['top left'] = self.beginpos
             self.shapes[self.activecolor]['bottom right'] = self.endpos
         
+        # Right click to resize shapes
         if event.button() == Qt.RightButton:
             self.rightpressed = False
             self.drawing = False
@@ -269,8 +266,11 @@ class FRHEED(QMainWindow, form_class):
     def mouseMoveEvent(self, event):
         # Cursor position relative to the draw canvas
         draw_pos = self.drawCanvas.mapFrom(self, event.pos())
+        
+        # Use standard cursor when mouse isn't near the active shape
         if not self.cursornearshape:
             self.app.restoreOverrideCursor()
+            
         # If the mouse is over the drawing canvas
         if self.drawCanvas.underMouse():
             # Detect cursor proximity to active shape to determine if
@@ -284,10 +284,10 @@ class FRHEED(QMainWindow, form_class):
                 guifuncs.drawShapes(self)
             
     def keyPressEvent(self, event: QtGui.QKeyEvent):
+        # Placeholder for using control key as shortcut for common functions
         if event.key() == Qt.Key_Control:
             if self.drawCanvas.underMouse():
                 pass
-            # eventually make it so ctrl + scroll zooms the image
             
         # Clear active shape if the 'Delete' key is pressed while the
         # mouse is over the draw canvas while not live plotting
@@ -299,6 +299,7 @@ class FRHEED(QMainWindow, form_class):
                 self.shapes[ac]['rect']= None
                 guifuncs.drawShapes(self, deleteshape = True)
                 self.cursornearshape = False
+                
                 # Disable the live plot button if no shapes are drawn
                 numshapes = sum(1 for col in self.shapes if 
                                 self.shapes[col]['top left'])
@@ -384,9 +385,9 @@ if __name__ == '__main__':
 # TODO LIST
 '''
 FEATURES TO ADD:
-    - audio alarm when timer is finished
+    - controls for additional plot options (filtering, scrolling)
     - hover color for right click menus
-    - all user to change live plot viewbox during plotting
+    - allow user to change live plot viewbox during plotting
     - add laps to stopwatch
     - renaming plot tabs for stored data
     - shape translational motion
@@ -403,6 +404,11 @@ FEATURES TO ADD:
 '''
 '''
 THINGS TO FIX:
+    - drawn shapes and intensity regions should resize with frame
+    - bugs with changing user/sample and inputting invalid characters
+    - study video recording stability
+        - snip camera frame instead of using raw camera inupt 
+            for more stable performance?
     - the goddamn zooming/crashing bug apparently isn't fixed...
         - signal proxy to limit signal rate?
         - change zooming mode to have user drag-select an area instead
