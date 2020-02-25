@@ -28,6 +28,7 @@ import datetime
 import traceback
 
 from matplotlib import cm
+import pyqtgraph as pg
 from PyQt5 import uic, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt, QObject
@@ -47,6 +48,10 @@ ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
 # Load the UI file
 form_class = uic.loadUiType('gui/FRHEED.ui')[0]
+
+# Set default appearance of pyqtgraph plots
+pg.setConfigOption('background', (25, 35, 45))
+pg.setConfigOption('foreground', (255, 255, 255))
 
 # Initialize the QApplication
 app = QApplication(sys.argv)
@@ -165,11 +170,6 @@ class FRHEED(QMainWindow, form_class):
         
     def plot_thread(self, **kwargs):
         worker = Worker(guifuncs.updatePlots, self)
-        worker.signals.finished.connect(self.fft_thread)
-        self.threadpool.start(worker)
-        
-    def fft_thread(self):
-        worker = Worker(guifuncs.liveFFT, self)
         worker.signals.finished.connect(self.finished_notice)
         self.threadpool.start(worker)
         

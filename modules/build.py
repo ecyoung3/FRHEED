@@ -53,7 +53,7 @@ def toolbar(self):
                   'drawButton': lambda: guifuncs.showShapes(self),
                   'moveshapesButton': lambda: guifuncs.moveShapes(self),
                   'rectButton': lambda: guifuncs.cycleColors(self),
-                  'fftButton': lambda: self.fft_thread(),
+                  'fftButton': lambda: guifuncs.updateFFT(self),
                   'userButton': lambda: utils.setUser(self),
                   'sampleButton': lambda: utils.setSample(self),
                   'directoryButton': lambda: utils.openDirectory(),
@@ -239,7 +239,6 @@ def plots(self):
     # Add the PlotCuveItems to the live plot
     for s in self.shapes.keys():
         self.livePlotAxes.addItem(self.shapes[s]['plot'])
-        self.livePlotAxes.addItem(self.shapes[s]['filtered'])
         self.fftPlotAxes.addItem(self.shapes[s]['fftline'])
         
     # Set up signals for showing cursor position in each plot
@@ -356,9 +355,6 @@ def variables(self):
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((228, 88, 101), width=1)
                         ), 
-            'filtered': pg.PlotCurveItem(
-                        pen = pg.mkPen((228, 133, 133), width=1)
-                        ), 
             'fftline': pg.PlotCurveItem(
                         pen = pg.mkPen((228, 88, 101), width=1)
                         ), 
@@ -371,9 +367,6 @@ def variables(self):
             'time': [],
             'data': [],
             'plot': pg.PlotCurveItem(
-                        pen = pg.mkPen((155, 229, 100), width=1)
-                        ),
-            'filtered': pg.PlotCurveItem(
                         pen = pg.mkPen((155, 229, 100), width=1)
                         ),
             'fftline': pg.PlotCurveItem(
@@ -390,9 +383,6 @@ def variables(self):
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((0, 167, 209), width=1)
                         ),   
-            'filtered': pg.PlotCurveItem(
-                        pen = pg.mkPen((0, 167, 209), width=1)
-                        ),  
             'fftline': pg.PlotCurveItem(
                         pen = pg.mkPen((0, 167, 209), width=1)
                         ), 
@@ -407,9 +397,6 @@ def variables(self):
             'plot': pg.PlotCurveItem(
                         pen = pg.mkPen((244, 187, 71), width=1)
                         ),   
-            'filtered': pg.PlotCurveItem(
-                        pen = pg.mkPen((244, 187, 71), width=1)
-                        ),  
             'fftline': pg.PlotCurveItem(
                         pen = pg.mkPen((244, 187, 71), width=1)
                         ), 
@@ -422,9 +409,6 @@ def variables(self):
             'time': [],
             'data': [],
             'plot': pg.PlotCurveItem(
-                        pen = pg.mkPen((125, 43, 155), width=1)
-                        ),
-            'filtered': pg.PlotCurveItem(
                         pen = pg.mkPen((125, 43, 155), width=1)
                         ),
             'fftline': pg.PlotCurveItem(

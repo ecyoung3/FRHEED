@@ -597,7 +597,6 @@ def updatePlots(
         timespan: 
         float = 5.0, 
         scrolling: bool = False,
-        filtering: bool = True,
         window: int = 11,
         **kwargs
         ):
@@ -632,19 +631,7 @@ def updatePlots(
                     data = data[:min_l]
                     t = t[:min_l]
                     
-                if len(data) > 2*window and filtering:
-                    filt = signal.savgol_filter(
-                                    x = data, 
-                                    window_length = window, 
-                                    polyorder = 3
-                                    )
-                    t, filt = utils.equalizeDataLengths(t, filt)
-                    self.shapes[col]['filtered'].setData(
-                                                t[pos:-window], 
-                                                filt[pos:-window]
-                                                )
-                    
-                # Plot unfiltered data
+                # Plot raw data
                 t, data = utils.equalizeDataLengths(t, data)
                 self.shapes[col]['plot'].setData(
                                             t[pos:], 
@@ -700,31 +687,23 @@ def plotStoredData(self):
     # Autoscale the plot to show all data
     axes.enableAutoRange()
      
-def liveFFT(self, finished, rate: float = 0.5, **kwargs):
-    # Limit the rate (run maximum 6 times per second)
-    wait = utils.rateLimiter(6)
-    if not wait:
-        return
-    
-    if self.fftButton.isChecked():
-        # Iterate over shapes and plot for populated datasets
-        for col in self.shapes.keys():
-            # Load the data to plot FFT of
-            t = self.shapes[col]['time']
-            data = self.shapes[col]['data']
-            
-            # The plot line object where the data wil be displayed
-            line = self.shapes[col]['fftline']
-            
-            # Calculate FFT from data
-            freq, psd = calculateFFT(self, t, data, line)
-            
-            # Skip this data if calculation fails
-            if freq is None or psd is None:
-                continue
+def updateFFT(self, **kwargs):
+    # Iterate over shapes and plot for populated datasets
+    for col in self.shapes.keys():
+        # Load the data to plot FFT of
+        t = self.shapes[col]['time']
+        data = self.shapes[col]['data']
         
-        finished.emit()
-                
+        # The plot line object where the data wil be displayed
+        line = self.shapes[col]['fftline']
+        
+        # Calculate FFT from data
+        freq, psd = calculateFFT(self, t, data, line)
+        
+        # Skip this data if calculation fails
+        if freq is None or psd is None:
+            continue
+        
 def calculateFFT(self, x, y, line):
     # Make sure data exists in the dictionary
     if not x or not y or line is None:
