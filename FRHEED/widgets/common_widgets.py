@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QSizePolicy,
     QFrame,
+    QSpacerItem,
     
     )
 from PyQt5.QtGui import (
@@ -189,6 +190,16 @@ class VLine(QFrame):
         self.setFrameShadow(QFrame.Plain)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         
+
+class HSpacer(QSpacerItem):
+    def __init__(self):
+        super().__init__(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
+     
+        
+class VSpacer(QSpacerItem):
+    def __init__(self):
+        super().__init__(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)   
+     
         
 if __name__ == "__main__":
     pass

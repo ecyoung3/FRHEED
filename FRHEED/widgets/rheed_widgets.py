@@ -9,6 +9,9 @@ from PyQt5.QtWidgets import (
     QWidget,
     QGridLayout,
     QSizePolicy,
+    QPushButton,
+    QSplitter,
+    QSpacerItem,
     
     )
 from PyQt5.QtCore import (
@@ -16,6 +19,9 @@ from PyQt5.QtCore import (
     pyqtSlot,
     
     )
+# from PyQt5.QtGui import (
+    
+#     )
 
 from FRHEED.widgets.camera_widget import VideoWidget
 from FRHEED.cameras.FLIR import FlirCamera
@@ -23,6 +29,7 @@ from FRHEED.cameras.USB import UsbCamera
 from FRHEED.widgets.plot_widgets import PlotWidget
 from FRHEED.widgets.canvas_widget import CanvasShape, CanvasLine
 from FRHEED.widgets.selection_widgets import CameraSelection
+from FRHEED.widgets.common_widgets import HSpacer, VSpacer
 from FRHEED.utils import snip_lists
 
 
@@ -61,8 +68,11 @@ class RHEEDWidget(QWidget):
                                          QSizePolicy.MinimumExpanding)
         
         # Create the plot widgets
-        self.region_plot = PlotWidget(parent=self, popup=True, name="Regions")
-        self.profile_plot = PlotWidget(parent=self, popup=True, name="Line Profiles")
+        # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
+        # self.profile_plot = PlotWidget(parent=self, popup=True, name="Line Profiles (Live)")
+        self.plot_grid = PlotGridWidget(parent=self)
+        self.region_plot = self.plot_grid.region_plot
+        self.profile_plot = self.plot_grid.profile_plot
         
         # Add widgets to layout
         self.layout.addWidget(self.camera_widget, 0, 0, 1, 1)
@@ -81,7 +91,8 @@ class RHEEDWidget(QWidget):
         
     def closeEvent(self, event) -> None:
         if self._initialized:
-            [wid.setParent(None) for wid in [self.region_plot, self.profile_plot, self]]
+            [wid.setParent(None) for wid in 
+             [self.region_plot, self.profile_plot, self, self.plot_grid]]
             self.camera_widget.closeEvent(event)
         self.cam_selection.close()
         
@@ -113,6 +124,72 @@ class RHEEDWidget(QWidget):
         # Remove the line
         plot.plot_widget.removeItem(plot.plot_items.pop(shape.color_name))
         self.camera_widget.analysis_worker.data.pop(shape.color_name)
+
+
+class PlotGridWidget(QWidget):
+    """ Widget for containing the live RHEED plots and plot transformations. """
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self._parent = parent
+        
+        # Create layout
+        self.layout = QGridLayout()
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(4)
+        self.setLayout(self.layout)
+        
+        # Create controls layout
+        self.controls_layout = QGridLayout()
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.controls_layout.setSpacing(4)
+        
+        # Create controls buttons
+        self.start_button = QPushButton("Start")  # TODO: Add icon
+        self.stop_button = QPushButton("Stop")  # TODO: Add icon
+        
+        # Create plots layout
+        self.plots_layout = QGridLayout()
+        self.plots_layout.setContentsMargins(8, 8, 8, 8)
+        self.plots_layout.setSpacing(4)
+        
+        # Create plot widgets
+        self.region_plot = PlotWidget(parent=self, popup=False, title="Region Intensity")
+        self.region_fft_plot = PlotWidget(parent=self, popup=False, title="Region Intensity FFT")
+        self.growth_rate_plot = PlotWidget(parent=self, popup=False, title="Growth Rate")
+        self.profile_plot = PlotWidget(parent=self, popup=False, title="Line Profile")
+        self.profile_fft_plot = PlotWidget(parent=self, popup=False, title="Line Profile FFT")
+        self.profile_2d_plot = PlotWidget(parent=self, popup=False, title="2D Line Profile")
+        
+        # Create containers for plots
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.region_plots_splitter = QSplitter(Qt.Vertical)
+        self.profile_plots_splitter = QSplitter(Qt.Vertical)
+        
+        # Add items to main layout
+        self.layout.addLayout(self.controls_layout, 0, 0, 1, 1)
+        self.layout.addLayout(self.plots_layout, 1, 0, 1, 1)
+        self.controls_layout.addWidget(self.start_button, 0, 0, 1, 1)
+        self.controls_layout.addWidget(self.stop_button, 0, 1, 1, 1)
+        self.controls_layout.addItem(HSpacer(), 0, 2, 1, 1)
+        self.layout.addWidget(self.main_splitter, 1, 0, 1, 1)
+        self.main_splitter.addWidget(self.region_plots_splitter)
+        self.main_splitter.addWidget(self.profile_plots_splitter)
+        [self.region_plots_splitter.addWidget(w) 
+         for w in (self.region_plot, self.region_fft_plot, self.growth_rate_plot)]
+        [self.profile_plots_splitter.addWidget(w)
+         for w in (self.profile_plot, self.profile_fft_plot, self.profile_2d_plot)]
+        
+        
+        # Show widget
+        popup = True
+        name = "Plots"
+        _DEFAULT_SIZE = (800, 600)
+        if popup:
+            self.setWindowFlags(Qt.Window)
+            self.show()
+            self.raise_()
+            self.setWindowTitle(str(name) if name is not None else "Plots")
+            self.resize(*_DEFAULT_SIZE)
 
 
 if __name__ == "__main__":

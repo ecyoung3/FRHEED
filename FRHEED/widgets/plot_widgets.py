@@ -54,6 +54,7 @@ _PG_PLOT_STYLE = {
     }
 _PG_AXES = ("left", "bottom", "right", "top")
 _AXIS_COLOR = QColor("black")
+_DEFAULT_SIZE = (800, 600)
 
 
 def init_pyqtgraph(use_opengl: bool = False) -> None:
@@ -69,7 +70,8 @@ class PlotWidget(QWidget):
             self, 
             parent: QWidget = None, 
             popup: bool = False, 
-            name: Optional[str] = None
+            name: Optional[str] = None,
+            title: Optional[str] = None,
             ):
         
         super().__init__(parent)
@@ -85,13 +87,13 @@ class PlotWidget(QWidget):
         self.setLayout(self.layout)
         
         # Create plot widget
-        self.plot_widget = pg.PlotWidget(self, background=_PG_CFG["background"])
+        self.plot_widget = pg.PlotWidget(self, title=title, background=_PG_CFG["background"])
         for ax in [self.plot_widget.getAxis(a) for a in _PG_AXES]:
             ax.setPen(_AXIS_COLOR)
             ax.setStyle(**{**_PG_PLOT_STYLE, **{"tickFont": self.font()}})
         
         # Create QComboBox for enabling/disabling lines
-
+        # TODO
         
         # Attributes to be assigned/updated later
         self.plot_items = {}
@@ -105,6 +107,7 @@ class PlotWidget(QWidget):
             self.show()
             self.raise_()
             self.setWindowTitle(str(name) if name is not None else "Plot")
+            self.resize(*_DEFAULT_SIZE)
         
     def closeEvent(self, event) -> None:
         # TODO
@@ -152,12 +155,14 @@ class PlotWidget2D(pg.ImageView):
     """ Widget for displaying linear profile as a 2D time series """
     def __init__(self, parent = None):
         pass
+        # TODO
     
     
 class PlotComboBox(QComboBox):
+    """ Widget for selecting visible lines on a plot. """
     pass
-    
-    
+
+
 if __name__ == "__main__":
     def test():
         from FRHEED.utils import test_widget

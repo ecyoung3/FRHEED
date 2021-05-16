@@ -38,6 +38,8 @@ _GUI_INFO = {
     
     }
 
+# Backend for cameras
+_DEFAULT_BACKEND = cv2.CAP_DSHOW  # cv2.CAP_DSHOW or cv2.CAP_MSMF
 
 def list_cameras() -> List[int]:
     """
@@ -54,12 +56,15 @@ def list_cameras() -> List[int]:
     cam_list = []
     
     for idx in range(100):
-        cap = cv2.VideoCapture(idx)
+        cap = cv2.VideoCapture(idx, _DEFAULT_BACKEND)
         if not cap.read()[0]:
             break
         else:
             cam_list.append(idx)
         cap.release()
+    
+    # This seems to help fix FPS when using backend CAP_DSHOW
+    cv2.destroyAllWindows()
         
     return cam_list
 
@@ -107,7 +112,7 @@ class UsbCamera:
             self, 
             src: Union[int, str] = 0, 
             lock: bool = False,
-            backend: Optional[int] = cv2.CAP_DSHOW
+            backend: Optional[int] = _DEFAULT_BACKEND # cv2.CAP_DSHOW
             ):
         """
         Parameters
@@ -326,9 +331,9 @@ if __name__ == "__main__":
                         
                     break
                     
-                    # array = cam.get_array()
-                    # Image.fromarray(array).show()
-                    # break
+                    array = cam.get_array()
+                    Image.fromarray(array).show()
+                    break
                     
                 except KeyboardInterrupt:
                     break
