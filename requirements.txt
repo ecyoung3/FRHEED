@@ -2,7 +2,6 @@ setuptools
 PyQt5
 spyder
 Pillow
-opencv-python
 appdirs
 IPython
 scipy==1.5.4
