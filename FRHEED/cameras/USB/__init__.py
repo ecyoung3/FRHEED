@@ -68,6 +68,23 @@ def list_cameras() -> List[int]:
         
     return cam_list
 
+def get_available_cameras() -> dict:
+    """ Get available cameras as a dictionary of {source: name}. """
+    cams = list_cameras()
+    available = {}
+    
+    for src in cams:
+        try:
+            with UsbCamera(src=src) as cam:
+                if cam.initialized:
+                    available[src] = str(cam)
+                else:
+                    print(f"USB camera {src} is not available")
+        except CameraError:
+            print("No USB cameras detected")
+            
+    return available
+
 
 class UsbCamera:
     """
@@ -205,6 +222,9 @@ class UsbCamera:
         
     def __del__(self) -> None:
         self.close()
+        
+    def __str__(self) -> str:
+        return f"USB (Port {self._src})"
     
     @property
     def name(self) -> str:

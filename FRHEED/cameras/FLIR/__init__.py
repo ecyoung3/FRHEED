@@ -85,6 +85,24 @@ def list_cameras() -> PySpin.CameraList:
 
     return _SYSTEM.GetCameras()
 
+def get_available_cameras() -> dict:
+    """ Get available cameras as a dictionary of {source: name}. """
+    cams = list_cameras()
+    num_cams = cams.GetSize()
+    available = {}
+    
+    for src in range(num_cams):
+        try:
+            with FlirCamera(src=src) as cam:
+                if cam.initialized:
+                    available[src] = str(cam)
+                else:
+                    print(f"FLIR camera {src} is not available")
+        except CameraError:
+            print("No FLIR cameras detected")
+            
+    return available
+
 
 class FlirCamera:
     """
@@ -266,6 +284,10 @@ class FlirCamera:
         # If "with" clause is called and camera doesn't exist, AttributeError will happen
         except AttributeError:
             pass
+
+    def __str__(self) -> str:
+        model = getattr(self, "DeviceModelName", "Camera")
+        return f"FLIR {model} (SN {self.DeviceSerialNumber})"
 
     @property
     def name(self) -> str:
@@ -705,6 +727,8 @@ class FlirCamera:
 if __name__ == "__main__":
     def test():
         with FlirCamera() as cam:
+            print(cam.document(verbose=False))
+            print(cam)
             cam.start()
             while True:
                 try:
@@ -716,5 +740,7 @@ if __name__ == "__main__":
                 except KeyboardInterrupt:
                     break
     
-    test()
+    # test()
+    
+    print(list_cameras())
     

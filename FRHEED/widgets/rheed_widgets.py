@@ -12,11 +12,14 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSplitter,
     QSpacerItem,
+    QMenuBar,
+    QMenu,
     
     )
 from PyQt5.QtCore import (
     Qt,
     pyqtSlot,
+    pyqtSignal,
     
     )
 # from PyQt5.QtGui import (
@@ -26,7 +29,7 @@ from PyQt5.QtCore import (
 from FRHEED.widgets.camera_widget import VideoWidget
 from FRHEED.cameras.FLIR import FlirCamera
 from FRHEED.cameras.USB import UsbCamera
-from FRHEED.widgets.plot_widgets import PlotWidget
+from FRHEED.widgets.plot_widgets import PlotWidget, FFTPlotWidget, RegionIntensityPlot
 from FRHEED.widgets.canvas_widget import CanvasShape, CanvasLine
 from FRHEED.widgets.selection_widgets import CameraSelection
 from FRHEED.widgets.common_widgets import HSpacer, VSpacer
@@ -61,6 +64,27 @@ class RHEEDWidget(QWidget):
         # Show the widget
         self.setVisible(True)
         
+        # Create the menu bar
+        self.menubar = QMenuBar(self)
+        
+        # "File" menu
+        # Note: &File underlines the "F" to indicate the keyboard shortcut,
+        # but will not be visible unless enabled manually in Windows.
+        # To enable it, go Control Panel -> Ease of Access -> Keyboard 
+        #                   -> Underline keyboard shortcuts and access keys
+        self.file_menu = self.menubar.addMenu("&File")
+        self.file_menu.addAction("&Change camera", self.show_cam_selection)
+        
+        # "View" menu
+        self.view_menu = self.menubar.addMenu("&View")
+        self.show_live_plots_item = self.view_menu.addAction("&Live plots")
+        self.show_live_plots_item.toggled.connect(self.show_live_plots)
+        self.show_live_plots_item.setCheckable(True)
+        
+        # "Tools" menu
+        self.tools_menu = self.menubar.addMenu("&Tools")
+        self.preferences_item = self.tools_menu.addAction("&Preferences")
+        
         # Create the camera widget
         camera = self.cam_selection._cam
         self.camera_widget = VideoWidget(camera, parent=self)
@@ -75,13 +99,19 @@ class RHEEDWidget(QWidget):
         self.profile_plot = self.plot_grid.profile_plot
         
         # Add widgets to layout
-        self.layout.addWidget(self.camera_widget, 0, 0, 1, 1)
-        self.layout.setRowStretch(0, 1)
+        self.layout.addWidget(self.menubar, 0, 0, 1, 1)
+        self.layout.addWidget(self.camera_widget, 1, 0, 1, 1)
+        self.layout.setRowStretch(1, 1)
         self.layout.setColumnStretch(0, 1)
         
         # Connect signals
         self.camera_widget.analysis_worker.data_ready.connect(self.plot_data)
         self.camera_widget.display.canvas.shape_deleted.connect(self.remove_line)
+        self.plot_grid.closed.connect(self.live_plots_closed)
+        
+        # Reconnect camera_selected signal
+        self.cam_selection.camera_selected.disconnect()
+        self.cam_selection.camera_selected.connect(self.change_camera)
         
         # Mark as initialized
         self._initialized = True
@@ -99,16 +129,20 @@ class RHEEDWidget(QWidget):
     @pyqtSlot(dict)
     def plot_data(self, data: dict) -> None:
         """ Plot data from the camera """
+        # Get data for each color in the data dictionary
         for color, color_data in data.items():
+            # Add region data to the region plot
             if color_data["kind"] in ["rectangle", "ellipse"]:
-                curve = self.region_plot.add_curve(color)
+                curve = self.region_plot.get_or_add_curve(color)
                 # Catch RuntimeError if widget has been closed
                 try:
                     curve.setData(*snip_lists(color_data["time"], color_data["average"]))
                 except RuntimeError:
                     pass
+                
+            # Add line profile data to the profile plot
             elif color_data["kind"] == "line":
-                curve = self.profile_plot.add_curve(color)
+                curve = self.profile_plot.get_or_add_curve(color)
                 try:
                     curve.setData(color_data["y"][-1])
                 except RuntimeError:
@@ -117,16 +151,36 @@ class RHEEDWidget(QWidget):
     @pyqtSlot(object)
     def remove_line(self, shape: Union["CanvasShape", "CanvasLine"]) -> None:
         """ Remove a line from the plot it is part of """
-        
         # Get the plot widget
         plot = self.profile_plot if shape.kind == "line" else self.region_plot
         
         # Remove the line
         plot.plot_widget.removeItem(plot.plot_items.pop(shape.color_name))
         self.camera_widget.analysis_worker.data.pop(shape.color_name)
-
+        
+    @pyqtSlot()
+    def show_cam_selection(self) -> None:
+        """ Show the camera selection window. """
+        self.cam_selection.show()
+        self.cam_selection.raise_()
+        
+    @pyqtSlot()
+    def change_camera(self) -> None:
+        """ Change the active camera. """
+        self.camera_widget.set_camera(self.cam_selection._cam)
+        
+    @pyqtSlot()
+    def live_plots_closed(self) -> None:
+        self.show_live_plots_item.setChecked(False)
+        
+    @pyqtSlot(bool)
+    def show_live_plots(self, visible: bool) -> None:
+        self.plot_grid.setVisible(visible)
+        
 
 class PlotGridWidget(QWidget):
+    closed = pyqtSignal()
+    
     """ Widget for containing the live RHEED plots and plot transformations. """
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -153,12 +207,18 @@ class PlotGridWidget(QWidget):
         self.plots_layout.setSpacing(4)
         
         # Create plot widgets
-        self.region_plot = PlotWidget(parent=self, popup=False, title="Region Intensity")
-        self.region_fft_plot = PlotWidget(parent=self, popup=False, title="Region Intensity FFT")
-        self.growth_rate_plot = PlotWidget(parent=self, popup=False, title="Growth Rate")
-        self.profile_plot = PlotWidget(parent=self, popup=False, title="Line Profile")
-        self.profile_fft_plot = PlotWidget(parent=self, popup=False, title="Line Profile FFT")
-        self.profile_2d_plot = PlotWidget(parent=self, popup=False, title="2D Line Profile")
+        self.region_plot = RegionIntensityPlot(parent=self, popup=False, 
+                                      title="Region Intensity")
+        self.region_fft_plot = FFTPlotWidget(parent=self.region_plot, popup=False, 
+                                             title="Region Intensity FFT")
+        self.growth_rate_plot = PlotWidget(parent=self, popup=False, 
+                                           title="Growth Rate")
+        self.profile_plot = PlotWidget(parent=self, popup=False, 
+                                       title="Line Profile")
+        self.profile_fft_plot = PlotWidget(parent=self.profile_plot, popup=False, 
+                                           title="Line Profile FFT")
+        self.profile_2d_plot = PlotWidget(parent=self, popup=False, 
+                                          title="2D Line Profile")
         
         # Create containers for plots
         self.main_splitter = QSplitter(Qt.Horizontal)
@@ -179,7 +239,6 @@ class PlotGridWidget(QWidget):
         [self.profile_plots_splitter.addWidget(w)
          for w in (self.profile_plot, self.profile_fft_plot, self.profile_2d_plot)]
         
-        
         # Show widget
         popup = True
         name = "Plots"
@@ -190,6 +249,10 @@ class PlotGridWidget(QWidget):
             self.raise_()
             self.setWindowTitle(str(name) if name is not None else "Plots")
             self.resize(*_DEFAULT_SIZE)
+            
+    def closeEvent(self, event) -> None:
+        self.closed.emit()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":

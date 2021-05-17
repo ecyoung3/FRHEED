@@ -79,8 +79,7 @@ class VideoWidget(QWidget):
         super().__init__(parent)
         
         # Store camera reference and start the camera
-        self._camera = camera
-        self._camera.start(continuous=True)
+        self.set_camera(camera)
         
         # Frame settings
         self.setSizePolicy(QSizePolicy.MinimumExpanding, 
@@ -100,10 +99,14 @@ class VideoWidget(QWidget):
         self.toolbar_layout.setSpacing(4)
         
         # Create capture button
-        self.capture_button = QPushButton()
-        self.capture_button.setText("Capture")
+        self.capture_button = QPushButton("Capture")
         self.capture_button.setSizePolicy(QSizePolicy.Maximum, 
                                           QSizePolicy.Maximum)
+        
+        # Create start/stop button
+        self.play_button = QPushButton("Stop Camera")
+        self.play_button.setSizePolicy(QSizePolicy.Maximum,
+                                       QSizePolicy.Maximum)
         
         # Determine maximum zoom because huge images lag the system
         cam_w, cam_h = camera.width, camera.height
@@ -153,14 +156,16 @@ class VideoWidget(QWidget):
         # Add widgets
         self.layout.addLayout(self.toolbar_layout, 0, 0, 1, 1)
         self.toolbar_layout.addWidget(self.capture_button, 0, 0, 1, 1)
-        self.toolbar_layout.addWidget(self.zoom_label, 0, 1, 1, 1)
-        self.toolbar_layout.addWidget(self.slider, 0, 2, 1, 1)
-        self.toolbar_layout.addWidget(self.settings_button, 0, 3, 1, 1)
+        self.toolbar_layout.addWidget(self.play_button, 0, 1, 1, 1)
+        self.toolbar_layout.addWidget(self.zoom_label, 0, 2, 1, 1)
+        self.toolbar_layout.addWidget(self.slider, 0, 3, 1, 1)
+        self.toolbar_layout.addWidget(self.settings_button, 0, 4, 1, 1)
         self.layout.addWidget(self.scroll, 1, 0, 1, 1)
         self.layout.addWidget(self.status_bar, 2, 0, 1, 1)
         
         # Connect signals
         self.capture_button.clicked.connect(self.save_image)
+        self.play_button.clicked.connect(self.start_or_stop_camera)
         self.settings_button.clicked.connect(self.edit_settings)
         self.slider.valueChanged.connect(self.display.force_resize)
         self.frame_changed.connect(self.status_bar.frame_changed)
@@ -234,10 +239,18 @@ class VideoWidget(QWidget):
         [worker.stop() for worker in self.workers]
         self.settings_widget.deleteLater()
         
+    @pyqtSlot()
+    def start_or_stop_camera(self) -> None:
+        if self.camera.running:
+            self.camera.stop()
+            self.play_button.setText("Start Camera")
+        else:
+            self.camera.start(continuous=True)
+            self.play_button.setText("Stop Camera")
+        
     @pyqtSlot(np.ndarray)
     def show_frame(self, frame: np.ndarray) -> None:
         """ Show the next camera frame """
-        
         # Store raw frame
         self.raw_frame = frame.copy()
         
@@ -282,7 +295,6 @@ class VideoWidget(QWidget):
     @pyqtSlot()
     def save_image(self) -> None:
         """ Save the currently displayed frame """
-        
         frame = self.frame.copy()
         
         # Generate filename
@@ -306,8 +318,8 @@ class VideoWidget(QWidget):
     
     @camera.setter
     def camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
-        self._camera = camera
-        # TODO: Switch setting up cameras
+        self.set_camera(camera)
+        # TODO: Fully implement this and test it
         
     @property
     def zoom(self) -> float:
@@ -320,6 +332,27 @@ class VideoWidget(QWidget):
     @property
     def app(self) -> QApplication:
         return QApplication.instance()
+    
+    def set_camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+        # Change the camera and start it
+        self._camera = camera
+        self._camera.start(continuous=True)
+        
+        # Update the zoom slider (if it has been created)
+        if not hasattr(self, "slider"):
+            return
+        cam_w, cam_h = camera.width, camera.height
+        max_zoom = max(min(MAX_ZOOM, (MAX_W / cam_w), (MAX_H / cam_h)), 1)
+        self.slider.setMaximum(max_zoom)
+        
+        # Reset to 100% zoom
+        self.slider.setValue(1.00)
+        
+    def _start_workers(self) -> None:
+        [worker.start() for worker in self._workers]
+        
+    def _stop_workers(self) -> None:
+        [worker.stop() for worker in self._workers]
     
 
 class CameraDisplay(QWidget):
@@ -575,7 +608,6 @@ class CameraSettingsWidget(QWidget):
     @pyqtSlot()
     def save_config(self) -> None:
         """ Save the current configuration """
-        
         # Get current configuration as a dictionary
         config = self.to_dict()
         
@@ -917,6 +949,7 @@ class Worker(QObject):
     finished = pyqtSignal()
     frame_ready = pyqtSignal(np.ndarray)
     data_ready = pyqtSignal(np.ndarray)
+    exception = pyqtSignal(Exception)
     
     def __init__(self, parent: VideoWidget):
         super().__init__()
@@ -941,15 +974,17 @@ class CameraWorker(Worker):
     A worker object to control frame acquisition.
     
     """
-
     @pyqtSlot()
     def start(self) -> None:
         self._running = True
         while self.running():
-            if self.camera().running:
-                self.frame_ready.emit(
-                    self.camera().get_array(complete_frames_only=True)
-                    )
+            try:
+                if self.camera().running:
+                    self.frame_ready.emit(
+                        self.camera().get_array(complete_frames_only=True)
+                        )
+            except Exception as ex:
+                self.exception.emit(ex)
     
     @pyqtSlot()
     def stop(self) -> None:
@@ -1016,7 +1051,10 @@ class AnalysisWorker(Worker):
                 # self.data[color]["x"].append(np.arange(0, data.size, 1))
                 self.data[color]["y"].append(data.flatten())
             else:
-                self.data[color]["average"].append(data.sum() / mask.sum())
+                # Make sure sum is non-zero to avoid divide-by-zero
+                mask_sum = mask.sum()
+                if mask_sum != 0:
+                    self.data[color]["average"].append(data.sum() / mask_sum)
             
         self.data_ready.emit(self.data.copy())
                 

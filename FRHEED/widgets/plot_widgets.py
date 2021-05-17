@@ -19,12 +19,15 @@ from PyQt5.QtGui import (
     )
 from PyQt5.QtCore import (
     Qt,
+    pyqtSlot,
+    pyqtSignal,
     
     )
 
 import pyqtgraph as pg  # import *after* PyQt5
 
 from FRHEED.utils import get_qcolor, get_qpen
+from FRHEED.calcs import calc_fft
 
 
 # https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph.html?highlight=setConfigOption
@@ -65,6 +68,9 @@ def init_pyqtgraph(use_opengl: bool = False) -> None:
 
 class PlotWidget(QWidget):
     """ The base plot widget for embedding in PyQt5 """
+    curve_added = pyqtSignal(str)
+    curve_removed = pyqtSignal(str)
+    data_changed = pyqtSignal(str)
     
     def __init__(
             self, 
@@ -138,18 +144,116 @@ class PlotWidget(QWidget):
     def axes(self) -> list:
         return [getattr(self, ax) for ax in _PG_AXES]
     
+    def get_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+        """ Get an existing plot item. """
+        color = get_qcolor(color)
+        return self.plot_items[color.name()]
+    
+    @pyqtSlot(str)
     def add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+        """ Add a curve to the plot. """
+        # Raise error if curve already exists
         color = get_qcolor(color)
         if color.name() in self.plot_items:
-            return self.plot_items[color.name()]
+            raise AttributeError(f"{color.name()} curve already exists.")
+            
+        # Create curve and return it
         pen = get_qpen(color, cosmetic=True)
-        self.plot_items[color.name()] = pg.PlotCurveItem(pen=pen)
-        self.plot_item.addItem(self.plot_items[color.name()])
-        return self.plot_items[color.name()]
+        curve = pg.PlotCurveItem(pen=pen)
+        self.plot_items[color.name()] = curve
+        self.plot_item.addItem(curve)
+        
+        # Emit curve_added and connect data update signal so FFT can update
+        self.curve_added.emit(color.name())
+        curve.sigPlotChanged.connect(lambda c: self.data_changed.emit(color.name()))
+        
+        return curve
+    
+    @pyqtSlot(str)
+    def get_or_add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+        """ Get a curve or add it if it doesn't exist. """
+        # Return curve if it already exists
+        color = get_qcolor(color)
+        if color.name() in self.plot_items:
+            return self.get_curve(color)
+        
+        # Create curve
+        return self.add_curve(color)
+    
+    @pyqtSlot(str)
+    def remove_curve(self, color: Union[QColor, str, tuple]) -> None:
+        """ Remove a curve from the plot. """
+        self.plot_item.removeItem(self.get_curve(color))
+        
+        # Emit curve_removed so FFT can update
+        self.curve_removed.emit(color.name())
     
     def get_items(self) -> list:
         return self.plot_widget.listDataItems()
     
+
+class RegionIntensityPlot(PlotWidget):
+    def __init__(
+            self, 
+            parent: PlotWidget, 
+            popup: bool = False, 
+            name: Optional[str] = None,
+            title: Optional[str] = None,
+            ) -> None:
+        
+        super().__init__(parent=parent, popup=popup, name=name, title=title)
+        self.bottom.setLabel("Time", units="s")
+        self.left.setLabel("Intensity (counts)")
+
+
+class FFTPlotWidget(PlotWidget):
+    """ Widget for showing FFT data from another plot. """
+    def __init__(
+            self, 
+            parent: PlotWidget, 
+            popup: bool = False, 
+            name: Optional[str] = None,
+            title: Optional[str] = None,
+            ) -> None:
+        
+        super().__init__(parent=parent, popup=popup, name=name, title=title)
+        self._parent = parent
+        
+        # Create corresponding plot items
+        [self.add_curve(color) for color in self._parent.plot_items]
+        
+        # Connect signal so that curves are added/removed correspondingly
+        self._parent.curve_added.connect(self.add_curve)
+        self._parent.curve_removed.connect(self.remove_curve)
+        self._parent.data_changed.connect(self.plot_fft)
+        
+        # Update axes
+        self.bottom.setLabel("Frequency", units="Hz")
+        
+    @pyqtSlot(str)
+    def plot_fft(self, color: str) -> None:
+        # Get QColor
+        color = get_qcolor(color)
+        
+        # Get parent & FFT curves
+        parent_curve = self._parent.get_curve(color)
+        fft_curve = self.get_curve(color)
+        
+        # Get curve data
+        x, y = parent_curve.getData()
+        
+        # Try to compute FFT
+        # NOTE: If data isn't copied, it will mess with the original curve data
+        freq, psd = calc_fft(x.copy(), y.copy())
+        if freq is None or psd is None:
+            return
+        
+        # Update corresponding curve data
+        try:
+            fft_curve.setData(freq, psd)
+        except RuntimeError:
+            pass
+        
 
 class PlotWidget2D(pg.ImageView):
     """ Widget for displaying linear profile as a 2D time series """

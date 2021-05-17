@@ -3,7 +3,9 @@
 Widgets for selecting things, including the source camera to use.
 """
 
-from typing import Optional
+from typing import Optional, Union, List
+from dataclasses import dataclass
+from enum import Enum
 
 from PyQt5.QtWidgets import (
     QWidget,
@@ -17,9 +19,24 @@ from PyQt5.QtCore import (
     
     )
 
-from FRHEED.cameras.FLIR import FlirCamera
-from FRHEED.cameras.USB import UsbCamera
+from FRHEED.cameras.FLIR import FlirCamera, get_available_cameras as get_flir_cams
+from FRHEED.cameras.USB import UsbCamera, get_available_cameras as get_usb_cams
 from FRHEED.cameras import CameraError
+
+
+class CameraClasses(Enum):
+    FLIR = FlirCamera
+    USB = UsbCamera
+
+
+@dataclass
+class CameraObject:
+    cam_class: object
+    src: Union[str, int]
+    name: Optional[str] = None
+    
+    def get_camera(self) -> Union[FlirCamera, UsbCamera]:
+        return self.cam_class(src=self.src)
 
 
 class CameraSelection(QWidget):
@@ -36,7 +53,7 @@ class CameraSelection(QWidget):
         self._cam: Optional[FlirCamera, UsbCamera] = None
         
         # Check for available cameras
-        available = self.available_cameras()
+        cams = self.available_cameras()
         
         # Set window properties
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Window)
@@ -49,17 +66,23 @@ class CameraSelection(QWidget):
         self.layout = QGridLayout()
         self.setLayout(self.layout)
         
+        # If there are no cameras, no buttons need to be added
+        if not cams:
+            btn = QPushButton("No cameras found")
+            btn.setEnabled(False)
+            self.layout.addWidget(btn, 0, 0)
+        
         # Create buttons for each camera
-        for i, cam_class in enumerate(self.camera_classes):
+        for i, cam in enumerate(cams):
             # Create the button
-            btn = QPushButton(text=cam_class.__name__)
-            btn.cam_class = cam_class
-            
-            # Disable button if camera is not available
-            btn.setEnabled(cam_class in available)
+            btn = QPushButton(cam.name)
             
             # Connect signal
-            btn.clicked.connect(lambda: self.select_camera(btn.cam_class))
+            # Doing it this way is necessary because otherwise all lambda
+            # functions will initialize the same camera
+            def make_lambda(cam_obj: CameraObject):
+                return lambda: self.select_camera(cam_obj)
+            btn.clicked.connect(make_lambda(cam))
         
             # Add button to layout
             self.layout.addWidget(btn, i, 0)
@@ -67,26 +90,15 @@ class CameraSelection(QWidget):
         # Show the widget
         self.setVisible(True)
         
-    def available_cameras(self) -> list:
+    def available_cameras(self) -> List[CameraObject]:
         # Check each camera class for availability
-        available = []
-        for cam_class in self.camera_classes:
-            print(f"Checking for {cam_class.__name__}...")
-            try:
-                with cam_class() as cam:
-                    if cam.initialized:
-                        available.append(cam_class)
-                        print(f"{cam_class.__name__} is available")
-                    else:
-                        print(f"{cam_class.__name__} not available")
-            except CameraError:
-                print(f"No {cam_class.__name__} detected")
-            finally:
-                print("")
-                
-        return available
+        usb_cams = [CameraObject(UsbCamera, src, name) 
+                    for src, name in get_usb_cams().items()]
+        flir_cams = [CameraObject(FlirCamera, src, name)
+                     for src, name in get_flir_cams().items()]
+        return usb_cams + flir_cams
     
-    def select_camera(self, cam_class) -> object:
+    def select_camera(self, cam: CameraObject) -> object:
         """ Get the selected camera class object. """
         # Deselect existing camera
         try:
@@ -95,8 +107,8 @@ class CameraSelection(QWidget):
             pass
         
         # Initialize camera
-        self._cam = cam_class()
-        print(f"Connected to {cam_class.__name__}")
+        self._cam = cam.get_camera()
+        print(f"Connected to {cam.name}")
         
         # Emit camera_selected signal
         self.camera_selected.emit()
@@ -105,7 +117,7 @@ class CameraSelection(QWidget):
         self.setVisible(False)
         
         return self._cam
-
+    
 
 if __name__ == "__main__":
     cam_select = CameraSelection()
