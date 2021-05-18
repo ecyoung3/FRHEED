@@ -5,16 +5,27 @@ Widgets for plotting data in PyQt.
 
 from typing import Union, Optional
 
-import numpy as np
-
 from PyQt5.QtWidgets import (
     QWidget,
     QGridLayout,
     QComboBox,
+    QLabel,
+    QPushButton,
+    QSplitter,
+    QMenuBar,
+    QMenu,
+    QAction,
+    QWidgetAction,
+    QDoubleSpinBox,
+    QSizePolicy,
+    QCheckBox,
     
     )
 from PyQt5.QtGui import (
     QColor,
+    QFont,
+    QPalette,
+    QPen,
     
     )
 from PyQt5.QtCore import (
@@ -23,11 +34,11 @@ from PyQt5.QtCore import (
     pyqtSignal,
     
     )
-
 import pyqtgraph as pg  # import *after* PyQt5
 
+from FRHEED.widgets.common_widgets import HSpacer
 from FRHEED.utils import get_qcolor, get_qpen
-from FRHEED.calcs import calc_fft
+from FRHEED.calcs import calc_fft, detect_peaks, apply_cutoffs
 
 
 # https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph.html?highlight=setConfigOption
@@ -58,6 +69,8 @@ _PG_PLOT_STYLE = {
 _PG_AXES = ("left", "bottom", "right", "top")
 _AXIS_COLOR = QColor("black")
 _DEFAULT_SIZE = (800, 600)
+_MIN_FFT_PEAK_POS = 0.5
+_CURVE_MENU_TITLE = "View"
 
 
 def init_pyqtgraph(use_opengl: bool = False) -> None:
@@ -70,6 +83,7 @@ class PlotWidget(QWidget):
     """ The base plot widget for embedding in PyQt5 """
     curve_added = pyqtSignal(str)
     curve_removed = pyqtSignal(str)
+    curve_toggled = pyqtSignal(str, bool)
     data_changed = pyqtSignal(str)
     
     def __init__(
@@ -98,14 +112,39 @@ class PlotWidget(QWidget):
             ax.setPen(_AXIS_COLOR)
             ax.setStyle(**{**_PG_PLOT_STYLE, **{"tickFont": self.font()}})
         
-        # Create QComboBox for enabling/disabling lines
-        # TODO
+        # Create cursor label
+        self.cursor_label = QLabel()
+        self.cursor_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
+        # Create menubar with transparent background
+        self.menubar = QMenuBar(self)
+        self.menubar.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.setStyleSheet(self.styleSheet() + "QMenuBar { background-color: transparent; }")
+        
+        # Create menu for showing/hiding curves
+        self.curve_menu = QMenu(_CURVE_MENU_TITLE)
+        # self.curve_menu.setStyleSheet(self.curve_menu.styleSheet() + "QMenu { font-weight: bold; }")
+        self.menubar.addMenu(self.curve_menu)
         
         # Attributes to be assigned/updated later
         self.plot_items = {}
         
-        # Add widgets
-        self.layout.addWidget(self.plot_widget, 0, 0, 1, 1)
+        # Add widgets (leave space in the middle for other widgets)
+        self.layout.addWidget(self.menubar, 0, 0, 1, 1, Qt.AlignLeft)
+        self.layout.addWidget(self.cursor_label, 0, 7, 1, 1)
+        self.layout.addWidget(self.plot_widget, 1, 0, 1, 8)
+        
+        # Connect signal for cursor movement
+        # NOTE: Must assign to variable so it doesn't get garbage collected
+        self.cursor_proxy = pg.SignalProxy(self.plot_item.scene().sigMouseMoved, rateLimit=60, 
+                                           slot=self.show_cursor_position)
+        
+        # Hide options from the context menu that seem to be broken
+        # menus = [self.plot_item.vb.menu, self.plot_item.ctrlMenu, self.plot_item.vb.scene().contextMenu[0]]
+        # for menu in menus:
+        #     for action in menu.actions():
+        #         print(action.text())
+        self.plot_item.ctrlMenu.menuAction().setVisible(False)
         
         # Show widget
         if popup:
@@ -116,9 +155,12 @@ class PlotWidget(QWidget):
             self.resize(*_DEFAULT_SIZE)
         
     def closeEvent(self, event) -> None:
-        # TODO
         self.setParent(None)
+        self.plot_widget.vb.close()
         self.plot_widget.close()
+        
+    def leaveEvent(self, event) -> None:
+        self.cursor_label.setText("")
         
     @property
     def plot_item(self) -> pg.PlotItem:
@@ -157,15 +199,18 @@ class PlotWidget(QWidget):
         if color.name() in self.plot_items:
             raise AttributeError(f"{color.name()} curve already exists.")
             
-        # Create curve and return it
+        # Create curve (named after the color hex) and return it
         pen = get_qpen(color, cosmetic=True)
-        curve = pg.PlotCurveItem(pen=pen)
+        curve = pg.PlotCurveItem(pen=pen, name=color.name())
         self.plot_items[color.name()] = curve
         self.plot_item.addItem(curve)
         
         # Emit curve_added and connect data update signal so FFT can update
         self.curve_added.emit(color.name())
         curve.sigPlotChanged.connect(lambda c: self.data_changed.emit(color.name()))
+        
+        # Create action in curve_menu
+        self.add_curve_menu_action(color.name())
         
         return curve
     
@@ -188,8 +233,51 @@ class PlotWidget(QWidget):
         # Emit curve_removed so FFT can update
         self.curve_removed.emit(color.name())
     
+    @pyqtSlot(object)
+    def show_cursor_position(self, event: object) -> None:
+        # Get position of event
+        pos = event[0]
+        
+        # Get local cursor position and update label
+        cursor = self.plot_item.vb.mapSceneToView(pos)
+        x, y = cursor.x(), cursor.y()
+        self.cursor_label.setText(f"{x:.2f}, {y:.2f}")
+        
+    def add_curve_menu_action(self, color: str) -> QAction:
+        """ Add a QAction to the curve_menu for showing/hiding a curve. """
+        # Check if curve exists
+        action = next((i for i in self.curve_menu.actions() if i.text() == color), None)
+        if action is not None:
+            return action
+        
+        # Create menu item 
+        # 'color' should be hex value
+        action = self.curve_menu.addAction(color)
+        action.setCheckable(True)
+        action.setChecked(True)
+        
+        # Update font color
+        # TODO: Fiigure out how to do this
+        
+        # Link signal to show/hide curve
+        action.toggled.connect(lambda v: self.toggle_curve(color, v))
+        
+        return action
+    
     def get_items(self) -> list:
         return self.plot_widget.listDataItems()
+    
+    @pyqtSlot(str, bool)
+    def toggle_curve(self, color: str, visible: bool) -> None:
+        """ Show or hide a curve. """
+        # Get the curve
+        curve = self.get_curve(color)
+        
+        # Toggle the curve
+        curve.setVisible(visible)
+        
+        # Emit curve_toggled signal
+        self.curve_toggled.emit(color, visible)
     
 
 class RegionIntensityPlot(PlotWidget):
@@ -202,9 +290,83 @@ class RegionIntensityPlot(PlotWidget):
             ) -> None:
         
         super().__init__(parent=parent, popup=popup, name=name, title=title)
+        
+        # Update labels
         self.bottom.setLabel("Time", units="s")
         self.left.setLabel("Intensity (counts)")
-
+        
+        # Create LinearRegionItem for adjusting FFT window
+        b = pg.mkBrush((0, 0, 255, 10))
+        hb = pg.mkBrush((0, 0, 255, 25))
+        self.fft_window = pg.LinearRegionItem(brush=b, hoverBrush=hb, bounds=(0, None))
+        self.plot_item.addItem(self.fft_window)
+        
+        # Create input for manually setting min/max
+        self.fft_min_input = QDoubleSpinBox()
+        self.fft_min_input.setValue(self.fft_bounds[0])
+        self.fft_max_input = QDoubleSpinBox()
+        self.fft_max_input.setValue(self.fft_bounds[1])
+        for box in [self.fft_min_input, self.fft_max_input]:
+            box.setMinimum(0)
+            box.setDecimals(2)
+            box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+            
+        # Create labels
+        self.fft_min_label = QLabel("FFT Min:")
+        self.fft_max_label = QLabel("FFT Max:")
+        
+        # Create checkbox for autoscale max
+        self.auto_fft_max_checkbox = QCheckBox("Autoscale max")
+        self.auto_fft_max_checkbox.setChecked(True)
+        
+        # Add widgets
+        self.layout.addWidget(self.fft_min_label, 0, 1, 1, 1)
+        self.layout.addWidget(self.fft_min_input, 0, 2, 1, 1)
+        self.layout.addWidget(self.fft_max_label, 0, 3, 1, 1)
+        self.layout.addWidget(self.fft_max_input, 0, 4, 1, 1)
+        self.layout.addWidget(self.auto_fft_max_checkbox, 0, 5, 1, 1)
+        
+        # Connect signal for fft_window bounds changing
+        self.fft_window.sigRegionChanged.connect(self.fft_window_dragged)
+        self.fft_min_input.valueChanged.connect(self.set_fft_min)
+        self.fft_max_input.valueChanged.connect(self.set_fft_max)
+        
+    @property
+    def fft_bounds(self) -> list:
+        return sorted([line.getXPos() for line in self.fft_window.lines])
+    
+    @property
+    def auto_fft_max(self) -> bool:
+        return self.auto_fft_max_checkbox.isChecked()
+    
+    @pyqtSlot()
+    def fft_window_dragged(self) -> None:
+        """ Update the FFT window region inputs. """
+        [b.blockSignals(True) for b in [self.fft_min_input, self.fft_max_input]]
+        self.fft_min_input.setValue(self.fft_bounds[0])
+        self.fft_max_input.setValue(self.fft_bounds[1])
+        [b.blockSignals(False) for b in [self.fft_min_input, self.fft_max_input]]
+        
+    @pyqtSlot(float)
+    def set_fft_min(self, x: float) -> None:
+        """ Set the minimum position of the FFT window. """
+        self.fft_window.blockLineSignal = True
+        if not self.fft_window.moving:
+            self.fft_window.setRegion((x, self.fft_bounds[1]))
+        self.fft_window.blockLineSignal = False
+        
+    @pyqtSlot(float)
+    def set_fft_max(self, x: float) -> None:
+        """ Set the maximum position of the FFT window. """
+        self.fft_window.blockLineSignal = True
+        if not self.fft_window.moving:
+            self.fft_window.setRegion((self.fft_bounds[0], x))
+        self.fft_window.blockLineSignal = False
+        
+    def get_data(self, color: str, ignore_window: bool = False) -> tuple:
+        """ Get data from one of the lines. """
+        # TODO
+        
 
 class FFTPlotWidget(PlotWidget):
     """ Widget for showing FFT data from another plot. """
@@ -214,10 +376,15 @@ class FFTPlotWidget(PlotWidget):
             popup: bool = False, 
             name: Optional[str] = None,
             title: Optional[str] = None,
+            autofind_peaks: bool = True,
+            low_freq_cutoff: Optional[float] = _MIN_FFT_PEAK_POS,
             ) -> None:
         
         super().__init__(parent=parent, popup=popup, name=name, title=title)
         self._parent = parent
+        self.autofind_peaks = autofind_peaks
+        self.low_freq_cutoff = low_freq_cutoff
+        self.vlines = {}
         
         # Create corresponding plot items
         [self.add_curve(color) for color in self._parent.plot_items]
@@ -226,21 +393,31 @@ class FFTPlotWidget(PlotWidget):
         self._parent.curve_added.connect(self.add_curve)
         self._parent.curve_removed.connect(self.remove_curve)
         self._parent.data_changed.connect(self.plot_fft)
+        self.curve_toggled.connect(self.toggle_vlines)
         
         # Update axes
         self.bottom.setLabel("Frequency", units="Hz")
         
     @pyqtSlot(str)
     def plot_fft(self, color: str) -> None:
+        # Don't plot if the curve is not visible, and hide all vertical lines
+        fft_curve = self.get_curve(color)
+        if not fft_curve.isVisible():
+            [self.plot_item.removeItem(line) for line in self.vlines.get(color, [])]
+            return
+        
         # Get QColor
         color = get_qcolor(color)
         
         # Get parent & FFT curves
         parent_curve = self._parent.get_curve(color)
-        fft_curve = self.get_curve(color)
         
         # Get curve data
         x, y = parent_curve.getData()
+        
+        # Apply cutoffs
+        minval, maxval = self._parent.fft_bounds
+        x, y = apply_cutoffs(x=x, y=y, minval=minval, maxval=maxval)
         
         # Try to compute FFT
         # NOTE: If data isn't copied, it will mess with the original curve data
@@ -248,12 +425,46 @@ class FFTPlotWidget(PlotWidget):
         if freq is None or psd is None:
             return
         
+        # Cutoff low frequency peak
+        freq, psd = self._cutoff_low_freq(freq, psd)
+        
         # Update corresponding curve data
         try:
             fft_curve.setData(freq, psd)
         except RuntimeError:
             pass
         
+        # Show peak positions, if option is selected
+        self.detect_and_show_peaks(freq, psd, color.name()) if self.autofind_peaks else None
+        
+    @pyqtSlot(str, bool)
+    def toggle_vlines(self, color: str, visible: bool) -> None:
+        """ Show/hide lines for a particular curve. """
+        [line.setVisible(visible) for line in self.vlines.get(color, [])]
+        
+    def detect_and_show_peaks(self, x: list, y: list, color: Optional[str] = None) -> None:
+        # Find peaks
+        peak_positions = detect_peaks(x, y, _MIN_FFT_PEAK_POS)
+        if peak_positions is None:
+            return
+        
+        # Clear vlines for current color
+        if color is not None:
+            color = get_qcolor(color).name()
+            lines = self.vlines.get(color, [])
+            [self.plot_item.removeItem(line) for line in lines]
+            
+        # Add lines
+        pen = pg.mkPen()
+        pen.setStyle(Qt.DashLine)
+        pen.setColor(get_qcolor(color)) if color is not None else None
+        new_lines = [self.plot_item.addLine(x=x, pen=pen) for x in peak_positions]
+        if color is not None:
+            self.vlines[color] = new_lines
+            
+    def _cutoff_low_freq(self, x: list, y: list) -> tuple:
+        return apply_cutoffs(x=x, y=y, minval=self.low_freq_cutoff, maxval=None)
+
 
 class PlotWidget2D(pg.ImageView):
     """ Widget for displaying linear profile as a 2D time series """
@@ -267,10 +478,87 @@ class PlotComboBox(QComboBox):
     pass
 
 
+class PlotGridWidget(QWidget):
+    closed = pyqtSignal()
+    
+    """ Widget for containing the live RHEED plots and plot transformations. """
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self._parent = parent
+        
+        # Create layout
+        self.layout = QGridLayout()
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(4)
+        self.setLayout(self.layout)
+        
+        # Create controls layout
+        self.controls_layout = QGridLayout()
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.controls_layout.setSpacing(4)
+        
+        # Create controls buttons
+        self.start_button = QPushButton("Start")  # TODO: Add icon
+        self.stop_button = QPushButton("Stop")  # TODO: Add icon
+        
+        # Create plots layout
+        self.plots_layout = QGridLayout()
+        self.plots_layout.setContentsMargins(8, 8, 8, 8)
+        self.plots_layout.setSpacing(4)
+        
+        # Create plot widgets
+        self.region_plot = RegionIntensityPlot(parent=self, popup=False, 
+                                      title="Region Intensity")
+        self.region_fft_plot = FFTPlotWidget(parent=self.region_plot, popup=False, 
+                                             title="Region Intensity FFT")
+        self.growth_rate_plot = PlotWidget(parent=self, popup=False, 
+                                           title="Growth Rate")
+        self.profile_plot = PlotWidget(parent=self, popup=False, 
+                                       title="Line Profile")
+        self.profile_fft_plot = PlotWidget(parent=self.profile_plot, popup=False, 
+                                           title="Line Profile FFT")
+        self.profile_2d_plot = PlotWidget(parent=self, popup=False, 
+                                          title="2D Line Profile")
+        
+        # Create containers for plots
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.region_plots_splitter = QSplitter(Qt.Vertical)
+        self.profile_plots_splitter = QSplitter(Qt.Vertical)
+        
+        # Add items to main layout
+        self.layout.addLayout(self.controls_layout, 0, 0, 1, 1)
+        self.layout.addLayout(self.plots_layout, 1, 0, 1, 1)
+        self.controls_layout.addWidget(self.start_button, 0, 0, 1, 1)
+        self.controls_layout.addWidget(self.stop_button, 0, 1, 1, 1)
+        self.controls_layout.addItem(HSpacer(), 0, 2, 1, 1)
+        self.layout.addWidget(self.main_splitter, 1, 0, 1, 1)
+        self.main_splitter.addWidget(self.region_plots_splitter)
+        self.main_splitter.addWidget(self.profile_plots_splitter)
+        [self.region_plots_splitter.addWidget(w) 
+         for w in (self.region_plot, self.region_fft_plot, self.growth_rate_plot)]
+        [self.profile_plots_splitter.addWidget(w)
+         for w in (self.profile_plot, self.profile_fft_plot, self.profile_2d_plot)]
+        
+        # Show widget
+        popup = True
+        name = "Plots"
+        _DEFAULT_SIZE = (800, 600)
+        if popup:
+            self.setWindowFlags(Qt.Window)
+            self.show()
+            self.raise_()
+            self.setWindowTitle(str(name) if name is not None else "Plots")
+            self.resize(*_DEFAULT_SIZE)
+            
+    def closeEvent(self, event) -> None:
+        self.closed.emit()
+        super().closeEvent(event)
+
+
 if __name__ == "__main__":
     def test():
         from FRHEED.utils import test_widget
         
-        return test_widget(PlotWidget, block=True, parent=None)
+        return test_widget(PlotGridWidget, block=True, parent=None)
 
     widget, app = test()

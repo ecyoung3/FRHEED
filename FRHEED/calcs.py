@@ -4,13 +4,31 @@ Functions for computing values from plots.
 """
 
 import math
+from typing import Union, Optional
 
 import numpy as np
+from scipy.signal import find_peaks
 
 from FRHEED.utils import snip_lists
 
 
 def calc_fft(x: list, y: list) -> tuple:
+    """
+    Calculate the FFT of a 1D series.
+
+    Parameters
+    ----------
+    x : list
+        X values.
+    y : list
+        Y values.
+
+    Returns
+    -------
+    tuple
+        A tuple containing (frequency, PSD) lists. PSD is Power Spectral Density.
+
+    """
     # Make sure data is equal lengths
     # Note: this is probably unnecessary if pulling 
     # data directly from another plot
@@ -56,8 +74,63 @@ def calc_fft(x: list, y: list) -> tuple:
     
     return (freq, psd)
 
-def find_peaks(xvals: list, yvals: list) -> tuple:
-    pass # TODO
+def apply_cutoffs(
+        x: list, 
+        y: list, 
+        minval: Optional[float] = None, 
+        maxval: Optional[float] = None
+        ) -> tuple:
+    """ Return data that falls between a certain range. Pass None to use min or max. """
+    # Return if x or y is empty
+    if len(x) + len(y) == 0:
+        return (x, y)
+    x, y = map(np.array, (x, y))
+    minval = minval or min(x)
+    maxval = maxval or max(x)
+    orig_x = x.copy()
+    mask = (orig_x >= minval) & (orig_x <= maxval)
+    return (x[mask], y[mask])
+
+def detect_peaks(
+        x: Union[list, tuple, np.ndarray],
+        y: Union[list, tuple, np.ndarray],
+        min_freq: Optional[float] = 0.0
+        ) -> list:
+    # Catch numpy RuntimeWarning as exceptions
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error")
+        
+        try:
+            # Filter to minimum frequency
+            x, y = apply_cutoffs(x=x, y=y, minval=min_freq)
+            
+            # Height
+            height = max(np.median(y) + 3*np.std(y), 1.5)
+            
+            # Threshold (vertical distance to neighbors)
+            threshold = None
+            
+            # Distance between peaks (# of indices)
+            distance = 50
+            
+            # Prominence
+            prominence = None
+            
+            # Find peaks
+            peak_indices, props = find_peaks(
+                                        y, 
+                                        height = height,
+                                        threshold = threshold,
+                                        distance = distance,
+                                        prominence = prominence
+                                        )
+            
+            # Get corresponding x-coordinates
+            return [x[idx] for idx in peak_indices]
+        
+        except Warning:
+            return
 
 
 if __name__ == "__main__":
