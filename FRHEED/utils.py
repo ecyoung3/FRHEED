@@ -10,15 +10,18 @@ import logging
 
 import numpy as np
 from appdirs import user_log_dir
-
 from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QColor, QPen
+from PyQt5.QtGui import QColor, QPen, QIcon
+
+from frheed import settings
 
 _DEBUG = (__name__ == "__main__")
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """ Get a logger for FRHEED errors and messages. """
+    # TODO: Get name of module that called this function
+    # and write to console and log file
     # Default logger name
     name = name or "FRHEED"
     
@@ -28,6 +31,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     
     # Get logger
     return logging.getLogger(name=name)
+
 
 def get_platform_bitsize() -> int:
     """
@@ -50,10 +54,8 @@ def get_platform_bitsize() -> int:
     
 
 def fix_pyqt() -> None:
-    """ 
-    Fixes system excepthook for QApplication instances 
-    https://stackoverflow.com/a/47275100/3620725
-    """
+    """ Fixes system excepthook for QApplication instances. """
+    # https://stackoverflow.com/a/47275100/3620725
     
     sys._excepthook = sys.excepthook
     
@@ -63,7 +65,16 @@ def fix_pyqt() -> None:
         sys.exit(1)
         
     sys.excepthook = pyqt_except_hook
-
+    
+    
+def fix_ipython() -> None:
+    """ Prevents PyQt5 from becoming unresponsive in IPython outside main loop. """
+    # Uses pandasgui implementation from pandasgui.utility
+    from IPython import get_ipython
+    ipython = get_ipython()
+    if ipython is not None:
+        return ipython.magic("gui qt5")
+    
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     """ Fit a widget in the center of the main screen """
@@ -89,6 +100,12 @@ def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     
     # Show the widget
     # widget.show()
+
+
+def get_icon(name: str) -> QIcon:
+    """ Get the icon with the given name from the icons directory as a QIcon. """
+    from frheed.constants import ICONS_DIR
+    return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
 def test_widget(
@@ -121,15 +138,16 @@ def test_widget(
     
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QLabel
-    from PyQt5.QtGui import QIcon
-    
-    from FRHEED.constants import WINDOW_ICON_PATH
     
     # Fix PyQt
     fix_pyqt()
     
+    # Fix IPython
+    fix_ipython()
+    
     # Get QApplication instance
     app = QApplication.instance() or QApplication(["FRHEED"])
+    app.setStyle(settings.APP_STYLE)
     
     # Create widget
     # NOTE: This MUST be done after creating the application instance
@@ -142,7 +160,7 @@ def test_widget(
         widget.setAlignment(Qt.AlignCenter)
     
     # Set window icon
-    widget.setWindowIcon(QIcon(WINDOW_ICON_PATH))
+    widget.setWindowIcon(get_icon("FRHEED"))
     
     # Set window title to the widget class name
     widget.setWindowTitle(widget.__class__.__name__)
@@ -159,7 +177,7 @@ def test_widget(
     # NOTE: _exec() starts a blocking loop; any code after will not run
     sys.exit(app.exec_()) if block else None
     
-    return widget, app
+    return (widget, app)
 
 
 def unit_string(
@@ -295,7 +313,7 @@ def save_settings(
 
     """
     import json
-    from FRHEED.constants import CONFIG_DIR
+    from frheed.constants import CONFIG_DIR
     
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
@@ -342,7 +360,7 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
     """
     import json
     from ast import literal_eval
-    from FRHEED.constants import CONFIG_DIR
+    from frheed.constants import CONFIG_DIR
     
     # Get filepath
     path = os.path.join(CONFIG_DIR, f"{name}_settings.json")
@@ -436,7 +454,6 @@ def sample_array(
         print(f"Input shape ({w}, {h}, {channels}) -> array {arr.shape}\n{arr}")
     return arr
 
-
 def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
     """ Create a QColor. See https://doc.qt.io/qt-5/qcolor.html """
     
@@ -464,6 +481,16 @@ def snip_lists(*lists) -> list:
     min_len = min(map(len, lists))
     return [L[:min_len] for L in lists]
     
+
+def get_locals(frame) -> dict:
+    return dict(frame.f_back.f_locals.items())
+
+
+def generate_requirements() -> str:
+    """ Create the requirements.txt file for FRHEED. """
+    # TODO
+    # Can just use pip freeze > requirements.txt from the FRHEED directory
+
 
 if __name__ == "__main__":
     def test():

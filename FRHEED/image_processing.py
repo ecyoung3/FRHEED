@@ -3,9 +3,13 @@
 Assorted image processing operations.
 """
 
+from typing import Union, List
+
 import numpy as np
 import cmapy
-
+import cv2
+import matplotlib as mpl
+from PyQt5.QtGui import QImage, QPixmap
 
 # https://stackoverflow.com/a/1735122/10342097
 def normalize(arr: np.ndarray) -> np.ndarray:
@@ -65,6 +69,58 @@ def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
     """
     return cmapy.colorize(normalize(arr), cmap, rgb_order=True)
 
+def to_grayscale(array: np.ndarray) -> np.ndarray:
+    # Get number of channels
+    shape = array.shape
+    channels = 1 if len(shape) == 2 else shape[-1]
+    
+    # Convert to grayscale if image is 3-channel
+    if channels == 3:
+        return cv2.cvtColor(array, cv2.COLOR_BGR2GRAY)
+    
+    # Convert to grayscale if RGBA
+    elif channels == 4:
+        return cv2.cvtColor(array, cv2.COLOR_RGBA2GRAY)
+    
+    # Otherwise, assume already grayscale
+    return array
+
+def ndarray_to_qimage(array: np.ndarray) -> QImage:
+    """ Convert a grayscale image to a QImage. """
+    # Copy the array otherwise you could get an error that QImage argument 1
+    # has unexpected type 'memoryview'
+    array = array.copy()
+    
+    # Convert to QImage
+    h, w = array.shape[0:2]
+    bytes_per_line = array.strides[0]  # assuminng C-contiguous array
+    return QImage(array.data, w, h, bytes_per_line, QImage.Format_RGB888)
+
+def ndarray_to_qpixmap(array: np.ndarray) -> QPixmap:
+    """ Convert a numpy array to a QPixmap. """
+    return QPixmap(ndarray_to_qimage(array))
+
+def column_to_image(column: Union[np.ndarray, list]) -> np.ndarray:
+    # Convert column to ndarray
+    column = np.array(column)
+    
+    # Convert to 2D array
+    return column[::-1, np.newaxis]
+
+def extend_image(image: np.ndarray, new_col: np.ndarray) -> np.ndarray:
+    """ Append a new column onto the right side of an image. """
+    # Make sure the new column is the same height as the image
+    # If it isn't, pad the edges with np.nan
+    h, w = image.shape[:2]
+    if new_col.size != h:
+        print(f"Image height {h} does not match column height {new_col.size}")
+        return column_to_image(new_col)
+    
+    return np.append(image, column_to_image(new_col), axis=1)
+
+def get_valid_colormaps() -> List[str]:
+    return mpl.pyplot.colormaps()
+
 
 if __name__ == "__main__":
     
@@ -103,3 +159,5 @@ if __name__ == "__main__":
     cmap = "Spectral"
     mapped = apply_cmap(normed, cmap)
     print(f"Applied colormap in {time.time()-t0:.5f} seconds")
+    
+    print(get_valid_colormaps())

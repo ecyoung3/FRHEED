@@ -16,9 +16,16 @@ setup(
       include_package_data = True,
       # long_description = long_description, # TODO
       long_description_content_type = "text/markdown",
-      exclude_package_data = {"": [".gitignore"]},
-      setup_requires = ["setuptools-git"],
-      install_requires = install_requires
+      exclude_package_data = {
+          "": [".gitignore"],
+          },
+      setup_requires = [
+          "setuptools-git"
+          ],
+      install_requires = install_requires,
+      classifiers = [
+        "Programming Language :: Python :: 3.9.5",
+        ]
       )
 
 # if __name__ == "__main__":

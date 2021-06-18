@@ -3,13 +3,16 @@
 Functions for computing values from plots.
 """
 
-import math
 from typing import Union, Optional
 
 import numpy as np
 from scipy.signal import find_peaks
 
-from FRHEED.utils import snip_lists
+from frheed.utils import snip_lists
+
+
+# Ignore numpy warnings
+np.seterr("ignore")
 
 
 def calc_fft(x: list, y: list) -> tuple:
@@ -50,6 +53,9 @@ def calc_fft(x: list, y: list) -> tuple:
     except:
         return None, None
     
+    # Convert y to float32 to avoid type conflict error in following operation
+    y = np.array(y, dtype=np.float32)
+    
     # Remove DC signal from the y-data
     y -= np.mean(y)
     
@@ -62,12 +68,16 @@ def calc_fft(x: list, y: list) -> tuple:
     # Calculate real FFT
     fftdata = np.fft.rfft(hann)
     
-    # Normalize FFT data
-    try:
-        psd = abs(fftdata)**2/(np.abs(hann)**2).sum()
-        psd = (psd*2)**0.5
-    except RuntimeWarning:
-        return None, None
+    # Normalize FFT data & catch warnings (RuntimeError) as exceptions
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error")
+        try:
+            psd = abs(fftdata)**2/(np.abs(hann)**2).sum()
+            psd = (psd*2)**0.5
+            
+        except Warning:
+            return None, None
     
     # Sometimes the arrays can become different lengths and throw errors
     freq, psd = snip_lists(freq, psd)
@@ -81,6 +91,7 @@ def apply_cutoffs(
         maxval: Optional[float] = None
         ) -> tuple:
     """ Return data that falls between a certain range. Pass None to use min or max. """
+    
     # Return if x or y is empty
     if len(x) + len(y) == 0:
         return (x, y)
@@ -96,6 +107,7 @@ def detect_peaks(
         y: Union[list, tuple, np.ndarray],
         min_freq: Optional[float] = 0.0
         ) -> list:
+    
     # Catch numpy RuntimeWarning as exceptions
     import warnings
     with warnings.catch_warnings():

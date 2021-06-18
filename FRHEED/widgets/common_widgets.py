@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QFrame,
     QSpacerItem,
+    QSplitter,
     
     )
 from PyQt5.QtGui import (
@@ -26,7 +27,7 @@ from PyQt5.QtCore import (
     
     )
 
-from FRHEED.utils import unit_string
+from frheed.utils import unit_string
 
 
 class DoubleSlider(QSlider):
@@ -198,8 +199,27 @@ class HSpacer(QSpacerItem):
         
 class VSpacer(QSpacerItem):
     def __init__(self):
-        super().__init__(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)   
-     
+        super().__init__(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding) 
+        
+        
+class VisibleSplitter(QSplitter):
+    def __init__(self, color: str, hover_color: Optional[str] = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        style = self.styleSheet() + f"""
+                                QSplitter::handle:horizontal:!pressed {{ 
+                                    border-left: 1px solid {color};
+                                    }}
+                                QSplitter::handle:horizontal:pressed {{ 
+                                    border-left: 1px solid {hover_color or color};
+                                    }}
+                                QSplitter::handle:vertical:!pressed {{
+                                    border-bottom: 1px solid {color};
+                                    }}
+                                QSplitter::handle:vertical:pressed {{
+                                    border-bottom: 1px solid {hover_color or color};
+                                    }}
+                                """
+        self.setStyleSheet(style)
         
 if __name__ == "__main__":
     pass

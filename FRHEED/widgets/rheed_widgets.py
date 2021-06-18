@@ -26,14 +26,14 @@ from PyQt5.QtCore import (
     
 #     )
 
-from FRHEED.widgets.camera_widget import VideoWidget
-from FRHEED.cameras.FLIR import FlirCamera
-from FRHEED.cameras.USB import UsbCamera
-from FRHEED.widgets.plot_widgets import PlotGridWidget
-from FRHEED.widgets.canvas_widget import CanvasShape, CanvasLine
-from FRHEED.widgets.selection_widgets import CameraSelection
-from FRHEED.widgets.common_widgets import HSpacer, VSpacer
-from FRHEED.utils import snip_lists
+from frheed.widgets.camera_widget import VideoWidget
+from frheed.cameras.flir import FlirCamera
+from frheed.cameras.usb import UsbCamera
+from frheed.widgets.plot_widgets import PlotGridWidget
+from frheed.widgets.canvas_widget import CanvasShape, CanvasLine
+from frheed.widgets.selection_widgets import CameraSelection
+from frheed.widgets.common_widgets import HSpacer, VSpacer
+from frheed.utils import snip_lists
 
 
 class RHEEDWidget(QWidget):
@@ -52,25 +52,13 @@ class RHEEDWidget(QWidget):
         self.layout.setSpacing(4)
         self.setLayout(self.layout)
         
-        # Create camera selection widget and wait for choice
-        self.setVisible(False)
-        self.cam_selection = CameraSelection()
-        self.cam_selection.camera_selected.connect(self._init_ui)
-        self.cam_selection.raise_()
-        
-    @pyqtSlot()
-    def _init_ui(self) -> None:
-        """ Finish UI setup after selecting a camera. """
-        # Show the widget
-        self.setVisible(True)
-        
         # Create the menu bar
         self.menubar = QMenuBar(self)
         
         # "File" menu
         # Note: &File underlines the "F" to indicate the keyboard shortcut,
         # but will not be visible unless enabled manually in Windows.
-        # To enable it, go Control Panel -> Ease of Access -> Keyboard 
+        # To enable it, go to Control Panel -> Ease of Access -> Keyboard 
         #                   -> Underline keyboard shortcuts and access keys
         self.file_menu = self.menubar.addMenu("&File")
         self.file_menu.addAction("&Change camera", self.show_cam_selection)
@@ -86,6 +74,21 @@ class RHEEDWidget(QWidget):
         self.tools_menu = self.menubar.addMenu("&Tools")
         self.preferences_item = self.tools_menu.addAction("&Preferences")
         
+        # Add menubar
+        self.layout.addWidget(self.menubar, 0, 0, 1, 1)
+        
+        # Create camera selection widget and wait for choice
+        self.setVisible(False)
+        self.cam_selection = CameraSelection()
+        self.cam_selection.camera_selected.connect(self._init_ui)
+        self.cam_selection.raise_()
+        
+    @pyqtSlot()
+    def _init_ui(self) -> None:
+        """ Finish UI setup after selecting a camera. """
+        # Show the widget
+        self.setVisible(True)
+        
         # Create the camera widget
         camera = self.cam_selection._cam
         self.camera_widget = VideoWidget(camera, parent=self)
@@ -95,12 +98,12 @@ class RHEEDWidget(QWidget):
         # Create the plot widgets
         # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
         # self.profile_plot = PlotWidget(parent=self, popup=True, name="Line Profiles (Live)")
-        self.plot_grid = PlotGridWidget(parent=self)
+        self.plot_grid = PlotGridWidget(parent=self, title="Live Plots", popup=True)
         self.region_plot = self.plot_grid.region_plot
         self.profile_plot = self.plot_grid.profile_plot
+        self.line_scan_plot = self.plot_grid.line_scan_plot
         
         # Add widgets to layout
-        self.layout.addWidget(self.menubar, 0, 0, 1, 1)
         self.layout.addWidget(self.camera_widget, 1, 0, 1, 1)
         self.layout.setRowStretch(1, 1)
         self.layout.setColumnStretch(0, 1)
@@ -109,6 +112,7 @@ class RHEEDWidget(QWidget):
         self.camera_widget.analysis_worker.data_ready.connect(self.plot_data)
         self.camera_widget.display.canvas.shape_deleted.connect(self.remove_line)
         self.plot_grid.closed.connect(self.live_plots_closed)
+        self.camera_widget.display.canvas.shape_deleted.connect(self.plot_grid.remove_curves)
         
         # Reconnect camera_selected signal
         self.cam_selection.camera_selected.disconnect()
@@ -141,13 +145,16 @@ class RHEEDWidget(QWidget):
                 except RuntimeError:
                     pass
                 
-            # Add line profile data to the profile plot
+            # Add line profile data to the profile plot and update line scan
             elif color_data["kind"] == "line":
                 curve = self.profile_plot.get_or_add_curve(color)
                 try:
                     curve.setData(color_data["y"][-1])
                 except RuntimeError:
                     pass
+                
+                # Update 2D line scan image
+                self.line_scan_plot.set_image(color_data["image"])
                 
             # Update region window
             if self.region_plot.auto_fft_max:
@@ -185,7 +192,7 @@ class RHEEDWidget(QWidget):
 
 if __name__ == "__main__":
     def test():
-        from FRHEED.utils import test_widget
+        from frheed.utils import test_widget
         
         return test_widget(RHEEDWidget, block=True)
         

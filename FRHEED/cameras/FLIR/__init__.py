@@ -8,10 +8,10 @@ from typing import Tuple, Union
 import time
 import numpy as np
 
-from FRHEED.cameras import CameraError
+from frheed.cameras import CameraError
 
 # Make sure PySpin is installed
-from FRHEED.cameras.FLIR.install_pyspin import install_pyspin
+from frheed.cameras.flir.install_pyspin import install_pyspin
 install_pyspin()
 import PySpin
 

@@ -36,8 +36,8 @@ from PyQt5.QtCore import (
     
     )
 
-from FRHEED.constants import COLOR_DICT
-from FRHEED.utils import get_qcolor
+from frheed.constants import COLOR_DICT
+from frheed.utils import get_qcolor
 
 
 SHAPE_TYPES = (
@@ -487,7 +487,10 @@ class CanvasWidget(QLabel):
     @pyqtSlot()
     def clear_canvas(self) -> None:
         """ Clear all shapes and reset the canvas """
-        self.shapes = []
+        # Use the delete function so signals are properly emitted
+        # Can't use list comprehension because size of list will change during iteration
+        while self.shapes:
+            self.shapes[0].delete()
 
         
 class CanvasShape(QRect):
@@ -1101,7 +1104,7 @@ if __name__ == "__main__":
     def test():
         import sys
         from PyQt5.QtWidgets import QApplication
-        from FRHEED.utils import test_widget
+        from frheed.utils import test_widget
         
         app = QApplication.instance() or QApplication([])
         

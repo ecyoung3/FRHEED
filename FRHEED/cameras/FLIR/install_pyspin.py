@@ -23,7 +23,7 @@ def install_pyspin() -> None:
     except ImportError:
         pass
     
-    from FRHEED.utils import get_platform_bitsize
+    from frheed.utils import get_platform_bitsize
     
     # Determine bitsize of platform (32- and 64-bit Windows is supported currently)
     bitsize = get_platform_bitsize()

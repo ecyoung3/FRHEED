@@ -9,7 +9,7 @@ import time
 import cv2
 import numpy as np
 
-from FRHEED.cameras import CameraError
+from frheed.cameras import CameraError
 
 # Suppress warning from MSMF backend bug
 # https://stackoverflow.com/a/54585850/10342097

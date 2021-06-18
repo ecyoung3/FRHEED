@@ -19,14 +19,15 @@ from PyQt5.QtCore import (
     
     )
 
-from FRHEED.cameras.FLIR import FlirCamera, get_available_cameras as get_flir_cams
-from FRHEED.cameras.USB import UsbCamera, get_available_cameras as get_usb_cams
-from FRHEED.cameras import CameraError
+from frheed.cameras.flir import FlirCamera, get_available_cameras as get_flir_cams
+from frheed.cameras.usb import UsbCamera, get_available_cameras as get_usb_cams
+from frheed.cameras import CameraError
+from frheed.utils import get_icon
 
 
 class CameraClasses(Enum):
-    FLIR = FlirCamera
-    USB = UsbCamera
+    flir = FlirCamera
+    usb = UsbCamera
 
 
 @dataclass
@@ -49,6 +50,9 @@ class CameraSelection(QWidget):
     def __init__(self):
         super().__init__(None)
         
+        # NOTE: No parent is provided so the window can be minimized to the taskbar
+        # TODO: Apply global stylesheet
+        
         # Attributes to be assigned later
         self._cam: Optional[FlirCamera, UsbCamera] = None
         
@@ -58,6 +62,7 @@ class CameraSelection(QWidget):
         # Set window properties
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Window)
         self.setWindowTitle("Select Camera")
+        self.setWindowIcon(get_icon("FRHEED"))
         
         # Set size
         self.setMinimumWidth(300)

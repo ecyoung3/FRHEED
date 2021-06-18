@@ -47,14 +47,17 @@ from PyQt5.QtCore import (
     
     )
 
-from FRHEED.widgets.common_widgets import SliderLabel, DoubleSlider, HLine
-from FRHEED.widgets.canvas_widget import CanvasWidget
-from FRHEED.cameras import CameraError
-from FRHEED.cameras.FLIR import FlirCamera
-from FRHEED.cameras.USB import UsbCamera
-from FRHEED.image_processing import apply_cmap
-from FRHEED.constants import DATA_DIR
-from FRHEED.utils import load_settings, save_settings
+from frheed.widgets.common_widgets import SliderLabel, DoubleSlider, HLine
+from frheed.widgets.canvas_widget import CanvasWidget
+from frheed.cameras import CameraError
+from frheed.cameras.flir import FlirCamera
+from frheed.cameras.usb import UsbCamera
+from frheed.image_processing import (
+    apply_cmap, to_grayscale, ndarray_to_qpixmap, extend_image, column_to_image,
+    get_valid_colormaps,
+    )
+from frheed.constants import DATA_DIR
+from frheed.utils import load_settings, save_settings
     
 
 MIN_ZOOM = 0.20
@@ -64,19 +67,23 @@ MIN_H = 348
 MAX_W = 2560
 MAX_H = 2560
 DEFAULT_CMAP = "Spectral"
+DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
 
 
 class VideoWidget(QWidget):
     """ Holds the camera frame and toolbar buttons """
     
     frame_changed = pyqtSignal()
-    frame_resized = pyqtSignal(np.ndarray)
+    frame_ready = pyqtSignal(np.ndarray)
     _min_w = 480
     _min_h = 348
     _max_w = MAX_W
     
     def __init__(self, camera: Union[FlirCamera, UsbCamera], parent = None):
         super().__init__(parent)
+        
+        # Store colormap
+        self._colormap = DEFAULT_CMAP
         
         # Store camera reference and start the camera
         self.set_camera(camera)
@@ -137,7 +144,7 @@ class VideoWidget(QWidget):
         # TODO: Finish functionality of this button
         
         # Create settings widget
-        self.settings_widget = CameraSettingsWidget(self)
+        self.make_camera_settings_widget()
         
         # Create display for showing camera frame
         self.display = CameraDisplay(self)
@@ -174,6 +181,7 @@ class VideoWidget(QWidget):
         self.frame:         Union[np.ndarray, None] = None
         self.raw_frame:     Union[np.ndarray, None] = None
         self.region_data:   dict = {}
+        self.analyze_frames = True
         
         # Set up the camera streaming thread
         self.camera_worker = CameraWorker(self)
@@ -193,7 +201,7 @@ class VideoWidget(QWidget):
         self.analysis_thread.start()
         
         # Connect other signals
-        self.frame_resized.connect(self.analysis_worker.analyze_frame)
+        self.frame_ready.connect(self.analysis_worker.analyze_frame)
         
         # Variables to be used in properties
         self._workers = (self.camera_worker, self.analysis_worker)
@@ -254,37 +262,25 @@ class VideoWidget(QWidget):
         # Store raw frame
         self.raw_frame = frame.copy()
         
-        # Resize to display size
-        size = self.display.sizeHint()
-        w, h = size.width(), size.height()
-        frame = cv2.resize(frame, dsize=(w, h), interpolation=cv2.INTER_CUBIC)
-        # self.frame = frame.copy()
+        # Resize to display size and get dimensions
+        frame = self._resize_frame(frame)
         shape = frame.shape
         h, w = shape[0:2]
         
-        # Get number of channels
-        channels = 1 if len(shape) == 2 else shape[-1]
-        
-        # Convert to grayscale if image is 3-channel
-        if channels == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Convert to grayscale
+        frame = to_grayscale(frame)
             
-        # Emit the resized frame
-        self.frame_resized.emit(frame)
+        # Emit the frame if analysis is needed
+        self.frame_ready.emit(frame) if self.analyze_frames else None
         
         # Apply colormap
-        frame = apply_cmap(frame, DEFAULT_CMAP)
+        frame = apply_cmap(frame, self.colormap)
         
         # Store the processed frame
         self.frame = frame.copy()
         
-        # Create QImage from numpy array
-        channels = 3  # frame[0, 0].size
-        bytes_per_line = channels * w
-        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        
-        # Convert QImage to QPixmap which can be shown on display
-        qpix = QPixmap(qimg)
+        # Create QPixmap from numpy array
+        qpix = ndarray_to_qpixmap(frame)
         
         # Show the QPixmap
         self.display.label.setPixmap(qpix)
@@ -312,6 +308,10 @@ class VideoWidget(QWidget):
         else:
             self.settings_widget.show()
         
+    @pyqtSlot(str)
+    def set_colormap(self, colormap: str) -> None:
+        self.colormap = colormap
+        
     @property
     def camera(self) -> Union[FlirCamera, UsbCamera]:
         return self._camera
@@ -333,6 +333,19 @@ class VideoWidget(QWidget):
     def app(self) -> QApplication:
         return QApplication.instance()
     
+    @property
+    def colormap(self) -> str:
+        return self._colormap
+    
+    @colormap.setter
+    def colormap(self, colormap: str) -> None:
+        if colormap in get_valid_colormaps():
+            self._colormap = colormap
+            # TODO: Update label that shows current colormap
+    
+    def make_camera_settings_widget(self) -> None:
+        self.settings_widget = CameraSettingsWidget(self)
+    
     def set_camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
         # Change the camera and start it
         self._camera = camera
@@ -348,11 +361,25 @@ class VideoWidget(QWidget):
         # Reset to 100% zoom
         self.slider.setValue(1.00)
         
+        # Update camera settings widget
+        self.make_camera_settings_widget()
+        
+    def start_analyzing_frames(self) -> None:
+        self.analyze_frames = True
+        
+    def stop_analyzing_frames(self) -> None:
+        self.analyze_frames = False
+        
     def _start_workers(self) -> None:
         [worker.start() for worker in self._workers]
         
     def _stop_workers(self) -> None:
         [worker.stop() for worker in self._workers]
+        
+    def _resize_frame(self, frame: np.ndarray, interp: int = DEFAULT_INTERPOLATION) -> np.ndarray:
+        size = self.display.sizeHint()
+        w, h = size.width(), size.height()
+        return cv2.resize(frame, dsize=(w, h), interpolation=interp)
     
 
 class CameraDisplay(QWidget):
@@ -1016,8 +1043,8 @@ class AnalysisWorker(Worker):
             return
         
         # Get time of data collection relative to start
-        if self.start_time is None:
-            self.start_time = time.time()
+        if self.start_time is None or len(self.shapes) == 0:
+            self.reset_timer()
         t = time.time() - self.start_time
         
         # Get pixel intensities under regions of interest
@@ -1042,14 +1069,31 @@ class AnalysisWorker(Worker):
                     "average":  [],
                     "x":        [],
                     "y":        [],
+                    "image":    None,
                     "kind":     shape.kind,
                     }
                 
             # Store time value
             self.data[color]["time"].append(t)
+            
+            # Store line profile
             if shape.kind == "line":
                 # self.data[color]["x"].append(np.arange(0, data.size, 1))
-                self.data[color]["y"].append(data.flatten())
+                ydata = data.flatten()
+                self.data[color]["y"].append(ydata)
+                
+                # Make sure line scan image exists
+                img = self.data[color]["image"]
+                if img is None:
+                    # Turn single column into 2D array where 0 is in the bottom left
+                    # (assuming starting array like [1, 2, 3, 4, 5, ...])
+                    # https://stackoverflow.com/a/44772452/10342097
+                    self.data[color]["image"] = column_to_image(ydata)
+                    
+                # Update line scan data
+                else:
+                    self.data[color]["image"] = extend_image(img, ydata)
+                
             else:
                 # Make sure sum is non-zero to avoid divide-by-zero
                 mask_sum = mask.sum()
@@ -1072,11 +1116,16 @@ class AnalysisWorker(Worker):
     @pyqtSlot()
     def reset(self) -> None:
         self.data = {}
+        self.reset_timer()
+        
+    @pyqtSlot()
+    def reset_timer(self) -> None:
+        self.start_time = time.time()
 
 
 if __name__ == "__main__":
     def test():
-        from FRHEED.utils import test_widget
+        from frheed.utils import test_widget
     
         camera = FlirCamera(lock=False)
         # camera = UsbCamera(lock=False)
