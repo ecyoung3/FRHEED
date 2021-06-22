@@ -11,9 +11,9 @@ NAME = "frheed"
 DESCRIPTION = "FRHEED is a GUI for real-time Reflection High-Energy Electron Diffraction (RHEED) analysis."
 AUTHOR = "Elliot Young"
 AUTHOR_EMAIL = "elliot.young1996@gmail.com"
-VERSION = "0.0.2"
+VERSION = "0.0.2"  # Must not match existing PyPI version or upload will fail
 URL = "https://github.com/ecyoung3/FRHEED"
-PYTHON_REQUIRES = "==3.8.10"  # TODO: Find minimum working verssion
+PYTHON_REQUIRES = "==3.8.10"  # Spinnaker requires Python 3.8
 
 # Load requirements
 here = os.path.abspath(os.path.dirname(__file__))
@@ -39,9 +39,13 @@ else:
 
 # https://github.com/kennethreitz/setup.py/blob/master/setup.py 
 class UploadCommand(Command):
-    """ Support setup.py uploading to PyPI. """
+    """ 
+    Support setup.py uploading to PyPI. 
+    To use, run `python setup.py upload` in the command prompt 
+    from the directory that this file is in.
+    """
     
-    description = "Build and publish the package to PyPI"
+    description = "Build and publish the package to PyPI."
     user_options = []
     
     @staticmethod
