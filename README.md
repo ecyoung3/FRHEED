@@ -12,8 +12,9 @@ To install directly from GitHub for the latest unreleased development build:
 `pip install git+https://github.com/ecyoung3/FRHEED.git`
 
 If using a FLIR camera, the Spinnaker SDK must also be downloaded from the [FLIR website](https://www.flir.com/products/spinnaker-sdk/).
-Click "Download Now" and find the appropriate version under Windows > Latest Spinnaker SDK.
+Click "Download Now" and find the appropriate version under Windows > Latest Spinnaker SDK. 
 Note that this is liable to change, but is accurate as of June 21, 2021.
+For more details on the Spinnaker SDK, view the [README](https://github.com/ecyoung3/FRHEED/blob/dev/frheed/cameras/flir/spinnaker_win32/README.txt).
 
 
 ## Hardware ##
