@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Package metadata
 NAME = "frheed"
-DESCRIPTION = "An open source GUI for real-time RHEED analysis."
+DESCRIPTION = "FRHEED is a GUI for real-time Reflection High-Energy Electron Diffraction (RHEED) analysis."
 AUTHOR = "Elliot Young"
 AUTHOR_EMAIL = "elliotyoung@frheed.com"
 VERSION = "0.0.1"
@@ -19,6 +19,13 @@ PYTHON_REQUIRES = "==3.8.10"  # TODO: Find minimum working verssion
 here = os.path.abspath(os.path.dirname(__file__))
 requirements_file = os.path.join(here, "requirements.txt")
 INSTALL_REQUIRES = Path(requirements_file).read_text().split("\n")
+
+# Load long description using regular description as fallback.
+try:
+    readme_file = os.path.join(here, "README.md")
+    LONG_DESCRIPTION = Path(readme_file).read_text()
+except:
+    LONG_DESCRIPTION = DESCRIPTION
 
 # Load version info from __version__.py
 about = {}
