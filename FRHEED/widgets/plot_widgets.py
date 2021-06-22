@@ -41,7 +41,7 @@ import numpy as np
 
 from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
 from frheed.widgets.camera_widget import DEFAULT_CMAP
-from frheed.utils import get_qcolor, get_qpen
+from frheed.utils import get_qcolor, get_qpen, get_logger
 from frheed.calcs import calc_fft, detect_peaks, apply_cutoffs
 from frheed.image_processing import ndarray_to_qpixmap, apply_cmap
 
@@ -59,6 +59,7 @@ _PG_CFG = {
     "enableExperimental":   False,
     "crashWarning":         True,
     "imageAxisOrder":       "col-major",
+    "useOpenGL":            False,
     }
 _PG_PLOT_STYLE = {
     "tickTextWidth":        30,
@@ -77,12 +78,16 @@ _DEFAULT_SIZE = (800, 600)
 _MIN_FFT_PEAK_POS = 0.5
 _CURVE_MENU_TITLE = "View Lines"
 _ITALIC_COORDS = True
+logger = get_logger()
 
 
 def init_pyqtgraph(use_opengl: bool = False) -> None:
     """ Set up the pyqtgraph configuration options """
-    [pg.setConfigOption(k, v) for k, v in _PG_CFG.items()]
-    pg.setConfigOption("useOpenGL", use_opengl)
+    for k, v in _PG_CFG.items():
+        try:
+            pg.setConfigOption(k, v)
+        except Exception as ex:
+            logger.exception(str(ex))
     
 
 class PlotWidget(QWidget):

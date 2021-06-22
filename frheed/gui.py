@@ -5,11 +5,16 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication
 
 from frheed.widgets.rheed_widgets import RHEEDWidget
-from frheed.utils import get_logger
+from frheed import utils
+# from frheed import settings
 
 
-logger = get_logger()
+logger = utils.get_logger()
 windows = []
+
+# Fix IPython and PyQt
+utils.fix_ipython()
+utils.fix_pyqt()
 
 
 class FRHEED(QMainWindow):
@@ -27,16 +32,26 @@ class FRHEED(QMainWindow):
         self.rheed_widget = RHEEDWidget()
         self.setCentralWidget(self.rheed_widget)
         
+        # Connect signals
+        self.app.lastWindowClosed.connect(self.app.quit)
+        
         # Set window properties
         self.setWindowTitle("FRHEED")
-
+        self.setWindowIcon(utils.get_icon("FRHEED"))
+        
+        # Show the window and center in the screen
+        self.show()
+        utils.fit_screen(self)
+        
+        # Start blocking event loop that ends when app is closed
+        sys.exit(self.app.exec_())
+        
 
 def show() -> FRHEED:
-    from frheed.utils import test_widget
     logger.info("Opening FRHEED...")
-    gui, app = test_widget(FRHEED, block=True)
-    return gui
+    return FRHEED()
 
 
 if __name__ == "__main__":
     gui = show()
+    

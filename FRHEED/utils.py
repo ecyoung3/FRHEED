@@ -7,30 +7,68 @@ import sys
 import os
 from typing import Union, Optional, Dict, Tuple
 import logging
+import inspect
+from pathlib import Path
+import subprocess
 
 import numpy as np
-from appdirs import user_log_dir
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtGui import QColor, QPen, QIcon
 
 from frheed import settings
+from frheed.constants import LOG_DIR
+
 
 _DEBUG = (__name__ == "__main__")
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """ Get a logger for FRHEED errors and messages. """
-    # TODO: Get name of module that called this function
-    # and write to console and log file
-    # Default logger name
-    name = name or "FRHEED"
+    # Use name if provided, otherwise get name of module that called this function
+    name = name or Path(inspect.getmodule(inspect.stack()[1][0]).__file__).stem
     
-    # Set config options
-    filepath = os.path.join(user_log_dir(), f"{name}.log")
-    logging.basicConfig(filename=filepath)
+    # Generate log path
+    filepath = os.path.join(LOG_DIR, f"{name}.log")
     
-    # Get logger
-    return logging.getLogger(name=name)
+    # Create logger
+    logger = logging.getLogger(name=name)
+    
+    # Make sure handlers haven't been added already
+    # https://stackoverflow.com/a/59448231/10342097
+    if logger.handlers:
+        logger.info(f"{name}.log is already running")
+        return logger
+    
+    # Set level to info
+    logger.setLevel(logging.INFO)
+    
+    # Filter that logs only INFO and WARNING level messages
+    class ConsoleFilter:
+        def __init__(self, level: int):
+            self.__level = level
+            
+        def filter(self, record) -> bool:
+            return record.levelno in [logging.INFO, logging.WARNING]
+    
+    # Create file handler
+    file_handler = logging.FileHandler(filepath, mode="a")
+    file_format = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] %(message)s"
+    file_formatter = logging.Formatter(file_format)
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+    
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_format = "%(message)s"
+    console_formatter = logging.Formatter(console_format)
+    console_handler.setFormatter(console_formatter)
+    console_handler.addFilter(ConsoleFilter(logging.INFO))
+    logger.addHandler(console_handler)
+    
+    # Notify that logfile was started
+    logger.info(f"Started {name}.log")
+    
+    return logger
 
 
 def get_platform_bitsize() -> int:
@@ -486,6 +524,18 @@ def get_locals(frame) -> dict:
     return dict(frame.f_back.f_locals.items())
 
 
+def install_whl(filepath: str) -> int:
+    """ Install a module using pip, either from a PyPi library or local file. """
+    # Make sure .whl filepath and python.exe filepath are single-escaped
+    python_path = sys.executable.replace('\\', '/')
+    filepath = filepath.replace('\\', '/')
+    
+    # Use subprocess to execute the commands
+    args = [python_path, "-m", "pip", "install", filepath]
+    exit_code = subprocess.check_call(args)
+    return exit_code
+
+
 def generate_requirements() -> str:
     """ Create the requirements.txt file for FRHEED. """
     # TODO
@@ -515,5 +565,4 @@ if __name__ == "__main__":
         sys.exit(app.exec_())
 
     test()
-    
     

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from appdirs import user_config_dir
+from appdirs import user_config_dir, user_log_dir
 from typing import Optional
 from dataclasses import dataclass
 
@@ -10,6 +10,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 CONFIG_DIR = os.path.join(user_config_dir(), "FRHEED", "")
 os.makedirs(CONFIG_DIR, exist_ok=True)
+
+LOG_DIR = os.path.join(user_log_dir(), "FRHEED", "")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 _LOCAL_DIR = os.path.dirname(__file__)
 RESOURCE_DIR = os.path.normpath(os.path.join(_LOCAL_DIR, "resources", ""))

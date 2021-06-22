@@ -129,12 +129,6 @@ using the following:
    - Install for Python 2.7, site wide:
    sudo python -m pip install --upgrade numpy matplotlib
 
-   - Install for Python 3.5, user only (16.04 only):
-   python3.5 -m pip install --upgrade --user numpy matplotlib
-
-   - Install for Python 3.5, site wide (16.04 only):
-   sudo python3.5 -m pip install --upgrade numpy matplotlib
-
    - Install for Python 3.6, user only:
    python3.6 -m pip install --upgrade --user numpy matplotlib
 
@@ -181,12 +175,6 @@ using the following:
    - Python 2.7, user only:
    python -m pip install --user spinnaker_python-2.x.x.x-cp27-cp27mu-linux_x86_64.whl
 
-   - Python 3.5, site wide (16.04 only):
-   sudo python3.5 -m pip install spinnaker_python-2.x.x.x-cp35-cp35m-linux_x86_64.whl
-
-   - Python 3.5, user only (16.04 only):
-   python3.5 -m pip install --user spinnaker_python-2.x.x.x-cp35-cp35m-linux_x86_64.whl
-
    - Python 3.6, site wide:
    sudo python3.6 -m pip install spinnaker_python-2.x.x.x-cp36-cp36m-linux_x86_64.whl
 
@@ -213,8 +201,39 @@ using the following:
 -----------------------------------------------------------------------------
 
 1. Check that Python is installed. MacOS comes with Python 2.7 installed,
-   but it may be an older build of Python. Up-to-date Python packages
-   can be downloaded from https://www.python.org/downloads.
+   but it may be an older build of Python. 
+   There are several ways to install Up-to-date Python packages,
+   but the recommended way is to use pyenv - the python package manager, 
+   which manages multiple versions of Python effectively.
+   (installing python using a method that does not use pyenv, can result in run-time errors due to mixed running Python versions)
+   
+   - For example: to install the specific python version python 3.7.7 do the following steps:
+   # Update brew
+   brew update
+
+   # Install the pyenv tool
+   brew install pyenv
+
+   # Install the specific python version 3.7.7
+   pyenv install 3.7.7
+
+   # Set Python version globally.
+   pyenv global 3.7.7
+
+   # Adjust the shell's path into the shell (e.g. .zshrc, .bash_profile)
+   echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile
+
+   # Reset the current shell
+   source ~/.bash_profile
+
+   # See which versions of Python are installed (e.g. * 3.7.7 (set by ~/.pyenv/version))
+   pyenv versions
+
+   # Check the python version (e.g. Python 3.7.7)
+   python3.7 -V
+
+   # Verify that the python uses the pyenv related path (e.g. ~/.pyenv/shims/python3.7)
+   which python3.7
 
 2. Update pip for Python. Run the following command for your version of Python:
 

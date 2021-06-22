@@ -1,6 +1,6 @@
 # coding=utf-8
 # =============================================================================
-# Copyright (c) 2001-2019 FLIR Systems, Inc. All Rights Reserved.
+# Copyright (c) 2001-2021 FLIR Systems, Inc. All Rights Reserved.
 #
 # This software is the confidential and proprietary information of FLIR
 # Integrated Imaging Solutions, Inc. ("Confidential Information"). You
