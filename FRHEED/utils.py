@@ -71,6 +71,9 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logger
 
 
+logger = get_logger("utils")
+
+
 def get_platform_bitsize() -> int:
     """
     Get the Windows platform bit size (32 or 64).
@@ -527,8 +530,8 @@ def get_locals(frame) -> dict:
 def install_whl(filepath: str) -> int:
     """ Install a module using pip, either from a PyPi library or local file. """
     # Make sure .whl filepath and python.exe filepath are single-escaped
-    python_path = sys.executable.replace('\\', '/')
-    filepath = filepath.replace('\\', '/')
+    python_path = sys.executable.replace("\\", "/")
+    filepath = filepath.replace("\\", "/")
     
     # Use subprocess to execute the commands
     args = [python_path, "-m", "pip", "install", filepath]
@@ -536,10 +539,12 @@ def install_whl(filepath: str) -> int:
     return exit_code
 
 
-def generate_requirements() -> str:
+def gen_reqs() -> str:
     """ Create the requirements.txt file for FRHEED. """
-    # TODO
-    # Can just use pip freeze > requirements.txt from the FRHEED directory
+    python = sys.executable.replace("\\", "/")
+    subprocess.check_call([python, "-m", "pip", "freeze", ">", "requirements.txt"])
+    requirements = Path("requirements.txt").read_text()
+    logger.info(f"Generated requirements:\n{requirements}")
 
 
 if __name__ == "__main__":
