@@ -10,8 +10,8 @@ from pathlib import Path
 NAME = "frheed"
 DESCRIPTION = "FRHEED is a GUI for real-time Reflection High-Energy Electron Diffraction (RHEED) analysis."
 AUTHOR = "Elliot Young"
-AUTHOR_EMAIL = "elliotyoung@frheed.com"
-VERSION = "0.0.1"
+AUTHOR_EMAIL = "elliot.young1996@gmail.com"
+VERSION = "0.0.2"
 URL = "https://github.com/ecyoung3/FRHEED"
 PYTHON_REQUIRES = "==3.8.10"  # TODO: Find minimum working verssion
 
@@ -88,7 +88,7 @@ setup(
       url = URL,
       packages = find_packages(),
       include_package_data = True,
-      # long_description = long_description,  # TODO
+      long_description = LONG_DESCRIPTION,
       long_description_content_type = "text/markdown",
       exclude_package_data = {
           "": [".gitignore"],
