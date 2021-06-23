@@ -6,8 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
-# vscode
+# IDE files
 .vscode/
+.spyproject/
 
 # Distribution / packaging
 .Python
