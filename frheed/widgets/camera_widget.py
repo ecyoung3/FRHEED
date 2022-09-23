@@ -282,9 +282,9 @@ class VideoWidget(QWidget):
         # Store the processed frame
         self.frame = frame.copy()
 
-        # Write to video file if saving
+        # Write to video file if saving; expects frame to be same shape as writer with BGR channels
         if self._writer is not None:
-            self._writer.write(self.frame)
+            self._writer.write(cv2.cvtColor(self.frame, cv2.COLOR_RGB2BGR))
         
         # Create QPixmap from numpy array
         qpix = ndarray_to_qpixmap(frame)
