@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Material properties for use in computations.
 """
@@ -11,6 +10,7 @@ from enum import Enum
 # Adachi, S. (2017). III-V Ternary and Quaternary Compounds. 
 # Springer Handbook of Electronic and Photonic Materials, 1–1. 
 # doi:10.1007/978-3-319-48933-9_30 
+
 
 BINARY_LATTICE_PARAMETERS = {  # at 300 K
     "AlN": {

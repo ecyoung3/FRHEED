@@ -9,6 +9,7 @@ __pycache__/
 # IDE files
 .vscode/
 .spyproject/
+*.code-workspace
 
 # Distribution / packaging
 .Python

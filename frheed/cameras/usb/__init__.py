@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 Connecting to USB cameras.
 """
+
+from collections import deque
 
 import os
 from typing import Union, Optional, List, Tuple
@@ -171,7 +172,7 @@ class UsbCamera:
         
         # Other attributes which may be accessed later
         self._running = True  # camera is running as soon as you connect to it
-        self._frame_times = []
+        self._frame_times = deque()
         self._incomplete_image_count = 0
         
     def __getattr__(self, attr: str) -> object:
@@ -254,19 +255,15 @@ class UsbCamera:
     def real_fps(self) -> float:
         """ Get the real frames per second (Hz) """
         
-        # When not enough frames have been captured
+        # Return 0 if not enough frames have been captured
         if len(self._frame_times) <= 1:
             return 0.
         
-        # When fewer than 60 frames have been captured in this acquisition
-        elif len(self._frame_times) < 60:
+        # Calculate average FPS of the most recent n frames
+        else:
             dt = (self._frame_times[-1] - self._frame_times[0])
             return len(self._frame_times) / max(dt, 1)
         
-        # Return the average frame time of the last 60 frames
-        else:
-            return 60 / (self._frame_times[-1] - self._frame_times[-60])
-    
     @property
     def width(self) -> int:
         return int(self.CAP_PROP_FRAME_WIDTH)
@@ -314,6 +311,10 @@ class UsbCamera:
         
         # Store frame time for real FPS calculation
         self._frame_times.append(time.time())
+
+        # If more than 3600 frame times stored, pop the latest
+        if len(self._frame_times) > 3600:
+            self._frame_times.popleft()
         
         return array
     
@@ -331,10 +332,9 @@ class UsbCamera:
         self.CAP_PROP_SETTINGS = 0
         
     def get_info(self, name: str) -> dict:
-        info = {"name": name}
-        
-        
-        return info
+        """ Get information about a camera node (attribute or method). """
+        # TODO: Fully implement
+        return {"name": name}
 
 
 if __name__ == "__main__":

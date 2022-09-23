@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Assorted image processing operations.
 """
@@ -10,6 +9,7 @@ import cmapy
 import cv2
 import matplotlib as mpl
 from PyQt5.QtGui import QImage, QPixmap
+
 
 # https://stackoverflow.com/a/1735122/10342097
 def normalize(arr: np.ndarray) -> np.ndarray:
@@ -44,6 +44,7 @@ def normalize(arr: np.ndarray) -> np.ndarray:
     # Convert back to uint8
     return arr.astype(np.uint8, copy=True)
     
+
 def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
     """
     Apply a named colormap to an array. This function uses the cmapy library 
@@ -69,6 +70,7 @@ def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
     """
     return cmapy.colorize(normalize(arr), cmap, rgb_order=True)
 
+
 def to_grayscale(array: np.ndarray) -> np.ndarray:
     # Get number of channels
     shape = array.shape
@@ -85,6 +87,7 @@ def to_grayscale(array: np.ndarray) -> np.ndarray:
     # Otherwise, assume already grayscale
     return array
 
+
 def ndarray_to_qimage(array: np.ndarray) -> QImage:
     """ Convert a grayscale image to a QImage. """
     # Copy the array otherwise you could get an error that QImage argument 1
@@ -96,9 +99,11 @@ def ndarray_to_qimage(array: np.ndarray) -> QImage:
     bytes_per_line = array.strides[0]  # assuminng C-contiguous array
     return QImage(array.data, w, h, bytes_per_line, QImage.Format_RGB888)
 
+
 def ndarray_to_qpixmap(array: np.ndarray) -> QPixmap:
     """ Convert a numpy array to a QPixmap. """
     return QPixmap(ndarray_to_qimage(array))
+
 
 def column_to_image(column: Union[np.ndarray, list]) -> np.ndarray:
     # Convert column to ndarray
@@ -106,6 +111,7 @@ def column_to_image(column: Union[np.ndarray, list]) -> np.ndarray:
     
     # Convert to 2D array
     return column[::-1, np.newaxis]
+
 
 def extend_image(image: np.ndarray, new_col: np.ndarray) -> np.ndarray:
     """ Append a new column onto the right side of an image. """
@@ -117,6 +123,7 @@ def extend_image(image: np.ndarray, new_col: np.ndarray) -> np.ndarray:
         return column_to_image(new_col)
     
     return np.append(image, column_to_image(new_col), axis=1)
+
 
 def get_valid_colormaps() -> List[str]:
     return mpl.pyplot.colormaps()

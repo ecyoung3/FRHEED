@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Styling for the PyQt5 interfaces and widgets.
 """
@@ -20,4 +19,4 @@ class Palette:
     
     """
     
-    
+    # TODO

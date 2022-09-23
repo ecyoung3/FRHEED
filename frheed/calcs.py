@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions for computing values from plots.
 """
@@ -16,8 +15,7 @@ np.seterr("ignore")
 
 
 def calc_fft(x: list, y: list) -> tuple:
-    """
-    Calculate the FFT of a 1D series.
+    """Calculate the FFT of a 1D series.
 
     Parameters
     ----------
@@ -89,24 +87,46 @@ def apply_cutoffs(
         y: list, 
         minval: Optional[float] = None, 
         maxval: Optional[float] = None
-        ) -> tuple:
-    """ Return data that falls between a certain range. Pass None to use min or max. """
+    ) -> tuple:
+    """Return data that falls between a certain range. Pass None to use min or max of the array. 
+
+    Args:
+        x (list): x values; data is filtered based on these values
+        y (list): y values
+        minval (Optional[float], optional): Cutoff minimum (inclusive). Defaults to None if no lower bound.
+        maxval (Optional[float], optional): Cutoff maximum (inclusive). Defaults to None if no upper bound.
+
+    Returns:
+        tuple: the filtered x and y arrays
+    """
     
-    # Return if x or y is empty
-    if len(x) + len(y) == 0:
+    # Return if x or y is empty or if min or max not provided
+    if (len(x) + len(y) == 0) or (minval is None and maxval is None):
         return (x, y)
+
+    # Convert x and y to numpy arrays
     x, y = map(np.array, (x, y))
-    minval = minval or min(x)
-    maxval = maxval or max(x)
-    orig_x = x.copy()
-    mask = (orig_x >= minval) & (orig_x <= maxval)
+
+    # Create mask if there's a minimum cutoff but not maximum
+    if minval is not None and maxval is None:
+        mask = (x >= minval)
+
+    # Create mask if there's a maximum cutoff but not minimum
+    elif maxval is not None and minval is None:
+        mask = (x <= maxval)
+
+    # Mask both
+    else:
+        mask = (x >= minval) & (x <= maxval)
+
+    # Return masked elements
     return (x[mask], y[mask])
 
 def detect_peaks(
         x: Union[list, tuple, np.ndarray],
         y: Union[list, tuple, np.ndarray],
         min_freq: Optional[float] = 0.0
-        ) -> list:
+    ) -> list:
     
     # Catch numpy RuntimeWarning as exceptions
     import warnings
@@ -130,13 +150,13 @@ def detect_peaks(
             prominence = None
             
             # Find peaks
-            peak_indices, props = find_peaks(
-                                        y, 
-                                        height = height,
-                                        threshold = threshold,
-                                        distance = distance,
-                                        prominence = prominence
-                                        )
+            peak_indices, _ = find_peaks(
+                y, 
+                height = height,
+                threshold = threshold,
+                distance = distance,
+                prominence = prominence
+            )
             
             # Get corresponding x-coordinates
             return [x[idx] for idx in peak_indices]

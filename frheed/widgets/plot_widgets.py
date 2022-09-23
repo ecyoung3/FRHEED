@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Widgets for plotting data in PyQt.
 """
@@ -8,34 +7,24 @@ from typing import Union, Optional
 from PyQt5.QtWidgets import (
     QWidget,
     QGridLayout,
-    QComboBox,
     QLabel,
     QPushButton,
-    QSplitter,
     QMenuBar,
-    QMenu,
     QAction,
-    QWidgetAction,
     QDoubleSpinBox,
     QSizePolicy,
     QCheckBox,
     QGraphicsPixmapItem,
-    
-    )
+)
 from PyQt5.QtGui import (
     QColor,
-    QFont,
-    QPalette,
-    QPen,
     QPixmap,
-    
-    )
+)
 from PyQt5.QtCore import (
     Qt,
     pyqtSlot,
     pyqtSignal,
-    
-    )
+)
 import pyqtgraph as pg  # import *after* PyQt5
 import numpy as np
 
@@ -739,7 +728,6 @@ class PlotGridWidget(QWidget):
     @pyqtSlot(str, bool)
     def toggle_all_curves(self, color: str, visible: bool) -> None:
         [wid.toggle_curve(color, visible, block_signal=True) for wid in self.plot_widgets]
-        print("toggled all curves")
         
     @pyqtSlot(object)
     def remove_curves(self, shape) -> None:

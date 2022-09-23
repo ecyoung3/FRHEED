@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """
 Install the spinnaker .whl file located in /spinnaker/...
+Spinnaker can be downloaded from the Teledyne FLIR website: 
+    https://flir.app.boxcn.net/v/SpinnakerSDK
 """
 
 import os
@@ -14,15 +14,26 @@ from frheed.utils import install_whl, get_logger
 logger = get_logger()
 
 
-def install_pyspin() -> None:
-    """ Install PySpin from the appropriate .whl file """
+def install_pyspin(reinstall: bool=False) -> None:
+    """Install PySpin from the downloaded .whl file located in a ./spinnaker folder.
+
+    Args:
+        reinstall (bool, optional): Whether or not to install even if PySpin is already installed. Defaults to False.
+
+    Raises:
+        ValueError: If the current platform is unsupported (only 32 and 64-bit windows are supported).
+        ValueError: If an appropriate .whl file is not found for the current platform.
+    """
     
     # Check if PySpin is already installed
     try:
         import PySpin
         if __name__ == "__main__":
             logger.info("PySpin is already installed")
-        return 
+
+        # Return if not reinstalling
+        if not reinstall:
+            return 
     
     except ImportError:
         pass
@@ -70,9 +81,11 @@ def install_pyspin() -> None:
     except ImportError:
         logger.info(f"PySpin failed to install from {whl_filepath}")
 
+
 if __name__ == "__main__":
-    def test():
-        os.chdir(str(Path(__file__).parents[3]))
-        install_pyspin()
-        
-    test()
+    #install_pyspin(reinstall=True)
+    import PySpin
+    system = PySpin.System#.GetInstance()
+    print(system)
+    import os
+    print(os.environ["FLIR_GENTL64_CTI_VS140"])

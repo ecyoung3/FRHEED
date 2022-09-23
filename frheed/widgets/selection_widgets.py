@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Widgets for selecting things, including the source camera to use.
 """
@@ -11,13 +10,11 @@ from PyQt5.QtWidgets import (
     QWidget,
     QPushButton,
     QGridLayout,
-    
-    )
+)
 from PyQt5.QtCore import (
     Qt,
     pyqtSignal,
-    
-    )
+)
 
 from frheed.cameras.flir import FlirCamera, get_available_cameras as get_flir_cams
 from frheed.cameras.usb import UsbCamera, get_available_cameras as get_usb_cams
@@ -53,8 +50,8 @@ class CameraSelection(QWidget):
         # NOTE: No parent is provided so the window can be minimized to the taskbar
         # TODO: Apply global stylesheet
         
-        # Attributes to be assigned later
-        self._cam: Optional[FlirCamera, UsbCamera] = None
+        # Reference to Camera object that will be instantiated later
+        self._cam: Union[FlirCamera, UsbCamera, None] = None
         
         # Check for available cameras
         cams = self.available_cameras()
@@ -94,7 +91,7 @@ class CameraSelection(QWidget):
             
         # Show the widget
         self.setVisible(True)
-        
+
     def available_cameras(self) -> List[CameraObject]:
         # Check each camera class for availability
         usb_cams = [CameraObject(UsbCamera, src, name) 
@@ -113,7 +110,6 @@ class CameraSelection(QWidget):
         
         # Initialize camera
         self._cam = cam.get_camera()
-        print(f"Connected to {cam.name}")
         
         # Emit camera_selected signal
         self.camera_selected.emit()

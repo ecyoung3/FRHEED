@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
@@ -7,6 +6,7 @@ Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 from typing import Tuple, Union
 import time
 import numpy as np
+from collections import deque
 
 from frheed.cameras import CameraError
 
@@ -219,7 +219,7 @@ class FlirCamera:
         
         # Other attributes which may be accessed later
         self._running = False
-        self._frame_times = []
+        self._frame_times = deque()
         self._incomplete_image_count = 0
 
     def __getattr__(self, attr: str) -> object:
@@ -362,15 +362,11 @@ class FlirCamera:
         if len(self._frame_times) <= 1:
             return 0.
         
-        # When fewer than 60 frames have been captured in this acquisition
-        elif len(self._frame_times) < 60:
+        # Calculate average of all frames
+        else:
             dt = (self._frame_times[-1] - self._frame_times[0])
             return len(self._frame_times) / max(dt, 1)
         
-        # Return the average frame time of the last 60 frames
-        else:
-            return 60 / (self._frame_times[-1] - self._frame_times[-60])
-
     @property
     def width(self) -> int:
         if not self.initialized:
@@ -464,7 +460,7 @@ class FlirCamera:
         
         if self.running:
             self.cam.EndAcquisition()
-        self._frame_times = []
+        self._frame_times = deque()
         self._incomplete_image_count = 0
         self._running = False
         
@@ -554,10 +550,13 @@ class FlirCamera:
         # Store frame time for real FPS calculation
         self._frame_times.append(time.time())
 
+        # Remove the oldest frame if there are more than 60
+        if len(self._frame_times) > 3600:
+            self._frame_times.popleft()
+
         if get_chunk:
             return img.GetNDArray(), img.GetChunkData()
         else:
-            self._frame_times.append(time.time())
             return img.GetNDArray()
 
     def get_info(self, name: str) -> dict:
@@ -592,11 +591,9 @@ class FlirCamera:
         if hasattr(node, "GetAccessMode"):
             access = node.GetAccessMode()
             info["access"] = self._rw_modes.get(access, access)
-            # print(info["access"])
             if isinstance(info["access"], str) and "read" in info["access"]:
                 info["value"] = getattr(self, name)
 
-        # print(info)
         if info.get("access") != 0:
             for attr in ("description", "unit", "min", "max"):
                 fname = "Get" + attr.capitalize()

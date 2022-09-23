@@ -1,20 +1,18 @@
-# -*- coding: utf-8 -*-
-
+"""
+Main GUI for FRHEED.
+"""
 import sys
 
 from PyQt5.QtWidgets import QMainWindow, QApplication
 
 from frheed.widgets.rheed_widgets import RHEEDWidget
 from frheed import utils
-# from frheed import settings
 
 
 logger = utils.get_logger()
-windows = []
 
-# Fix IPython and PyQt
-utils.fix_ipython()
-utils.fix_pyqt()
+# Store reference to main window so it doesn't get garbage collected
+windows = []
 
 
 class FRHEED(QMainWindow):
@@ -32,7 +30,7 @@ class FRHEED(QMainWindow):
         self.rheed_widget = RHEEDWidget()
         self.setCentralWidget(self.rheed_widget)
         
-        # Connect signals
+        # Quit FRHEED when the last window closes
         self.app.lastWindowClosed.connect(self.app.quit)
         
         # Set window properties

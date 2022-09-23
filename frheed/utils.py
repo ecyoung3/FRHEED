@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 General utility functions for FRHEED.
 """
@@ -7,9 +6,9 @@ import sys
 import os
 from typing import Union, Optional, Dict, Tuple
 import logging
-import inspect
 from pathlib import Path
 import subprocess
+import atexit
 
 import numpy as np
 from PyQt5.QtWidgets import QWidget, QApplication
@@ -19,13 +18,10 @@ from frheed import settings
 from frheed.constants import LOG_DIR
 
 
-_DEBUG = (__name__ == "__main__")
-
-
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """ Get a logger for FRHEED errors and messages. """
-    # Use name if provided, otherwise get name of module that called this function
-    name = name or Path(inspect.getmodule(inspect.stack()[1][0]).__file__).stem
+    # Use name if provided, otherwise `frheed`
+    name = name or "frheed"
     
     # Generate log path
     filepath = os.path.join(LOG_DIR, f"{name}.log")
@@ -36,7 +32,6 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     # Make sure handlers haven't been added already
     # https://stackoverflow.com/a/59448231/10342097
     if logger.handlers:
-        logger.info(f"{name}.log is already running")
         return logger
     
     # Set level to info
@@ -68,10 +63,16 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     # Notify that logfile was started
     logger.info(f"Started {name}.log")
     
+    # Create function for closing all logger handlers
+    def close_handlers() -> None:
+        for handler in logger.handlers[:]:
+            handler.close()
+            logger.removeHandler(handler)
+    
+    # Close the logger when system exits
+    atexit.register(close_handlers)
+    
     return logger
-
-
-logger = get_logger("utils")
 
 
 def get_platform_bitsize() -> int:
@@ -88,38 +89,11 @@ def get_platform_bitsize() -> int:
     
     bitsize = struct.calcsize("P") * 8
     
-    if _DEBUG:
-        print(f"Platform bitsize: {bitsize}")
-        
     return bitsize
-    
-
-def fix_pyqt() -> None:
-    """ Fixes system excepthook for QApplication instances. """
-    # https://stackoverflow.com/a/47275100/3620725
-    
-    sys._excepthook = sys.excepthook
-    
-    def pyqt_except_hook(exctype, value, traceback):
-        print(exctype, value, traceback)
-        sys._excepthook(exctype, value, traceback)
-        sys.exit(1)
-        
-    sys.excepthook = pyqt_except_hook
-    
-    
-def fix_ipython() -> None:
-    """ Prevents PyQt5 from becoming unresponsive in IPython outside main loop. """
-    # Uses pandasgui implementation from pandasgui.utility
-    from IPython import get_ipython
-    ipython = get_ipython()
-    if ipython is not None:
-        return ipython.magic("gui qt5")
     
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     """ Fit a widget in the center of the main screen """
-    
     from PyQt5.QtWidgets import QDesktopWidget
     
     # Get main screen geometry
@@ -135,13 +109,6 @@ def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     dx, dy = int((tot_w - w) / 2), int((tot_h - h) / 2)
     widget.move(dx, dy)
     
-    if _DEBUG:
-        print(f"Resized widget to {widget.width()}, {widget.height()} "
-              f"and moved it to {dx}, {dy}")
-    
-    # Show the widget
-    # widget.show()
-
 
 def get_icon(name: str) -> QIcon:
     """ Get the icon with the given name from the icons directory as a QIcon. """
@@ -179,12 +146,6 @@ def test_widget(
     
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QLabel
-    
-    # Fix PyQt
-    fix_pyqt()
-    
-    # Fix IPython
-    fix_ipython()
     
     # Get QApplication instance
     app = QApplication.instance() or QApplication(["FRHEED"])
@@ -332,9 +293,6 @@ def unit_string(
     else:
         unit_str = f"{sign}{scaled_value:.{precision}f}{sep}{prefix}{unit_type}"
     
-    if _DEBUG:
-        print(f"Converted {orig_value:,g} {unit} -> {unit_str}")
-        
     return unit_str
 
 
@@ -356,6 +314,8 @@ def save_settings(
     import json
     from frheed.constants import CONFIG_DIR
     
+    # TODO: Switch to using TOML config
+
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
     config = {}
@@ -373,14 +333,6 @@ def save_settings(
     # Save the configuration file
     with open(path, "w") as f:
         json.dump(config, f, indent="\t")
-        
-    if _DEBUG:
-        print(f"Successfully saved {name} settings:")
-        for name, setting_dict in config.items():
-            for setting, d in setting_dict.items():
-                print(f"    {setting}:")
-                for k, v in d.items():
-                    print(f"        {k}: {v}")
 
 
 def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]]]:
@@ -403,6 +355,8 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
     from ast import literal_eval
     from frheed.constants import CONFIG_DIR
     
+    # TODO: Switch to using TOML config files
+
     # Get filepath
     path = os.path.join(CONFIG_DIR, f"{name}_settings.json")
     
@@ -442,18 +396,10 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
                 try:
                     value = literal_eval(string_value)
                 except ValueError:
-                    print(f"Unable to convert {string_value} to {type_}")
                     value = string_value
                     
             # Store updated type
             config[group_name][setting] = value
-            
-    if _DEBUG:
-        print(f"Successfully loaded {name} settings:")
-        for name, setting_dict in config.items():
-            print(f"    {name}:")
-            for setting, value in setting_dict.items():
-                print(f"        {setting}: {value}")
         
     return config
 
@@ -491,8 +437,6 @@ def sample_array(
     # Create the array
     arr = (np.random.rand(*shape) * 255).astype(dtype)
     
-    if _DEBUG:
-        print(f"Input shape ({w}, {h}, {channels}) -> array {arr.shape}\n{arr}")
     return arr
 
 def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
@@ -541,6 +485,7 @@ def install_whl(filepath: str) -> int:
 
 def gen_reqs() -> str:
     """ Create the requirements.txt file for FRHEED. """
+    logger = get_logger("utils")
     python = sys.executable.replace("\\", "/")
     subprocess.check_call([python, "-m", "pip", "freeze", ">", "requirements.txt"])
     requirements = Path("requirements.txt").read_text()
@@ -548,26 +493,4 @@ def gen_reqs() -> str:
 
 
 if __name__ == "__main__":
-    def test():
-        fix_pyqt()
-        get_platform_bitsize(); print("")
-        unit_string(1e6, "µs"); print("")
-        
-        test_settings = {
-            "test_1": {
-                "boolean": True,
-                "string": "foo",
-                "float": 3.33,
-                "integer": 1, 
-                }
-            }
-        save_settings(test_settings, "test"); print("")
-        load_settings("test"); print("")
-        
-        sample_array(); print("")
-        
-        widget, app = test_widget(None)
-        sys.exit(app.exec_())
-
-    test()
-    
+    pass

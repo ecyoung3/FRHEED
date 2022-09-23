@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-
+"""
+Constants and settings for use elsewhere.
+"""
 import os
 from appdirs import user_config_dir, user_log_dir
 from typing import Optional
@@ -41,34 +42,31 @@ COLOR_DICT = {
 def get_data_dir(
         user: Optional[str] = None, 
         experiment: Optional[str] = None
-        ) -> str:
-    """
-    Create a data directory based on the given user and experiment name.
+    ) -> str:
+    """Create a data directory based on the given user and experiment name.
 
-    Parameters
-    ----------
-    user : Optional[str], optional
-        The name of the current user. If the default of None is used,
-    no user subfolder will be created.
-    experiment : Optional[str], optional
-        The name of the current experiment. If the default of None is used,
-    no experiment subfolder will be created.
+    Args:
+        user (Optional[str], optional): The name of the current user. 
+            If the default of None is used, no user subfolder will be created.
+        experiment (Optional[str], optional): The name of the current experiment. 
+            If the default of None is used, no experiment subfolder will be created.
 
-    Returns
-    -------
-    str
-        Path to the generated data directory.
-
+    Returns:
+        str: Path to the generated data directory.
     """
     
+    # Base data directory for FRHEED
     data_dir = DATA_DIR
     
+    # Create subfolder for user
     if user is not None:
         data_dir = os.path.join(data_dir, user, "")
         
+    # Create subfolder for experiment
     if experiment is not None:
         data_dir = os.path.join(data_dir, experiment, "")
         
+    # Make sure directories exist
     os.makedirs(data_dir, exist_ok=True)
         
     return data_dir

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Commonly used subclassed PyQt5 widgets.
 """
@@ -7,25 +6,21 @@ from typing import Optional, Union
 import math
 
 from PyQt5.QtWidgets import (
-    # QWidget,
     QSlider,
     QLabel,
     QSizePolicy,
     QFrame,
     QSpacerItem,
     QSplitter,
-    
-    )
+)
 from PyQt5.QtGui import (
     QFontMetrics,
-    
-    )
+)
 from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
     Qt,
-    
-    )
+)
 
 from frheed.utils import unit_string
 

@@ -38,6 +38,8 @@ TABLE OF CONTENTS
 1.3 INSTALLATION ON MACOS
 2. API DIFFERENCES
 3. REMOVE PYSPIN
+4. TROUBLESHOOT
+4.1 TROUBLESHOOT LINUX ISSUES
 
 =============================================================================
 1. INSTALLATION
@@ -201,12 +203,12 @@ using the following:
 -----------------------------------------------------------------------------
 
 1. Check that Python is installed. MacOS comes with Python 2.7 installed,
-   but it may be an older build of Python. 
+   but it may be an older build of Python.
    There are several ways to install Up-to-date Python packages,
-   but the recommended way is to use pyenv - the python package manager, 
+   but the recommended way is to use pyenv - the python package manager,
    which manages multiple versions of Python effectively.
    (installing python using a method that does not use pyenv, can result in run-time errors due to mixed running Python versions)
-   
+
    - For example: to install the specific python version python 3.7.7 do the following steps:
    # Update brew
    brew update
@@ -379,3 +381,27 @@ For Linux or MacOS, if you need to remove PySpin from a site-wide install the
 following command needs to be run as sudo to remove your associated Python version:
 
 sudo <python version> -m pip uninstall spinnaker-python
+
+
+=============================================================================
+4. TROUBLESHOOT
+=============================================================================
+
+-----------------------------------------------------------------------------
+4.1 LINUX ISSUES
+-----------------------------------------------------------------------------
+
+There is an existing issue with numpy 1.19.5 on Linux ARM64 architecture where
+importing PySpin could result in an 'Illegal instruction' error. The issue
+originates from a numpy bug that is fixed in 1.20 but the new version will not
+be available for older versions of python (<= 3.6).
+
+More details for the numpy issue can be found here:
+https://github.com/numpy/numpy/issues/18131#issuecomment-794200556
+
+You can workaround the issue by:
+- Downgrading numpy to version 1.19.4
+- Upgrading numpy to version 1.20.x (if you are using python > 3.6)
+- Setting the environment variable OPENBLAS_CORETYPE=ARMV8
+- Compiling from source on the failing ARM hardware
+  pip install --no-binary :all: numpy==1.19.5

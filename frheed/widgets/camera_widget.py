@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 PyQt widgets for camera streaming and settings.
 https://stackoverflow.com/a/33453124/10342097
 """
 
 import os
-from typing import Union
+from typing import Union, Optional
 import time
 
 from datetime import datetime
@@ -29,14 +28,10 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QMessageBox,
     QApplication,
-    
-    )
+)
 from PyQt5.QtGui import (
     QCloseEvent, 
-    QImage, 
-    QPixmap,
-    
-    )
+)
 from PyQt5.QtCore import (
     pyqtSignal, 
     pyqtSlot, 
@@ -44,8 +39,7 @@ from PyQt5.QtCore import (
     QThread, 
     QSize, 
     Qt,
-    
-    )
+)
 
 from frheed.widgets.common_widgets import SliderLabel, DoubleSlider, HLine
 from frheed.widgets.canvas_widget import CanvasWidget
@@ -57,7 +51,7 @@ from frheed.image_processing import (
     get_valid_colormaps,
     )
 from frheed.constants import DATA_DIR
-from frheed.utils import load_settings, save_settings
+from frheed.utils import load_settings, save_settings, get_logger
     
 
 MIN_ZOOM = 0.20
@@ -69,6 +63,8 @@ MAX_H = 2560
 DEFAULT_CMAP = "Spectral"
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
 
+logger = get_logger(__name__)
+
 
 class VideoWidget(QWidget):
     """ Holds the camera frame and toolbar buttons """
@@ -79,18 +75,23 @@ class VideoWidget(QWidget):
     _min_h = 348
     _max_w = MAX_W
     
-    def __init__(self, camera: Union[FlirCamera, UsbCamera], parent = None):
+    def __init__(self, camera: Union[FlirCamera, UsbCamera], parent=None, zoomable: bool=True):
         super().__init__(parent)
         
         # Store colormap
         self._colormap = DEFAULT_CMAP
+
+        # Whether or not image can be zoomed in/out
+        self._zoomable = zoomable
         
+        # Video writer for saving video
+        self._writer: Optional[cv2.VideoWriter] = None
+
         # Store camera reference and start the camera
         self.set_camera(camera)
         
         # Frame settings
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, 
-                           QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.setMinimumSize(QSize(MIN_W, MIN_H))
         self.setMouseTracking(True)
         
@@ -105,17 +106,19 @@ class VideoWidget(QWidget):
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.toolbar_layout.setSpacing(4)
         
-        # Create capture button
-        self.capture_button = QPushButton("Capture")
-        self.capture_button.setSizePolicy(QSizePolicy.Maximum, 
-                                          QSizePolicy.Maximum)
-        
+        # Create capture button for saving an image of the current frame
+        self.capture_button = QPushButton("Capture", self)
+        self.capture_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+                                          
+        # Create record button for saving video
+        self.record_button = QPushButton("Start Recording", self)
+        self.record_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
         # Create start/stop button
         self.play_button = QPushButton("Stop Camera")
-        self.play_button.setSizePolicy(QSizePolicy.Maximum,
-                                       QSizePolicy.Maximum)
+        self.play_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         
-        # Determine maximum zoom because huge images lag the system
+        # Determine maximum zoom because huge images cause lag
         cam_w, cam_h = camera.width, camera.height
         max_zoom = max(min(MAX_ZOOM, (MAX_W / cam_w), (MAX_H / cam_h)), 1)
         
@@ -136,8 +139,7 @@ class VideoWidget(QWidget):
         # Create button for opening settings
         self.settings_button = QPushButton()
         self.settings_button.setText("Edit Settings")
-        self.settings_button.setSizePolicy(QSizePolicy.Maximum,
-                                           QSizePolicy.Maximum)
+        self.settings_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         
         # Create button for opening output folder
         self.folder_button = QPushButton()
@@ -163,24 +165,26 @@ class VideoWidget(QWidget):
         # Add widgets
         self.layout.addLayout(self.toolbar_layout, 0, 0, 1, 1)
         self.toolbar_layout.addWidget(self.capture_button, 0, 0, 1, 1)
-        self.toolbar_layout.addWidget(self.play_button, 0, 1, 1, 1)
-        self.toolbar_layout.addWidget(self.zoom_label, 0, 2, 1, 1)
-        self.toolbar_layout.addWidget(self.slider, 0, 3, 1, 1)
-        self.toolbar_layout.addWidget(self.settings_button, 0, 4, 1, 1)
+        self.toolbar_layout.addWidget(self.record_button, 0, 1, 1, 1)
+        self.toolbar_layout.addWidget(self.play_button, 0, 2, 1, 1)
+        self.toolbar_layout.addWidget(self.zoom_label, 0, 3, 1, 1)
+        self.toolbar_layout.addWidget(self.slider, 0, 4, 1, 1)
+        self.toolbar_layout.addWidget(self.settings_button, 0, 5, 1, 1)
         self.layout.addWidget(self.scroll, 1, 0, 1, 1)
         self.layout.addWidget(self.status_bar, 2, 0, 1, 1)
         
         # Connect signals
         self.capture_button.clicked.connect(self.save_image)
+        self.record_button.clicked.connect(self.start_or_stop_recording)
         self.play_button.clicked.connect(self.start_or_stop_camera)
         self.settings_button.clicked.connect(self.edit_settings)
         self.slider.valueChanged.connect(self.display.force_resize)
         self.frame_changed.connect(self.status_bar.frame_changed)
         
         # Attributes to be assigned later
-        self.frame:         Union[np.ndarray, None] = None
-        self.raw_frame:     Union[np.ndarray, None] = None
-        self.region_data:   dict = {}
+        self.frame: Union[np.ndarray, None] = None
+        self.raw_frame: Union[np.ndarray, None] = None
+        self.region_data: dict = {}
         self.analyze_frames = True
         
         # Set up the camera streaming thread
@@ -207,18 +211,18 @@ class VideoWidget(QWidget):
         self._workers = (self.camera_worker, self.analysis_worker)
         
     def __del__(self) -> None:
+        """ Close the camera when the widget is deleted. """
         self.camera.close()
-        self.setParent(None)
         
     def keyPressEvent(self, event) -> None:
-        """ Propagate keyPressEvent to children """
+        """ Propagate keyPressEvent to children. """
         super().keyPressEvent(event)
         self.display.canvas.keyPressEvent(event)
         
     def wheelEvent(self, event, parent = None) -> None:
-        # Zoom the camera
+        # Zoom the camera if zooming is enabled
         # TODO: Keep frame location constant under mouse while zooming
-        if event.modifiers() == Qt.ControlModifier:
+        if event.modifiers() == Qt.ControlModifier and self.zoomable:
             old_zoom = self.slider.value()
             step = self.slider.singleStep()
             dy = event.angleDelta().y()
@@ -241,7 +245,8 @@ class VideoWidget(QWidget):
         # Make sure other wheelEvents function normally
         else:
             super().wheelEvent(event)
-            
+
+    @pyqtSlot(QCloseEvent)
     def closeEvent(self, event: QCloseEvent) -> None:
         """ Stop the camera and close settings when the widget is closed """
         [worker.stop() for worker in self.workers]
@@ -264,8 +269,6 @@ class VideoWidget(QWidget):
         
         # Resize to display size and get dimensions
         frame = self._resize_frame(frame)
-        shape = frame.shape
-        h, w = shape[0:2]
         
         # Convert to grayscale
         frame = to_grayscale(frame)
@@ -278,6 +281,10 @@ class VideoWidget(QWidget):
         
         # Store the processed frame
         self.frame = frame.copy()
+
+        # Write to video file if saving
+        if self._writer is not None:
+            self._writer.write(self.frame)
         
         # Create QPixmap from numpy array
         qpix = ndarray_to_qpixmap(frame)
@@ -290,7 +297,7 @@ class VideoWidget(QWidget):
         
     @pyqtSlot()
     def save_image(self) -> None:
-        """ Save the currently displayed frame """
+        """ Save the currently displayed frame. """
         frame = self.frame.copy()
         
         # Generate filename
@@ -300,6 +307,55 @@ class VideoWidget(QWidget):
         
         # Save the image
         cv2.imwrite(filepath, frame)
+
+    @pyqtSlot()
+    def start_or_stop_recording(self) -> None:
+        """ Start or stop recording video. """
+        # If there is no video writer, create one and start recording
+        # https://www.geeksforgeeks.org/saving-a-video-using-opencv/
+        if self._writer is None:
+
+            # Update button text
+            self.record_button.setText("Stop Recording")
+
+            # Generate filename
+            tstamp = datetime.now().strftime("%d-%b-%Y_%H%M%S")
+            filename = f"{tstamp}.avi"
+            filepath = os.path.join(DATA_DIR, filename)
+
+            # Disable resizing while video capture is active
+            self.set_zoomable(False)
+
+            # Disable play button
+            self.play_button.setEnabled(False)
+
+            # Create video writer
+            fps = self.camera.real_fps
+            h, w = self.frame.shape[:2]
+            shape = (w, h)
+            logger.info(f"Creating video writer with FPS = {fps:.2f} and {shape = }")
+            self._writer = cv2.VideoWriter(
+                filepath, 
+                cv2.VideoWriter_fourcc(*"MJPG"), 
+                fps, 
+                shape
+            )
+            
+        # Otherwise, stop recording
+        else:
+
+            # Update button text
+            self.record_button.setText("Start Recording")
+
+            # Stop recording and release the writer
+            self._writer.release()
+            self._writer = None
+
+            # Re-enable resizing
+            self.set_zoomable(True)
+
+            # Re-enable play button
+            self.play_button.setEnabled(True)
         
     @pyqtSlot()
     def edit_settings(self) -> None:
@@ -312,15 +368,33 @@ class VideoWidget(QWidget):
     def set_colormap(self, colormap: str) -> None:
         self.colormap = colormap
         
+    @pyqtSlot()
+    def resize_display(self) -> None:
+        self.display.force_resize()
+
     @property
     def camera(self) -> Union[FlirCamera, UsbCamera]:
         return self._camera
     
     @camera.setter
     def camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+        # Cannot set camera while recording
+        if self._writer is not None:
+            return QMessageBox.warning(self, "Warning", "Cannot change camera while recording video.")
+
+        # Set the camera
         self.set_camera(camera)
         # TODO: Fully implement this and test it
-        
+            
+    @property
+    def zoomable(self) -> bool:
+        """ Whether or not the frame can be zoomed in/out. """
+        return self._zoomable
+
+    @zoomable.setter
+    def zoomable(self, zoomable: bool) -> None:
+        self.set_zoomable(zoomable)
+
     @property
     def zoom(self) -> float:
         return self.slider.value()
@@ -347,6 +421,18 @@ class VideoWidget(QWidget):
         self.settings_widget = CameraSettingsWidget(self)
     
     def set_camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+        """Set the camera to use as capture device for the display.
+
+        Args:
+            camera (Union[FlirCamera, UsbCamera]): The Camera object to use.
+
+        Returns:
+            None
+        """
+        # Cannot set camera while recording
+        if self._writer is not None:
+            return QMessageBox.warning(self, "Warning", "Cannot change camera while recording video.")
+
         # Change the camera and start it
         self._camera = camera
         self._camera.start(continuous=True)
@@ -363,12 +449,24 @@ class VideoWidget(QWidget):
         
         # Update camera settings widget
         self.make_camera_settings_widget()
-        
+
     def start_analyzing_frames(self) -> None:
         self.analyze_frames = True
         
     def stop_analyzing_frames(self) -> None:
         self.analyze_frames = False
+
+    def set_zoomable(self, zoomable: bool) -> None:
+        """ Toggle whether or not zooming in and out of the image is enabled. """
+        # Return if setting hasn't changed
+        if self.zoomable == zoomable:
+            return
+
+        # Update private setting
+        self._zoomable = zoomable
+
+        # Disable slider if not zoomable, otherwise enable
+        self.slider.setEnabled(zoomable)
         
     def _start_workers(self) -> None:
         [worker.start() for worker in self._workers]
@@ -999,17 +1097,23 @@ class Worker(QObject):
 class CameraWorker(Worker):
     """ 
     A worker object to control frame acquisition.
-    
     """
     @pyqtSlot()
     def start(self) -> None:
         self._running = True
         while self.running():
+            # Emit the next frame
             try:
                 if self.camera().running:
                     self.frame_ready.emit(
                         self.camera().get_array(complete_frames_only=True)
                         )
+
+            # Ignore RuntimeError, for example if the object is deleted
+            except RuntimeError:
+                pass
+
+            # Emit all other exceptions
             except Exception as ex:
                 self.exception.emit(ex)
     

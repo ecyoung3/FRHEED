@@ -1,30 +1,20 @@
-# -*- coding: utf-8 -*-
 """
 Widgets for RHEED analysis.
 """
 
 from typing import Union
+import os
 
 from PyQt5.QtWidgets import (
     QWidget,
     QGridLayout,
     QSizePolicy,
-    QPushButton,
-    QSplitter,
-    QSpacerItem,
     QMenuBar,
-    QMenu,
-    
-    )
+    QMessageBox
+)
 from PyQt5.QtCore import (
-    Qt,
     pyqtSlot,
-    pyqtSignal,
-    
-    )
-# from PyQt5.QtGui import (
-    
-#     )
+)
 
 from frheed.widgets.camera_widget import VideoWidget
 from frheed.cameras.flir import FlirCamera
@@ -34,13 +24,15 @@ from frheed.widgets.canvas_widget import CanvasShape, CanvasLine
 from frheed.widgets.selection_widgets import CameraSelection
 from frheed.widgets.common_widgets import HSpacer, VSpacer
 from frheed.utils import snip_lists
+from frheed.constants import DATA_DIR, CONFIG_DIR
 
 
 class RHEEDWidget(QWidget):
-    _initialized = False
-    
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
+        
+        # Widget UI will be initialized later
+        self._initialized = False
         
         # Settings
         self.setSizePolicy(QSizePolicy.MinimumExpanding,
@@ -62,6 +54,9 @@ class RHEEDWidget(QWidget):
         #                   -> Underline keyboard shortcuts and access keys
         self.file_menu = self.menubar.addMenu("&File")
         self.file_menu.addAction("&Change camera", self.show_cam_selection)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction("&Open Data Folder", self.open_data_folder)
+        self.file_menu.addAction("Open &Settings Folder", self.open_settings_folder)
         
         # "View" menu
         self.view_menu = self.menubar.addMenu("&View")
@@ -92,8 +87,7 @@ class RHEEDWidget(QWidget):
         # Create the camera widget
         camera = self.cam_selection._cam
         self.camera_widget = VideoWidget(camera, parent=self)
-        self.camera_widget.setSizePolicy(QSizePolicy.MinimumExpanding,
-                                         QSizePolicy.MinimumExpanding)
+        self.camera_widget.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         
         # Create the plot widgets
         # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
@@ -130,6 +124,14 @@ class RHEEDWidget(QWidget):
              [self.region_plot, self.profile_plot, self, self.plot_grid]]
             self.camera_widget.closeEvent(event)
         self.cam_selection.close()
+
+    @pyqtSlot()
+    def open_data_folder(self) -> None:
+        self._try_open(DATA_DIR)
+
+    @pyqtSlot()
+    def open_settings_folder(self) -> None:
+        self._try_open(CONFIG_DIR)
         
     @pyqtSlot(dict)
     def plot_data(self, data: dict) -> None:
@@ -139,6 +141,7 @@ class RHEEDWidget(QWidget):
             # Add region data to the region plot
             if color_data["kind"] in ["rectangle", "ellipse"]:
                 curve = self.region_plot.get_or_add_curve(color)
+
                 # Catch RuntimeError if widget has been closed
                 try:
                     curve.setData(*snip_lists(color_data["time"], color_data["average"]))
@@ -188,6 +191,12 @@ class RHEEDWidget(QWidget):
     @pyqtSlot(bool)
     def show_live_plots(self, visible: bool) -> None:
         self.plot_grid.setVisible(visible)
+
+    def _try_open(self, path: str) -> None:
+        try:
+            os.startfile(path)
+        except Exception as ex:
+            QMessageBox.warning(self, "Error", f"Error opening {path}:\n{ex}")
         
 
 if __name__ == "__main__":
