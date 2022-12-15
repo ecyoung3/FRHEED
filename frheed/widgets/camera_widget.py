@@ -50,7 +50,8 @@ from frheed.image_processing import (
     apply_cmap, to_grayscale, ndarray_to_qpixmap, extend_image, column_to_image,
     get_valid_colormaps,
     )
-from frheed.constants import DATA_DIR
+from frheed.constants import (
+    DATA_DIR, CMAP_DICT)
 from frheed.utils import load_settings, save_settings, get_logger
     
 
@@ -63,10 +64,9 @@ MAX_H = 2560
 
 """ Valid colormap names: https://matplotlib.org/stable/tutorials/colors/colormaps.html """
 # DEFAULT_CMAP = "Spectral" # not a valid name
-# DEFAULT_CMAP = "YlGn"
-# DEFAULT_CMAP = "Blues"
 # DEFAULT_CMAP = "rainbow"
-DEFAULT_CMAP = "jet"
+# DEFAULT_CMAP = "jet"
+DEFAULT_CMAP = list(CMAP_DICT.values())[0]
 
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
 
@@ -421,7 +421,8 @@ class VideoWidget(QWidget):
         return self._colormap
     
     @colormap.setter
-    def colormap(self, colormap: str) -> None:
+    # def colormap(self, colormap: str) -> None:
+    def colormap(self, colormap: CMAP_DICT) -> None:
         if colormap in get_valid_colormaps():
             # self._colormap = colormap
             self.colormap = colormap
