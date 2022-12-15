@@ -4,13 +4,16 @@ Widgets for RHEED analysis.
 
 from typing import Union
 import os
+import matplotlib.pyplot
 
 from PyQt5.QtWidgets import (
     QWidget,
     QGridLayout,
     QSizePolicy,
     QMenuBar,
-    QMessageBox
+    QMessageBox,
+    QAction,
+    QActionGroup
 )
 from PyQt5.QtCore import (
     pyqtSlot,
@@ -24,7 +27,7 @@ from frheed.widgets.canvas_widget import CanvasShape, CanvasLine
 from frheed.widgets.selection_widgets import CameraSelection
 from frheed.widgets.common_widgets import HSpacer, VSpacer
 from frheed.utils import snip_lists
-from frheed.constants import DATA_DIR, CONFIG_DIR
+from frheed.constants import DATA_DIR, CONFIG_DIR, CMAP_DICT
 
 
 class RHEEDWidget(QWidget):
@@ -67,7 +70,25 @@ class RHEEDWidget(QWidget):
         
         # "Tools" menu
         self.tools_menu = self.menubar.addMenu("&Tools")
-        self.preferences_item = self.tools_menu.addAction("&Preferences")
+        # self.preferences_item = self.tools_menu.addAction("&Preferences")
+        self.preferences_item = self.tools_menu.addMenu("&Preferences")
+
+        self.cmap1 = QAction("jet", self)
+        self.cmap2 = QAction("YlGn", self)
+        # self.cmap3 = QAction("spring", self)
+        self.cmap1.setCheckable(True)
+        self.cmap2.setCheckable(True)
+        # self.cmap3.setCheckable(True)
+        self.preferences_item.addAction(self.cmap1)
+        self.preferences_item.addAction(self.cmap2)
+        # self.preferences_item.addAction(self.cmap3)
+        colormap_group = QActionGroup(self)
+        colormap_group.addAction(self.cmap1)
+        colormap_group.addAction(self.cmap2)
+        # colormap_group.addAction(self.cmap3)
+        self.cmap1.triggered.connect(self.change_cmap)
+        self.cmap2.triggered.connect(self.change_cmap)
+        # self.cmap3.triggered.connect(self.change_cmap)
         
         # Add menubar
         self.layout.addWidget(self.menubar, 0, 0, 1, 1)
@@ -183,6 +204,13 @@ class RHEEDWidget(QWidget):
     def change_camera(self) -> None:
         """ Change the active camera. """
         self.camera_widget.set_camera(self.cam_selection._cam)
+        
+    @pyqtSlot()
+    def change_cmap(self) -> None:
+        if self.cmap1.isChecked() == True:
+            self.camera_widget.set_colormap(list(CMAP_DICT.values())[0])
+        if self.cmap2.isChecked() == True:
+            self.camera_widget.set_colormap(list(CMAP_DICT.values())[1])
         
     @pyqtSlot()
     def live_plots_closed(self) -> None:

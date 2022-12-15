@@ -50,7 +50,8 @@ from frheed.image_processing import (
     apply_cmap, to_grayscale, ndarray_to_qpixmap, extend_image, column_to_image,
     get_valid_colormaps,
     )
-from frheed.constants import DATA_DIR
+from frheed.constants import (
+    DATA_DIR, CMAP_DICT)
 from frheed.utils import load_settings, save_settings, get_logger
     
 
@@ -60,7 +61,13 @@ MIN_W = 480
 MIN_H = 348
 MAX_W = 2560
 MAX_H = 2560
-DEFAULT_CMAP = "Spectral"
+
+""" Valid colormap names: https://matplotlib.org/stable/tutorials/colors/colormaps.html """
+# DEFAULT_CMAP = "Spectral" # not a valid name
+# DEFAULT_CMAP = "rainbow"
+# DEFAULT_CMAP = "jet"
+DEFAULT_CMAP = list(CMAP_DICT.values())[0]
+
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
 
 logger = get_logger(__name__)
@@ -277,7 +284,8 @@ class VideoWidget(QWidget):
         self.frame_ready.emit(frame) if self.analyze_frames else None
         
         # Apply colormap
-        frame = apply_cmap(frame, self.colormap)
+        # frame = apply_cmap(frame, self.colormap)
+        frame = apply_cmap(frame, self._colormap)
         
         # Store the processed frame
         self.frame = frame.copy()
@@ -306,7 +314,8 @@ class VideoWidget(QWidget):
         filepath = os.path.join(DATA_DIR, filename)
         
         # Save the image
-        cv2.imwrite(filepath, frame)
+        # cv2.imwrite(filepath, frame)
+        cv2.imwrite(filepath, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
     @pyqtSlot()
     def start_or_stop_recording(self) -> None:
@@ -412,9 +421,11 @@ class VideoWidget(QWidget):
         return self._colormap
     
     @colormap.setter
-    def colormap(self, colormap: str) -> None:
+    # def colormap(self, colormap: str) -> None:
+    def colormap(self, colormap: CMAP_DICT) -> None:
         if colormap in get_valid_colormaps():
-            self._colormap = colormap
+            # self._colormap = colormap
+            self.colormap = colormap
             # TODO: Update label that shows current colormap
     
     def make_camera_settings_widget(self) -> None:

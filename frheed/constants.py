@@ -38,6 +38,11 @@ COLOR_DICT = {
     "cyan":     "#17becf",
     }
 
+CMAP_DICT = {
+    "jet":  "jet",
+    "rainbow": "rainbow"
+ }
+
 
 def get_data_dir(
         user: Optional[str] = None, 
