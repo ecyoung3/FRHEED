@@ -163,7 +163,9 @@ if __name__ == "__main__":
     print(f"Normalized array in {time.time()-t0:.5f} seconds")
     
     t0 = time.time()
-    cmap = "Spectral"
+    # cmap = "Spectral"
+    # cmap = "jet"
+    # cmap = "COLORMAP_JET"
     mapped = apply_cmap(normed, cmap)
     print(f"Applied colormap in {time.time()-t0:.5f} seconds")
     

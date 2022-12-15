@@ -60,7 +60,14 @@ MIN_W = 480
 MIN_H = 348
 MAX_W = 2560
 MAX_H = 2560
-DEFAULT_CMAP = "Spectral"
+
+""" Valid colormap names: https://matplotlib.org/stable/tutorials/colors/colormaps.html """
+# DEFAULT_CMAP = "Spectral" # not a valid name
+# DEFAULT_CMAP = "YlGn"
+# DEFAULT_CMAP = "Blues"
+# DEFAULT_CMAP = "rainbow"
+DEFAULT_CMAP = "jet"
+
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
 
 logger = get_logger(__name__)
@@ -277,7 +284,8 @@ class VideoWidget(QWidget):
         self.frame_ready.emit(frame) if self.analyze_frames else None
         
         # Apply colormap
-        frame = apply_cmap(frame, self.colormap)
+        # frame = apply_cmap(frame, self.colormap)
+        frame = apply_cmap(frame, self._colormap)
         
         # Store the processed frame
         self.frame = frame.copy()
@@ -306,7 +314,8 @@ class VideoWidget(QWidget):
         filepath = os.path.join(DATA_DIR, filename)
         
         # Save the image
-        cv2.imwrite(filepath, frame)
+        # cv2.imwrite(filepath, frame)
+        cv2.imwrite(filepath, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
     @pyqtSlot()
     def start_or_stop_recording(self) -> None:
@@ -414,7 +423,8 @@ class VideoWidget(QWidget):
     @colormap.setter
     def colormap(self, colormap: str) -> None:
         if colormap in get_valid_colormaps():
-            self._colormap = colormap
+            # self._colormap = colormap
+            self.colormap = colormap
             # TODO: Update label that shows current colormap
     
     def make_camera_settings_widget(self) -> None:
