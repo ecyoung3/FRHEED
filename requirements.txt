@@ -4,7 +4,7 @@ spyder
 Pillow
 appdirs
 IPython
-scipy==1.5.4
+scipy==1.10.0
 matplotlib==3.3.3
 cmapy==0.6.6
 pyqtgraph==0.11.0
