@@ -12,62 +12,63 @@ from frheed.cameras import CameraError
 
 # Make sure PySpin is installed
 from frheed.cameras.flir.install_pyspin import install_pyspin
+
 install_pyspin()
 import PySpin
 
 
 # Editable camera settings to show
 _GUI_SETTINGS = {
-    "AcquisitionFrameRate":         "Frame Rate",
-    "AcquisitionFrameRateEnable":   "Enable Frame Rate",
-    "BinningHorizontal":            "Horizontal Binning",
-    "BinningHorizontalMode":        "Horizontal Binning Mode",
-    "BinningVertical":              "Vertical Binning",
-    "BinningVerticalMode":          "Vertical Binning Mode",
-    "BlackLevel":                   "Black Level",
-    "DeviceIndicatorMode":          "LED Behaviour",
-    "DeviceUserID":                 "Camera Name",
-    "ExposureAuto":                 "Auto-Exposure",
-    "ExposureMode":                 "Exposure Mode",
-    "ExposureTime":                 "Exposure Time",  # microseconds
-    "GainAuto":                     "Auto-Gain",
-    "Gain":                         "Gain",  # note: read-only if GainAuto is True
-    "Gamma":                        "Gamma",
-    "GammaEnable":                  "Enable Gamma",
-    }
+    "AcquisitionFrameRate": "Frame Rate",
+    "AcquisitionFrameRateEnable": "Enable Frame Rate",
+    "BinningHorizontal": "Horizontal Binning",
+    "BinningHorizontalMode": "Horizontal Binning Mode",
+    "BinningVertical": "Vertical Binning",
+    "BinningVerticalMode": "Vertical Binning Mode",
+    "BlackLevel": "Black Level",
+    "DeviceIndicatorMode": "LED Behaviour",
+    "DeviceUserID": "Camera Name",
+    "ExposureAuto": "Auto-Exposure",
+    "ExposureMode": "Exposure Mode",
+    "ExposureTime": "Exposure Time",  # microseconds
+    "GainAuto": "Auto-Gain",
+    "Gain": "Gain",  # note: read-only if GainAuto is True
+    "Gamma": "Gamma",
+    "GammaEnable": "Enable Gamma",
+}
 
 # Read-only camera information to show
 _GUI_INFO = {
-    "Width":                        "Frame Width",
-    "SensorWidth":                  "Sensor Width",
-    "WidthMax":                     "Maximum Frame Width",  # calculated after horizontal binning
-    "Height":                       "Frame Height",
-    "SensorHeight":                 "Sensor Height",
-    "HeightMax":                    "Maximum Frame Height",  # calculated after vertical binning
-    "DeviceVendorName":             "Vendor",
-    "DeviceModelName":              "Model",
-    "DeviceID":                     "Serial Number",
-    "DeviceTLType":                 "Type",  # e.g. GigEVision
-    "DeviceTemperature":            "Temperature",
-    "DeviceUptime":                 "Uptime",
-    "DeviceVersion":                "Firmware Version",
-    "PixelDynamicRangeMin":         "Dynamic Range Minimum",  # e.g. 0
-    "PixelDynamicRangeMax":         "Dynamic Range Maximum",  # e.g. 256
-    "PixelFormat":                  "Pixel Format",
-    "PixelSize":                    "Pixel Size",  # bits per pixel,
-    "PowerSupplyCurrent":           "Current",
-    "PowerSupplyVoltage":           "Voltage",
-    "SerialPortBaudRate":           "Baud Rate",
-    }
+    "Width": "Frame Width",
+    "SensorWidth": "Sensor Width",
+    "WidthMax": "Maximum Frame Width",  # calculated after horizontal binning
+    "Height": "Frame Height",
+    "SensorHeight": "Sensor Height",
+    "HeightMax": "Maximum Frame Height",  # calculated after vertical binning
+    "DeviceVendorName": "Vendor",
+    "DeviceModelName": "Model",
+    "DeviceID": "Serial Number",
+    "DeviceTLType": "Type",  # e.g. GigEVision
+    "DeviceTemperature": "Temperature",
+    "DeviceUptime": "Uptime",
+    "DeviceVersion": "Firmware Version",
+    "PixelDynamicRangeMin": "Dynamic Range Minimum",  # e.g. 0
+    "PixelDynamicRangeMax": "Dynamic Range Maximum",  # e.g. 256
+    "PixelFormat": "Pixel Format",
+    "PixelSize": "Pixel Size",  # bits per pixel,
+    "PowerSupplyCurrent": "Current",
+    "PowerSupplyVoltage": "Voltage",
+    "SerialPortBaudRate": "Baud Rate",
+}
 
 # Camera functions to show
 _GUI_FUNCTIONS = {
-    "DeviceReset":                  "Reboot",
-    "FactoryReset":                 "Factory Reset",
-    "SerialReceiveQueueClear":      "Clear Serial Port",
-    }
+    "DeviceReset": "Reboot",
+    "FactoryReset": "Factory Reset",
+    "SerialReceiveQueueClear": "Clear Serial Port",
+}
 
-_DEBUG = (__name__ == "__main__")
+_DEBUG = __name__ == "__main__"
 
 _SYSTEM = None
 
@@ -85,12 +86,13 @@ def list_cameras() -> PySpin.CameraList:
 
     return _SYSTEM.GetCameras()
 
+
 def get_available_cameras() -> dict:
-    """ Get available cameras as a dictionary of {source: name}. """
+    """Get available cameras as a dictionary of {source: name}."""
     cams = list_cameras()
     num_cams = cams.GetSize()
     available = {}
-    
+
     for src in range(num_cams):
         try:
             with FlirCamera(src=src) as cam:
@@ -100,7 +102,7 @@ def get_available_cameras() -> dict:
                     print(f"FLIR camera {src} is not available")
         except CameraError:
             print("No FLIR cameras detected")
-            
+
     return available
 
 
@@ -127,12 +129,12 @@ class FlirCamera:
         silently fail to acheive their intended goal.
     intialized : bool
         If True, init() has been called.
-        
+
     In addition, many more virtual attributes are created to allow access to
     the camera properties.  A list of available names can be found as the keys
     of 'camera_attributes' dictionary, and a documentation file for a specific
     camera can be genereated with the 'document' method.
-    
+
     Methods
     -------
     init()
@@ -154,32 +156,32 @@ class FlirCamera:
     document()
         Create a Markdown documentation file with info about all camera
         attributes and methods.
-        
+
     """
 
     _rw_modes = {
         PySpin.RO: "read only",
         PySpin.RW: "read/write",
         PySpin.WO: "write only",
-        PySpin.NA: "not available"
-        }
+        PySpin.NA: "not available",
+    }
 
     _attr_types = {
-        PySpin.intfIFloat:          PySpin.CFloatPtr,
-        PySpin.intfIBoolean:        PySpin.CBooleanPtr,
-        PySpin.intfIInteger:        PySpin.CIntegerPtr,
-        PySpin.intfIEnumeration:    PySpin.CEnumerationPtr,
-        PySpin.intfIString:         PySpin.CStringPtr,
-        }
+        PySpin.intfIFloat: PySpin.CFloatPtr,
+        PySpin.intfIBoolean: PySpin.CBooleanPtr,
+        PySpin.intfIInteger: PySpin.CIntegerPtr,
+        PySpin.intfIEnumeration: PySpin.CEnumerationPtr,
+        PySpin.intfIString: PySpin.CStringPtr,
+    }
 
     _attr_type_names = {
-        PySpin.intfIFloat:          "float",
-        PySpin.intfIBoolean:        "bool",
-        PySpin.intfIInteger:        "int",
-        PySpin.intfIEnumeration:    "enum",
-        PySpin.intfIString:         "string",
-        PySpin.intfICommand:        "command",
-        }
+        PySpin.intfIFloat: "float",
+        PySpin.intfIBoolean: "bool",
+        PySpin.intfIInteger: "int",
+        PySpin.intfIEnumeration: "enum",
+        PySpin.intfIString: "string",
+        PySpin.intfICommand: "command",
+    }
 
     def __init__(self, src: Union[int, str] = 0, lock: bool = False):
         """
@@ -199,24 +201,24 @@ class FlirCamera:
         super().__setattr__("lock", lock)
 
         cam_list = list_cameras()
-        
-        if _DEBUG: 
+
+        if _DEBUG:
             print(f"Found {cam_list.GetSize()} FLIR camera(s)")
 
-        self._src_type = type(src)            
+        self._src_type = type(src)
         self._src = src
-            
+
         if not cam_list.GetSize():
             raise CameraError("No FLIR cameras detected.")
-            
+
         if isinstance(src, int):
             self._cam = cam_list.GetByIndex(src)
-            
+
         elif isinstance(src, str):
             self._cam = cam_list.GetBySerial(src)
-            
+
         cam_list.Clear()
-        
+
         # Other attributes which may be accessed later
         self._running = False
         self._frame_times = deque()
@@ -226,9 +228,8 @@ class FlirCamera:
         # Add this in so @property decorator works as expected
         if attr in self.__dict__:
             return self.__dict__[attr]
-        
-        elif attr in self.camera_attributes:
 
+        elif attr in self.camera_attributes:
             prop = self.camera_attributes[attr]
             if not PySpin.IsReadable(prop):
                 raise CameraError(f"Camera property '{attr}' is not readable")
@@ -239,16 +240,15 @@ class FlirCamera:
                 return prop.ToString()
             else:
                 raise CameraError(f"Camera property '{attr}' is not readable")
-                
+
         elif attr in self.camera_methods:
             return self.camera_methods[attr].Execute
-        
+
         else:
             raise AttributeError(attr)
 
     def __setattr__(self, attr: str, val: object) -> None:
         if attr in self.camera_attributes:
-
             prop = self.camera_attributes[attr]
             if not PySpin.IsWritable(prop):
                 raise CameraError(f"Property '{attr}' is not currently writable!")
@@ -259,8 +259,10 @@ class FlirCamera:
                 prop.FromString(val)
 
         elif attr in self.camera_methods:
-            raise CameraError(f"Camera method '{attr}' is a function -- "
-                              "you can't assign it a value!")
+            raise CameraError(
+                f"Camera method '{attr}' is a function -- "
+                "you can't assign it a value!"
+            )
         else:
             if attr == "__class__":
                 super().__setattr__(attr, val)
@@ -268,19 +270,19 @@ class FlirCamera:
                 raise CameraError(f"Unknown property '{attr}'.")
             else:
                 super().__setattr__(attr, val)
-                
+
     def __enter__(self) -> "FlirCamera":
         self.init()
         return self
-    
+
     def __exit__(self, type, value, traceback) -> None:
         self.close()
-        
+
     def __del__(self) -> None:
         # Close the camera
         try:
             self.close()
-            
+
         # If "with" clause is called and camera doesn't exist, AttributeError will happen
         except AttributeError:
             pass
@@ -292,7 +294,7 @@ class FlirCamera:
     @property
     def name(self) -> str:
         return f"FLIR{self._src}"
-    
+
     @property
     def camera_type(self) -> str:
         return "FLIR"
@@ -308,100 +310,100 @@ class FlirCamera:
     @property
     def running(self) -> bool:
         return self._running
-    
+
     @property
     def incomplete_image_count(self) -> int:
         return self._incomplete_image_count
 
     @property
     def model(self) -> str:
-        """ Camera model, including vendor and device model name """
+        """Camera model, including vendor and device model name"""
         return f"{self.DeviceVendorName.strip()} {self.DeviceModelName.strip()}"
 
     @property
     def settings(self) -> dict:
-        """ Get public, accessible camera settings as a dictionary """
+        """Get public, accessible camera settings as a dictionary"""
         settings = {}
         for attr in sorted(self.camera_attributes.keys()):
             # Skip private attributes
             if "_" in attr:
                 continue
-            
+
             # Get attribute information
             info = self.get_info(attr)
-            
+
             # Skip inaccessible attributes
             if not info.get("access", 0):
                 continue
-            
+
             # Add attribute to settings
             settings[attr] = info
-            
+
         return settings
-    
+
     @property
     def gui_settings(self) -> dict:
-        """ User-editable attributes to show in a GUI """
+        """User-editable attributes to show in a GUI"""
         return _GUI_SETTINGS
-    
+
     @property
     def gui_info(self) -> dict:
-        """ Read-only attributes to show in a GUI """
+        """Read-only attributes to show in a GUI"""
         return _GUI_INFO
-    
+
     @property
     def gui_functions(self) -> dict:
-        """ User-accessible functions to show in a GUI """
+        """User-accessible functions to show in a GUI"""
         return _GUI_FUNCTIONS
-    
+
     @property
     def real_fps(self) -> float:
-        """ Get the real frames per second (Hz) """
-        
+        """Get the real frames per second (Hz)"""
+
         # When not enough frames have been captured
         if len(self._frame_times) <= 1:
-            return 0.
-        
+            return 0.0
+
         # Calculate average of all frames
         else:
-            dt = (self._frame_times[-1] - self._frame_times[0])
+            dt = self._frame_times[-1] - self._frame_times[0]
             return len(self._frame_times) / max(dt, 1)
-        
+
     @property
     def width(self) -> int:
         if not self.initialized:
             self.init()
             width = self.Width
             self.close()
-        
+
         else:
             width = self.Width
-            
+
         return int(width)
-    
+
     @property
     def height(self) -> int:
         if not self.initialized:
             self.init()
             height = self.Height
             self.close()
-        
+
         else:
             height = self.Height
-            
+
         return int(height)
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """ Get the camera array dimensions (Height x Width) """
+        """Get the camera array dimensions (Height x Width)"""
         if not self.initialized:
             self.init()
             shape = (self.Height, self.Width)
             self.close()
-            
+
         else:
             shape = (self.Height, self.Width)
-        
+
         return shape
 
     def init(self) -> None:
@@ -438,17 +440,17 @@ class FlirCamera:
             DESCRIPTION.
 
         """
-        
+
         # Set acquisition mode to "Continuous" (i.e. streaming)
         # This has to be done prior to initialization
         # TODO: Support other acquisition modes
         if continuous:
             self.AcquisitionMode = "Continuous"
-            
+
         # Initialize the camera
         if not self.initialized:
             self.init()
-            
+
         # Begin acquisition
         if not self.running:
             if not self.cam.IsStreaming():
@@ -456,14 +458,14 @@ class FlirCamera:
             self._running = True
 
     def stop(self) -> None:
-        """ Stop recording images. """
-        
+        """Stop recording images."""
+
         if self.running:
             self.cam.EndAcquisition()
         self._frame_times = deque()
         self._incomplete_image_count = 0
         self._running = False
-        
+
     def close(self) -> None:
         """
         Closes the camera and cleans up. Automatically called if the camera
@@ -476,7 +478,7 @@ class FlirCamera:
             del self.cam
         except AttributeError:
             pass
-        
+
         # Reset attributes
         self.camera_attributes = {}
         self.camera_methods = {}
@@ -496,34 +498,34 @@ class FlirCamera:
         -------
         img : PySpin Image
         """
-        
+
         # Make sure the camera is running
         if not self.running:
             self.start()
-        
+
         # Get the image pointer
-        image_ptr = self.cam.GetNextImage(PySpin.EVENT_TIMEOUT_INFINITE if wait 
-                                          else PySpin.EVENT_TIMEOUT_NONE)
-        
+        image_ptr = self.cam.GetNextImage(
+            PySpin.EVENT_TIMEOUT_INFINITE if wait else PySpin.EVENT_TIMEOUT_NONE
+        )
+
         # Check if the image is incomplete
         if image_ptr.IsIncomplete():
             self._incomplete_image_count += 1
-        
+
         # Release the image pointer to free memory (I think this reduces performance?)
         # image_ptr.Release()  # free memory in the camera buffer
-        
+
         return image_ptr
 
     def get_array(
-            self, 
-            wait: bool = True, 
-            get_chunk: bool = False, 
-            complete_frames_only: bool = False
-            ) -> Union[np.ndarray, Tuple[np.ndarray, PySpin.PySpin.ChunkData]]:
-        
+        self,
+        wait: bool = True,
+        get_chunk: bool = False,
+        complete_frames_only: bool = False,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, PySpin.PySpin.ChunkData]]:
         """
         Get an image from the camera, and convert it to a numpy array.
-        
+
         Parameters
         ----------
         wait : bool (default: True)
@@ -533,7 +535,7 @@ class FlirCamera:
             If True, returns chunk data from image frame.
         complete_frames_only : bool (default: True)
             If True, only return complete frames.
-            
+
         Returns
         -------
         img : numpy.ndarray
@@ -542,11 +544,11 @@ class FlirCamera:
 
         # Get image pointer
         img = self.get_image(wait=wait)
-        
+
         # Ensure complete image is returned if option is chosen
         if complete_frames_only and img.IsIncomplete():
             return self.get_array(wait, get_chunk, complete_frames_only)
-            
+
         # Store frame time for real FPS calculation
         self._frame_times.append(time.time())
 
@@ -562,7 +564,7 @@ class FlirCamera:
     def get_info(self, name: str) -> dict:
         """
         Get information on a camera node (attribute or method).
-        
+
         Parameters
         ----------
         name : string
@@ -607,7 +609,8 @@ class FlirCamera:
                 for entry in node.GetEntries():
                     entries.append(entry.GetName().split("_")[-1])
                     entry_desc.append(entry.GetDescription().strip())
-                    if entry_desc[-1]: has_desc = True
+                    if entry_desc[-1]:
+                        has_desc = True
                 info["entries"] = entries
                 if has_desc:
                     info["entry_descriptions"] = entry_desc
@@ -621,7 +624,7 @@ class FlirCamera:
         Parameters
         ----------
         verbose : bool, optional
-            Whether to show documentation details, including default access, 
+            Whether to show documentation details, including default access,
             value, and range. The default is True.
 
         Returns
@@ -630,7 +633,7 @@ class FlirCamera:
             A string describing the camera attributes and methods.
 
         """
-        
+
         # Get basic camera information, including model and version
         lines = [self.model]
         lines.append("=" * len(lines[-1]))
@@ -642,27 +645,26 @@ class FlirCamera:
         lines.append("Attributes")
         lines.append("-" * len(lines[-1]))
         lines.append("")
-        
+
         for attr in sorted(self.camera_attributes.keys()):
-            
             # Skip private attributes
             if "_" in attr:
                 continue
             # print(attr)
-            
+
             # Get attribute information
             info = self.get_info(attr)
             if not info.get("access", 0):
                 continue
             lines.append(f"{attr}: {info.get('type', '?')}")
-            
+
             # Skip details if not verbose (gives shorter markdown document)
             if not verbose:
                 continue
-            
+
             # Get attribute description
             lines.append("  " + info.get("description", "(no description provided)"))
-            
+
             # Get default access
             lines.append("  - default access: %s" % info.get("access", "?"))
             if "value" in info:
@@ -680,48 +682,54 @@ class FlirCamera:
                         else:
                             lines.append("    - '%s'" % e)
                 else:
-                    lines.append("  - possible values: %s" % 
-                                 (", ".join("'%s'" % e for e in info["entries"])))
+                    lines.append(
+                        "  - possible values: %s"
+                        % (", ".join("'%s'" % e for e in info["entries"]))
+                    )
 
             lines.append("")
-        
+
         # Get camera methods
         lines.append("")
         lines.append("Methods")
         lines.append("-" * len(lines[-1]))
         lines.append("")
-        lines.append(("**Note: the camera recording should be started/stopped"
-                      " using the 'start' and 'stop' methods, not any of the functions"
-                      " below (see simple_pyspin documentation).**"))
+        lines.append(
+            (
+                "**Note: the camera recording should be started/stopped"
+                " using the 'start' and 'stop' methods, not any of the functions"
+                " below (see simple_pyspin documentation).**"
+            )
+        )
         lines.append("")
 
         for attr in sorted(self.camera_methods.keys()):
-            
             # Skip private methods
             if "_" in attr:
                 continue
             # print(attr)
-            
+
             # Get method information
             info = self.get_info(attr)
             lines.append("%s():  " % (attr))
-            
+
             # Get method description
             lines.append("  " + info.get("description", "(no description provided)"))
-            
+
             # Skip details if not verbose (gives shorter markdown document)
             if not verbose:
                 lines.append("")
                 continue
-            
+
             # Get method default access
             lines.append("  - default access: %s" % info.get("access", "?"))
             lines.append("")
 
         return "\n".join(lines)
-    
+
 
 if __name__ == "__main__":
+
     def test():
         with FlirCamera() as cam:
             print(cam.document(verbose=False))
@@ -733,11 +741,10 @@ if __name__ == "__main__":
                     image = cam.get_array()
                     # print(cam.incomplete_image_count, cam.real_fps)
                     print(cam.DeviceTemperature)
-                    
+
                 except KeyboardInterrupt:
                     break
-    
+
     # test()
-    
+
     print(list_cameras())
-    
