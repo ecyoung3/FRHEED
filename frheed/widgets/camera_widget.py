@@ -3,6 +3,7 @@ PyQt widgets for camera streaming and settings.
 https://stackoverflow.com/a/33453124/10342097
 """
 
+import logging
 import os
 from typing import Union, Optional
 import time
@@ -55,7 +56,7 @@ from frheed.image_processing import (
     get_valid_colormaps,
 )
 from frheed.constants import DATA_DIR
-from frheed.utils import load_settings, save_settings, get_logger
+import frheed.utils as utils
 
 
 MIN_ZOOM = 0.20
@@ -66,8 +67,6 @@ MAX_W = 2560
 MAX_H = 2560
 DEFAULT_CMAP = "Spectral"
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
-
-logger = get_logger(__name__)
 
 
 class VideoWidget(QWidget):
@@ -338,7 +337,7 @@ class VideoWidget(QWidget):
             fps = self.camera.real_fps
             h, w = self.frame.shape[:2]
             shape = (w, h)
-            logger.info(f"Creating video writer with FPS = {fps:.2f} and {shape = }")
+            logging.info("Creating video writer with FPS = %.2f and shape = %s", fps, shape)
             self._writer = cv2.VideoWriter(
                 filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, shape
             )
@@ -810,7 +809,7 @@ class CameraSettingsWidget(QWidget):
         current_config = self.current_config
         cam_name = getattr(self.camera, "name", "camera")
         try:
-            self._configs = load_settings(cam_name)
+            self._configs = utils.load_settings(cam_name)
         except OSError:
             self._configs = {}
 
@@ -825,7 +824,7 @@ class CameraSettingsWidget(QWidget):
 
     def save_configs(self) -> None:
         """Save all configurations"""
-        save_settings(self._configs, getattr(self.camera, "name", "camera"))
+        utils.save_settings(self._configs, getattr(self.camera, "name", "camera"))
         self.saved = True
 
     def to_dict(self) -> dict:

@@ -2,6 +2,7 @@
 Widgets for plotting data in PyQt.
 """
 
+import logging
 from typing import Union, Optional
 
 from PyQt5.QtWidgets import (
@@ -30,7 +31,7 @@ import numpy as np
 
 from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
 from frheed.widgets.camera_widget import DEFAULT_CMAP
-from frheed.utils import get_qcolor, get_qpen, get_logger
+import frheed.utils as utils
 from frheed.calcs import calc_fft, detect_peaks, apply_cutoffs
 from frheed.image_processing import ndarray_to_qpixmap, apply_cmap
 
@@ -67,7 +68,6 @@ _DEFAULT_SIZE = (800, 600)
 _MIN_FFT_PEAK_POS = 0.5
 _CURVE_MENU_TITLE = "View Lines"
 _ITALIC_COORDS = True
-logger = get_logger()
 
 
 def init_pyqtgraph(use_opengl: bool = False) -> None:
@@ -75,8 +75,8 @@ def init_pyqtgraph(use_opengl: bool = False) -> None:
     for k, v in _PG_CFG.items():
         try:
             pg.setConfigOption(k, v)
-        except Exception as ex:
-            logger.exception(str(ex))
+        except Exception:
+            logging.exception("Failed to set pyqtgraph config %s = %s", k, v)
 
 
 class PlotWidget(QWidget):
@@ -205,19 +205,19 @@ class PlotWidget(QWidget):
 
     def get_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
         """Get an existing plot item."""
-        color = get_qcolor(color)
+        color = utils.get_qcolor(color)
         return self.plot_items.get(color.name())
 
     @pyqtSlot(str)
     def add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
         """Add a curve to the plot."""
         # Raise error if curve already exists
-        color = get_qcolor(color)
+        color = utils.get_qcolor(color)
         if self.plot_items.get(color.name()) is not None:
             raise AttributeError(f"{color.name()} curve already exists.")
 
         # Create curve (named after the color hex) and return it
-        pen = get_qpen(color, cosmetic=True)
+        pen = utils.get_qpen(color, cosmetic=True)
         curve = pg.PlotCurveItem(pen=pen, name=color.name())
         self.plot_items[color.name()] = curve
         self.plot_item.addItem(curve)
@@ -235,7 +235,7 @@ class PlotWidget(QWidget):
     def get_or_add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
         """Get a curve or add it if it doesn't exist."""
         # Return curve if it already exists
-        color = get_qcolor(color)
+        color = utils.get_qcolor(color)
         if self.plot_items.get(color.name()) is not None:
             return self.get_curve(color)
 
@@ -246,7 +246,7 @@ class PlotWidget(QWidget):
     def remove_curve(self, color: Union[QColor, str, tuple]) -> None:
         """Remove a curve from the plot."""
         # Remove the curve from the plot
-        color = get_qcolor(color)
+        color = utils.get_qcolor(color)
         self.plot_item.removeItem(self.get_curve(color))
 
         # Remove from storage
@@ -468,7 +468,7 @@ class FFTPlotWidget(PlotWidget):
             return
 
         # Get QColor
-        color = get_qcolor(color)
+        color = utils.get_qcolor(color)
 
         # Get parent & FFT curves
         parent_curve = self._parent.get_curve(color)
@@ -515,14 +515,14 @@ class FFTPlotWidget(PlotWidget):
 
         # Clear vlines for current color
         if color is not None:
-            color = get_qcolor(color).name()
+            color = utils.get_qcolor(color).name()
             lines = self.vlines.get(color, [])
             [self.plot_item.removeItem(line) for line in lines]
 
         # Add lines
         pen = pg.mkPen()
         pen.setStyle(Qt.DashLine)
-        pen.setColor(get_qcolor(color)) if color is not None else None
+        pen.setColor(utils.get_qcolor(color)) if color is not None else None
         new_lines = [self.plot_item.addLine(x=x, pen=pen) for x in peak_positions]
         if color is not None:
             self.vlines[color] = new_lines

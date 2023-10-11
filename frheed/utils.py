@@ -2,13 +2,12 @@
 General utility functions for FRHEED.
 """
 
+import logging
 import sys
 import os
 from typing import Union, Optional, Dict, Tuple
-import logging
 from pathlib import Path
 import subprocess
-import atexit
 
 import numpy as np
 from PyQt5.QtWidgets import QWidget, QApplication
@@ -16,63 +15,6 @@ from PyQt5.QtGui import QColor, QPen, QIcon
 
 from frheed import settings
 from frheed.constants import LOG_DIR
-
-
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """Get a logger for FRHEED errors and messages."""
-    # Use name if provided, otherwise `frheed`
-    name = name or "frheed"
-
-    # Generate log path
-    filepath = os.path.join(LOG_DIR, f"{name}.log")
-
-    # Create logger
-    logger = logging.getLogger(name=name)
-
-    # Make sure handlers haven't been added already
-    # https://stackoverflow.com/a/59448231/10342097
-    if logger.handlers:
-        return logger
-
-    # Set level to info
-    logger.setLevel(logging.INFO)
-
-    # Filter that logs only INFO and WARNING level messages
-    class ConsoleFilter:
-        def __init__(self, level: int):
-            self.__level = level
-
-        def filter(self, record) -> bool:
-            return record.levelno in [logging.INFO, logging.WARNING]
-
-    # Create file handler
-    file_handler = logging.FileHandler(filepath, mode="a")
-    file_format = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] %(message)s"
-    file_formatter = logging.Formatter(file_format)
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
-
-    # Create console handler
-    console_handler = logging.StreamHandler()
-    console_format = "%(message)s"
-    console_formatter = logging.Formatter(console_format)
-    console_handler.setFormatter(console_formatter)
-    console_handler.addFilter(ConsoleFilter(logging.INFO))
-    logger.addHandler(console_handler)
-
-    # Notify that logfile was started
-    logger.info(f"Started {name}.log")
-
-    # Create function for closing all logger handlers
-    def close_handlers() -> None:
-        for handler in logger.handlers[:]:
-            handler.close()
-            logger.removeHandler(handler)
-
-    # Close the logger when system exits
-    atexit.register(close_handlers)
-
-    return logger
 
 
 def get_platform_bitsize() -> int:
@@ -477,11 +419,10 @@ def install_whl(filepath: str) -> int:
 
 def gen_reqs() -> str:
     """Create the requirements.txt file for FRHEED."""
-    logger = get_logger("utils")
     python = sys.executable.replace("\\", "/")
     subprocess.check_call([python, "-m", "pip", "freeze", ">", "requirements.txt"])
     requirements = Path("requirements.txt").read_text()
-    logger.info(f"Generated requirements:\n{requirements}")
+    logging.info(f"Generated requirements:\n{requirements}")
 
 
 if __name__ == "__main__":

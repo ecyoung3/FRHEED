@@ -1,6 +1,7 @@
 """
 Main GUI for FRHEED.
 """
+import logging
 import sys
 
 from PyQt5.QtWidgets import QMainWindow, QApplication
@@ -8,8 +9,6 @@ from PyQt5.QtWidgets import QMainWindow, QApplication
 from frheed.widgets.rheed_widgets import RHEEDWidget
 from frheed import utils
 
-
-logger = utils.get_logger()
 
 # Store reference to main window so it doesn't get garbage collected
 windows = []
