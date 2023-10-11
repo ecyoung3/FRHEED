@@ -52,9 +52,7 @@ def install_pyspin(reinstall: bool = False) -> None:
                 whl_filepaths.append(os.path.join(root, file))
 
     if not whl_filepaths:
-        raise ValueError(
-            f"Unable to find any .whl files for platform bitsize {bitsize}"
-        )
+        raise ValueError(f"Unable to find any .whl files for platform bitsize {bitsize}")
 
     logging.info("Found .whl files:\n\t%s", "\n\t".join(whl_filepaths))
 

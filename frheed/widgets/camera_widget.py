@@ -67,9 +67,7 @@ class VideoWidget(QWidget):
     _min_h = 348
     _max_w = MAX_W
 
-    def __init__(
-        self, camera: Union[FlirCamera, UsbCamera], parent=None, zoomable: bool = True
-    ):
+    def __init__(self, camera: Union[FlirCamera, UsbCamera], parent=None, zoomable: bool = True):
         super().__init__(parent)
 
         # Store colormap
@@ -326,12 +324,8 @@ class VideoWidget(QWidget):
             fps = self.camera.real_fps
             h, w = self.frame.shape[:2]
             shape = (w, h)
-            logging.info(
-                "Creating video writer with FPS = %.2f and shape = %s", fps, shape
-            )
-            self._writer = cv2.VideoWriter(
-                filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, shape
-            )
+            logging.info("Creating video writer with FPS = %.2f and shape = %s", fps, shape)
+            self._writer = cv2.VideoWriter(filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, shape)
 
         # Otherwise, stop recording
         else:
@@ -469,9 +463,7 @@ class VideoWidget(QWidget):
     def _stop_workers(self) -> None:
         [worker.stop() for worker in self._workers]
 
-    def _resize_frame(
-        self, frame: np.ndarray, interp: int = DEFAULT_INTERPOLATION
-    ) -> np.ndarray:
+    def _resize_frame(self, frame: np.ndarray, interp: int = DEFAULT_INTERPOLATION) -> np.ndarray:
         size = self.display.sizeHint()
         w, h = size.width(), size.height()
         return cv2.resize(frame, dsize=(w, h), interpolation=interp)
@@ -557,9 +549,7 @@ class CameraDisplay(QWidget):
 
         # Resize the image
         self.label.setPixmap(
-            self.label.pixmap().scaled(
-                self.sizeHint(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
+            self.label.pixmap().scaled(self.sizeHint(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
 
     def parent(self) -> Union[None, VideoWidget]:
@@ -757,8 +747,7 @@ class CameraSettingsWidget(QWidget):
             confirm = QMessageBox.question(
                 self,
                 "Confirm Configuration Name",
-                f'A configuration "{name}" already exists.\n'
-                f"Would you like to {action} it?",
+                f'A configuration "{name}" already exists.\n' f"Would you like to {action} it?",
             )
             if confirm != QMessageBox.Yes:
                 return
@@ -779,9 +768,7 @@ class CameraSettingsWidget(QWidget):
         # TODO: Prompt before deleting
 
         # Prompt before deleting
-        confirm = QMessageBox.question(
-            self, "Confirm Delete", "Delete this configuration?"
-        )
+        confirm = QMessageBox.question(self, "Confirm Delete", "Delete this configuration?")
         if confirm != QMessageBox.Yes:
             return
 
@@ -858,16 +845,12 @@ class CameraSettingsWidget(QWidget):
             if min_val is not None and max_val is not None:
                 # Use log scale if difference between min & max is > 1,000
                 log = (max_val / min_val) > 1e3 if min_val != 0 else False
-                decimals = max(
-                    len(str(min_val).split(".")[-1]), len(str(max_val).split(".")[-1])
-                )
+                decimals = max(len(str(min_val).split(".")[-1]), len(str(max_val).split(".")[-1]))
                 self.widget = DoubleSlider(decimals, log=log, base=1.5, parent=self)
                 self.widget.setMinimum(min_val)
                 self.widget.setMaximum(max_val)
                 self.widget.setValue(value)
-                self.widget.setToolTip(
-                    f"minimum = {min_val:,g}, " f"maximum = {max_val:,g}"
-                )
+                self.widget.setToolTip(f"minimum = {min_val:,g}, " f"maximum = {max_val:,g}")
 
             # Create QComboBox for options with listed entries
             elif self.entries is not None or self.dtype == "enum":
@@ -892,9 +875,7 @@ class CameraSettingsWidget(QWidget):
 
             # Create label
             if isinstance(self.widget, QSlider):
-                self.label = SliderLabel(
-                    self.widget, name=self.title, unit=self.unit, precision=2
-                )
+                self.label = SliderLabel(self.widget, name=self.title, unit=self.unit, precision=2)
             else:
                 self.label = QLabel()
                 self.label.setText(f"{self.title}:")
@@ -1064,9 +1045,7 @@ class CameraStatusBar(QStatusBar):
     @pyqtSlot()
     def frame_changed(self) -> None:
         self.fps_label.setText(f"{self.fps:.2f} Hz ")
-        self.incomplete_frames_label.setText(
-            f"Incomplete images: {self.incomplete_image_count}"
-        )
+        self.incomplete_frames_label.setText(f"Incomplete images: {self.incomplete_image_count}")
         self.error_label.setText(self.error_status)
 
 
@@ -1111,9 +1090,7 @@ class CameraWorker(Worker):
             # Emit the next frame
             try:
                 if self.camera().running:
-                    self.frame_ready.emit(
-                        self.camera().get_array(complete_frames_only=True)
-                    )
+                    self.frame_ready.emit(self.camera().get_array(complete_frames_only=True))
 
             # Ignore RuntimeError, for example if the object is deleted
             except RuntimeError:

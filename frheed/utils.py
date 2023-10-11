@@ -59,9 +59,7 @@ def get_icon(name: str) -> QIcon:
     return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
-def test_widget(
-    widget_class: type, block: bool = False, **kwargs
-) -> Tuple[QWidget, QApplication]:
+def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWidget, QApplication]:
     """
     Create a widget from the provided class using the *args and **kwargs,
     and start a blocking application event loop if block = True.
@@ -124,10 +122,7 @@ def test_widget(
 
 
 def unit_string(
-    value: Union[float, int],
-    unit: str,
-    sep: Optional[str] = None,
-    precision: Optional[int] = 2,
+    value: Union[float, int], unit: str, sep: Optional[str] = None, precision: Optional[int] = 2
 ) -> str:
     """
     Format a unit string depending on the order of magnitude.
@@ -237,9 +232,7 @@ def unit_string(
     return unit_str
 
 
-def save_settings(
-    settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str
-) -> None:
+def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str) -> None:
     """
     Save a dictionary of settings to a .json file.
 

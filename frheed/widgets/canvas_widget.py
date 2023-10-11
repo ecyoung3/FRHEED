@@ -7,24 +7,12 @@ from typing import List, Optional, Union
 import numpy as np
 from PyQt5.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import (
-    QAction,
-    QActionGroup,
-    QApplication,
-    QLabel,
-    QMenu,
-    QMessageBox,
-    QWidget,
-)
+from PyQt5.QtWidgets import QAction, QActionGroup, QApplication, QLabel, QMenu, QMessageBox, QWidget
 
 from frheed.constants import COLOR_DICT
 from frheed.utils import get_qcolor
 
-SHAPE_TYPES = (
-    "rectangle",
-    "ellipse",
-    "line",
-)
+SHAPE_TYPES = ("rectangle", "ellipse", "line")
 DEFAULT_COLOR = list(COLOR_DICT.values())[0]
 DEFAULT_LINEWIDTH = 1
 FOCUSED_LINEWIDTH = 2

@@ -18,19 +18,14 @@ class DoubleSlider(QSlider):
     doubleValueChanged = pyqtSignal(float)
 
     def __init__(
-        self,
-        decimals: int,
-        log: bool = False,
-        base: Union[float, int] = 1.5,
-        parent=None,
+        self, decimals: int, log: bool = False, base: Union[float, int] = 1.5, parent=None
     ):
         super().__init__(parent)
 
         # Validate input
         if decimals < 0 or not isinstance(decimals, int):
             raise ValueError(
-                "Number of decimals must be a positive integer;"
-                f"got {decimals} instead"
+                "Number of decimals must be a positive integer;" f"got {decimals} instead"
             )
 
         # Store inputs

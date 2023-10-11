@@ -151,11 +151,7 @@ def detect_peaks(
 
             # Find peaks
             peak_indices, _ = find_peaks(
-                y,
-                height=height,
-                threshold=threshold,
-                distance=distance,
-                prominence=prominence,
+                y, height=height, threshold=threshold, distance=distance, prominence=prominence
             )
 
             # Get corresponding x-coordinates

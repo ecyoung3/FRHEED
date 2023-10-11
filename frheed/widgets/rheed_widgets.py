@@ -78,9 +78,7 @@ class RHEEDWidget(QWidget):
         # Create the camera widget
         camera = self.cam_selection._cam
         self.camera_widget = VideoWidget(camera, parent=self)
-        self.camera_widget.setSizePolicy(
-            QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding
-        )
+        self.camera_widget.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
 
         # Create the plot widgets
         # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
@@ -99,9 +97,7 @@ class RHEEDWidget(QWidget):
         self.camera_widget.analysis_worker.data_ready.connect(self.plot_data)
         self.camera_widget.display.canvas.shape_deleted.connect(self.remove_line)
         self.plot_grid.closed.connect(self.live_plots_closed)
-        self.camera_widget.display.canvas.shape_deleted.connect(
-            self.plot_grid.remove_curves
-        )
+        self.camera_widget.display.canvas.shape_deleted.connect(self.plot_grid.remove_curves)
 
         # Reconnect camera_selected signal
         self.cam_selection.camera_selected.disconnect()
@@ -141,9 +137,7 @@ class RHEEDWidget(QWidget):
 
                 # Catch RuntimeError if widget has been closed
                 try:
-                    curve.setData(
-                        *snip_lists(color_data["time"], color_data["average"])
-                    )
+                    curve.setData(*snip_lists(color_data["time"], color_data["average"]))
                 except RuntimeError:
                     pass
 

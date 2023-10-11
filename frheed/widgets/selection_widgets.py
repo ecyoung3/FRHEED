@@ -87,12 +87,8 @@ class CameraSelection(QWidget):
 
     def available_cameras(self) -> List[CameraObject]:
         # Check each camera class for availability
-        usb_cams = [
-            CameraObject(UsbCamera, src, name) for src, name in get_usb_cams().items()
-        ]
-        flir_cams = [
-            CameraObject(FlirCamera, src, name) for src, name in get_flir_cams().items()
-        ]
+        usb_cams = [CameraObject(UsbCamera, src, name) for src, name in get_usb_cams().items()]
+        flir_cams = [CameraObject(FlirCamera, src, name) for src, name in get_flir_cams().items()]
         return usb_cams + flir_cams
 
     def select_camera(self, cam: CameraObject) -> object:
