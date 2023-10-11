@@ -3,19 +3,18 @@ Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 """
 
-from typing import Tuple, Union
 import time
-import numpy as np
 from collections import deque
+from typing import Tuple, Union
+
+import numpy as np
 
 from frheed.cameras import CameraError
-
 # Make sure PySpin is installed
 from frheed.cameras.flir.install_pyspin import install_pyspin
 
 install_pyspin()
 import PySpin
-
 
 # Editable camera settings to show
 _GUI_SETTINGS = {

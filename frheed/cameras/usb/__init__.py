@@ -2,11 +2,11 @@
 Connecting to USB cameras.
 """
 
-from collections import deque
-
 import os
-from typing import Union, Optional, List, Tuple
 import time
+from collections import deque
+from typing import List, Optional, Tuple, Union
+
 import cv2
 import numpy as np
 

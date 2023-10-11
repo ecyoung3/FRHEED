@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages, Command
-import sys
 import os
-from shutil import rmtree
+import sys
 from pathlib import Path
+from shutil import rmtree
+
+from setuptools import Command, find_packages, setup
 
 # Package metadata
 NAME = "frheed"

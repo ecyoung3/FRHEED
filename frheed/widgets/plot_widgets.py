@@ -3,38 +3,21 @@ Widgets for plotting data in PyQt.
 """
 
 import logging
-from typing import Union, Optional
+from typing import Optional, Union
 
-from PyQt5.QtWidgets import (
-    QWidget,
-    QGridLayout,
-    QLabel,
-    QPushButton,
-    QMenuBar,
-    QAction,
-    QDoubleSpinBox,
-    QSizePolicy,
-    QCheckBox,
-    QGraphicsPixmapItem,
-)
-from PyQt5.QtGui import (
-    QColor,
-    QPixmap,
-)
-from PyQt5.QtCore import (
-    Qt,
-    pyqtSlot,
-    pyqtSignal,
-)
-import pyqtgraph as pg  # import *after* PyQt5
 import numpy as np
+import pyqtgraph as pg  # import *after* PyQt5
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QColor, QPixmap
+from PyQt5.QtWidgets import (QAction, QCheckBox, QDoubleSpinBox,
+                             QGraphicsPixmapItem, QGridLayout, QLabel,
+                             QMenuBar, QPushButton, QSizePolicy, QWidget)
 
-from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
-from frheed.widgets.camera_widget import DEFAULT_CMAP
 import frheed.utils as utils
-from frheed.calcs import calc_fft, detect_peaks, apply_cutoffs
-from frheed.image_processing import ndarray_to_qpixmap, apply_cmap
-
+from frheed.calcs import apply_cutoffs, calc_fft, detect_peaks
+from frheed.image_processing import apply_cmap, ndarray_to_qpixmap
+from frheed.widgets.camera_widget import DEFAULT_CMAP
+from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
 
 # https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph.html?highlight=setConfigOption
 _PG_CFG = {

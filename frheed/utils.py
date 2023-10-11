@@ -3,15 +3,15 @@ General utility functions for FRHEED.
 """
 
 import logging
-import sys
 import os
-from typing import Union, Optional, Dict, Tuple
-from pathlib import Path
 import subprocess
+import sys
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QColor, QPen, QIcon
+from PyQt5.QtGui import QColor, QIcon, QPen
+from PyQt5.QtWidgets import QApplication, QWidget
 
 from frheed import settings
 from frheed.constants import LOG_DIR
@@ -252,10 +252,10 @@ def save_settings(
 
     """
     import json
+
     from frheed.constants import CONFIG_DIR
 
     # TODO: Switch to using TOML config
-
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
     config = {}
@@ -290,10 +290,10 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
     """
     import json
     from ast import literal_eval
+
     from frheed.constants import CONFIG_DIR
 
     # TODO: Switch to using TOML config files
-
     # Get filepath
     path = os.path.join(CONFIG_DIR, f"{name}_settings.json")
 

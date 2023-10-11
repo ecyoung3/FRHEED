@@ -2,13 +2,12 @@
 Functions for computing values from plots.
 """
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 from scipy.signal import find_peaks
 
 from frheed.utils import snip_lists
-
 
 # Ignore numpy warnings
 np.seterr("ignore")

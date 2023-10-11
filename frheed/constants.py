@@ -2,9 +2,10 @@
 Constants and settings for use elsewhere.
 """
 import os
-from appdirs import user_config_dir, user_log_dir
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
+
+from appdirs import user_config_dir, user_log_dir
 
 DATA_DIR = os.path.normpath(os.path.expanduser("~/FRHEED"))
 os.makedirs(DATA_DIR, exist_ok=True)

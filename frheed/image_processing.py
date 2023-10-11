@@ -2,12 +2,12 @@
 Assorted image processing operations.
 """
 
-from typing import Union, List
+from typing import List, Union
 
-import numpy as np
 import cmapy
 import cv2
 import matplotlib as mpl
+import numpy as np
 from PyQt5.QtGui import QImage, QPixmap
 
 

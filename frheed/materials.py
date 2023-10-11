@@ -5,7 +5,6 @@ Material properties for use in computations.
 from dataclasses import dataclass
 from enum import Enum
 
-
 # Reference (Table 30.1):
 # Adachi, S. (2017). III-V Ternary and Quaternary Compounds.
 # Springer Handbook of Electronic and Photonic Materials, 1–1.
