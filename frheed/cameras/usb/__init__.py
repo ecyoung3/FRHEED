@@ -2,11 +2,11 @@
 Connecting to USB cameras.
 """
 
-from collections import deque
-
 import os
-from typing import Union, Optional, List, Tuple
 import time
+from collections import deque
+from typing import List, Optional, Tuple, Union
+
 import cv2
 import numpy as np
 
@@ -20,9 +20,7 @@ _DEBUG = __name__ == "__main__"
 
 # Get non-platform-specific capture properties (0 < id < 50)
 _CAP_PROPS = [
-    prop
-    for prop in dir(cv2)
-    if prop.startswith("CAP_PROP") and getattr(cv2, prop, 1000) < 50
+    prop for prop in dir(cv2) if prop.startswith("CAP_PROP") and getattr(cv2, prop, 1000) < 50
 ]
 
 # Editable camera settings to show

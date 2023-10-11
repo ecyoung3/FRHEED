@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages, Command
-import sys
 import os
-from shutil import rmtree
+import sys
 from pathlib import Path
+from shutil import rmtree
+
+from setuptools import Command, find_packages, setup
 
 # Package metadata
 NAME = "frheed"
-DESCRIPTION = "FRHEED is a GUI for real-time Reflection High-Energy Electron Diffraction (RHEED) analysis."
+DESCRIPTION = (
+    "FRHEED is a GUI for real-time Reflection High-Energy Electron Diffraction (RHEED) analysis."
+)
 AUTHOR = "Elliot Young"
 AUTHOR_EMAIL = "elliot.young1996@gmail.com"
 VERSION = "0.0.2"  # Must not match existing PyPI version or upload will fail
@@ -95,13 +98,9 @@ setup(
     include_package_data=True,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    exclude_package_data={
-        "": [".gitignore"],
-    },
+    exclude_package_data={"": [".gitignore"]},
     setup_requires=["setuptools-git"],
     install_requires=INSTALL_REQUIRES,
-    classifiers=[
-        "Programming Language :: Python :: 3.8",
-    ],
+    classifiers=["Programming Language :: Python :: 3.8"],
     cmdclass={"upload": UploadCommand},
 )

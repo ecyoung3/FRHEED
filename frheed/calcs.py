@@ -2,13 +2,12 @@
 Functions for computing values from plots.
 """
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 from scipy.signal import find_peaks
 
 from frheed.utils import snip_lists
-
 
 # Ignore numpy warnings
 np.seterr("ignore")
@@ -152,11 +151,7 @@ def detect_peaks(
 
             # Find peaks
             peak_indices, _ = find_peaks(
-                y,
-                height=height,
-                threshold=threshold,
-                distance=distance,
-                prominence=prominence,
+                y, height=height, threshold=threshold, distance=distance, prominence=prominence
             )
 
             # Get corresponding x-coordinates

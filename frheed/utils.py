@@ -3,15 +3,15 @@ General utility functions for FRHEED.
 """
 
 import logging
-import sys
 import os
-from typing import Union, Optional, Dict, Tuple
-from pathlib import Path
 import subprocess
+import sys
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QColor, QPen, QIcon
+from PyQt5.QtGui import QColor, QIcon, QPen
+from PyQt5.QtWidgets import QApplication, QWidget
 
 from frheed import settings
 from frheed.constants import LOG_DIR
@@ -59,9 +59,7 @@ def get_icon(name: str) -> QIcon:
     return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
-def test_widget(
-    widget_class: type, block: bool = False, **kwargs
-) -> Tuple[QWidget, QApplication]:
+def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWidget, QApplication]:
     """
     Create a widget from the provided class using the *args and **kwargs,
     and start a blocking application event loop if block = True.
@@ -124,10 +122,7 @@ def test_widget(
 
 
 def unit_string(
-    value: Union[float, int],
-    unit: str,
-    sep: Optional[str] = None,
-    precision: Optional[int] = 2,
+    value: Union[float, int], unit: str, sep: Optional[str] = None, precision: Optional[int] = 2
 ) -> str:
     """
     Format a unit string depending on the order of magnitude.
@@ -237,9 +232,7 @@ def unit_string(
     return unit_str
 
 
-def save_settings(
-    settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str
-) -> None:
+def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str) -> None:
     """
     Save a dictionary of settings to a .json file.
 
@@ -252,10 +245,10 @@ def save_settings(
 
     """
     import json
+
     from frheed.constants import CONFIG_DIR
 
     # TODO: Switch to using TOML config
-
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
     config = {}
@@ -290,10 +283,10 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
     """
     import json
     from ast import literal_eval
+
     from frheed.constants import CONFIG_DIR
 
     # TODO: Switch to using TOML config files
-
     # Get filepath
     path = os.path.join(CONFIG_DIR, f"{name}_settings.json")
 

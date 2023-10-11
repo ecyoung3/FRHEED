@@ -3,38 +3,30 @@ Widgets for plotting data in PyQt.
 """
 
 import logging
-from typing import Union, Optional
+from typing import Optional, Union
 
+import numpy as np
+import pyqtgraph as pg  # import *after* PyQt5
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QColor, QPixmap
 from PyQt5.QtWidgets import (
-    QWidget,
+    QAction,
+    QCheckBox,
+    QDoubleSpinBox,
+    QGraphicsPixmapItem,
     QGridLayout,
     QLabel,
-    QPushButton,
     QMenuBar,
-    QAction,
-    QDoubleSpinBox,
+    QPushButton,
     QSizePolicy,
-    QCheckBox,
-    QGraphicsPixmapItem,
+    QWidget,
 )
-from PyQt5.QtGui import (
-    QColor,
-    QPixmap,
-)
-from PyQt5.QtCore import (
-    Qt,
-    pyqtSlot,
-    pyqtSignal,
-)
-import pyqtgraph as pg  # import *after* PyQt5
-import numpy as np
 
-from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
-from frheed.widgets.camera_widget import DEFAULT_CMAP
 import frheed.utils as utils
-from frheed.calcs import calc_fft, detect_peaks, apply_cutoffs
-from frheed.image_processing import ndarray_to_qpixmap, apply_cmap
-
+from frheed.calcs import apply_cutoffs, calc_fft, detect_peaks
+from frheed.image_processing import apply_cmap, ndarray_to_qpixmap
+from frheed.widgets.camera_widget import DEFAULT_CMAP
+from frheed.widgets.common_widgets import HSpacer, VisibleSplitter
 
 # https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph.html?highlight=setConfigOption
 _PG_CFG = {
@@ -111,9 +103,7 @@ class PlotWidget(QWidget):
         self.setLayout(self.layout)
 
         # Create plot widget
-        self.plot_widget = pg.PlotWidget(
-            self, title=title, background=_PG_CFG["background"]
-        )
+        self.plot_widget = pg.PlotWidget(self, title=title, background=_PG_CFG["background"])
         for ax in [self.plot_widget.getAxis(a) for a in _PG_AXES]:
             ax.setPen(_AXIS_COLOR)
             ax.setStyle(**{**_PG_PLOT_STYLE, **{"tickFont": self.font()}})
@@ -121,9 +111,7 @@ class PlotWidget(QWidget):
         # Create menubar with transparent background
         self.menubar = QMenuBar(self)
         self.menubar.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-        self.setStyleSheet(
-            self.styleSheet() + "QMenuBar { background-color: transparent; }"
-        )
+        self.setStyleSheet(self.styleSheet() + "QMenuBar { background-color: transparent; }")
 
         # Create menu for showing/hiding curves
         self.curve_menu = self.menubar.addMenu(_CURVE_MENU_TITLE)
@@ -134,9 +122,7 @@ class PlotWidget(QWidget):
         self.cursor_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.cursor_label.setMinimumWidth(64)
         if _ITALIC_COORDS:
-            self.cursor_label.setStyleSheet(
-                self.cursor_label.styleSheet() + "font-style: italic"
-            )
+            self.cursor_label.setStyleSheet(self.cursor_label.styleSheet() + "font-style: italic")
 
         # Attributes to be assigned/updated later
         self.plot_items = {}
@@ -152,9 +138,7 @@ class PlotWidget(QWidget):
         # Connect signal for cursor movement
         # NOTE: Must assign to variable so it doesn't get garbage collected
         self.cursor_proxy = pg.SignalProxy(
-            self.plot_item.scene().sigMouseMoved,
-            rateLimit=60,
-            slot=self.show_cursor_position,
+            self.plot_item.scene().sigMouseMoved, rateLimit=60, slot=self.show_cursor_position
         )
 
         # Hide options from the context menu that seem to be broken
@@ -302,9 +286,7 @@ class PlotWidget(QWidget):
     def get_items(self) -> list:
         return self.plot_widget.listDataItems()
 
-    def toggle_curve(
-        self, color: str, visible: bool, block_signal: bool = False
-    ) -> None:
+    def toggle_curve(self, color: str, visible: bool, block_signal: bool = False) -> None:
         """Show or hide a curve."""
         # Get the curve
         curve = self.get_curve(color)
@@ -333,11 +315,7 @@ class LinePlotWidget(PlotWidget):
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
-            parent=parent,
-            popup=popup,
-            name=name,
-            title=title,
-            show_menubar=show_menubar,
+            parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
         )
 
         # Update labels
@@ -436,11 +414,7 @@ class FFTPlotWidget(PlotWidget):
         low_freq_cutoff: Optional[float] = _MIN_FFT_PEAK_POS,
     ) -> None:
         super().__init__(
-            parent=parent,
-            popup=popup,
-            name=name,
-            title=title,
-            show_menubar=show_menubar,
+            parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
         )
         self._parent = parent
         self.autofind_peaks = autofind_peaks
@@ -496,18 +470,14 @@ class FFTPlotWidget(PlotWidget):
             pass
 
         # Show peak positions, if option is selected
-        self.detect_and_show_peaks(
-            freq, psd, color.name()
-        ) if self.autofind_peaks else None
+        self.detect_and_show_peaks(freq, psd, color.name()) if self.autofind_peaks else None
 
     @pyqtSlot(str, bool)
     def toggle_vlines(self, color: str, visible: bool) -> None:
         """Show/hide lines for a particular curve."""
         [line.setVisible(visible) for line in self.vlines.get(color, [])]
 
-    def detect_and_show_peaks(
-        self, x: list, y: list, color: Optional[str] = None
-    ) -> None:
+    def detect_and_show_peaks(self, x: list, y: list, color: Optional[str] = None) -> None:
         # Find peaks
         peak_positions = detect_peaks(x, y, _MIN_FFT_PEAK_POS)
         if peak_positions is None:
@@ -543,11 +513,7 @@ class LineProfileWidget(PlotWidget):
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
-            parent=parent,
-            popup=popup,
-            name=name,
-            title=title,
-            show_menubar=show_menubar,
+            parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
         )
 
         # Update labels
@@ -567,11 +533,7 @@ class LineScanPlotWidget(PlotWidget):
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
-            parent=parent,
-            popup=popup,
-            name=name,
-            title=title,
-            show_menubar=show_menubar,
+            parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
         )
 
         # Update labels
@@ -625,9 +587,7 @@ class LineScanPlotWidget(PlotWidget):
             self._pixmap_item.pixmap().swap(pixmap.pixmap())
 
         else:
-            raise TypeError(
-                f"Expected QPixmap or QGraphicsPixmapItem, got {type(pixmap)}"
-            )
+            raise TypeError(f"Expected QPixmap or QGraphicsPixmapItem, got {type(pixmap)}")
 
     @property
     def pixmap(self) -> Union[QPixmap, None]:
@@ -664,11 +624,7 @@ class GrowthRatePlotWidget(PlotWidget):
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
-            parent=parent,
-            popup=popup,
-            name=name,
-            title=title,
-            show_menubar=show_menubar,
+            parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
         )
 
         # Update labels
@@ -715,16 +671,10 @@ class PlotGridWidget(QWidget):
             parent=self, popup=False, title="Region Intensity", show_menubar=False
         )
         self.region_fft_plot = FFTPlotWidget(
-            parent=self.region_plot,
-            popup=False,
-            title="Region Intensity FFT",
-            show_menubar=False,
+            parent=self.region_plot, popup=False, title="Region Intensity FFT", show_menubar=False
         )
         self.growth_rate_plot = GrowthRatePlotWidget(
-            parent=self.region_fft_plot,
-            popup=False,
-            title="Growth Rate",
-            show_menubar=False,
+            parent=self.region_fft_plot, popup=False, title="Growth Rate", show_menubar=False
         )
         self.profile_plot = LineProfileWidget(
             parent=self, popup=False, title="1D Line Profile", show_menubar=False
@@ -747,12 +697,8 @@ class PlotGridWidget(QWidget):
         # Create containers for plots
         color, hover = "lightGrey", "grey"
         self.main_splitter = VisibleSplitter(color, hover, orientation=Qt.Horizontal)
-        self.region_plots_splitter = VisibleSplitter(
-            color, hover, orientation=Qt.Vertical
-        )
-        self.profile_plots_splitter = VisibleSplitter(
-            color, hover, orientation=Qt.Vertical
-        )
+        self.region_plots_splitter = VisibleSplitter(color, hover, orientation=Qt.Vertical)
+        self.profile_plots_splitter = VisibleSplitter(color, hover, orientation=Qt.Vertical)
 
         # Add items to main layout
         self.layout.addWidget(self.menubar, 0, 0, 1, 1)
@@ -768,10 +714,7 @@ class PlotGridWidget(QWidget):
             self.region_plots_splitter.addWidget(w)
             for w in (self.region_plot, self.region_fft_plot, self.growth_rate_plot)
         ]
-        [
-            self.profile_plots_splitter.addWidget(w)
-            for w in (self.profile_plot, self.line_scan_plot)
-        ]
+        [self.profile_plots_splitter.addWidget(w) for w in (self.profile_plot, self.line_scan_plot)]
 
         # Connect signals
         for widget in self.plot_widgets:
@@ -795,10 +738,7 @@ class PlotGridWidget(QWidget):
 
     @pyqtSlot(str, bool)
     def toggle_all_curves(self, color: str, visible: bool) -> None:
-        [
-            wid.toggle_curve(color, visible, block_signal=True)
-            for wid in self.plot_widgets
-        ]
+        [wid.toggle_curve(color, visible, block_signal=True) for wid in self.plot_widgets]
 
     @pyqtSlot(object)
     def remove_curves(self, shape) -> None:

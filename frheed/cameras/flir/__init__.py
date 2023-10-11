@@ -3,10 +3,11 @@ Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 """
 
-from typing import Tuple, Union
 import time
-import numpy as np
 from collections import deque
+from typing import Tuple, Union
+
+import numpy as np
 
 from frheed.cameras import CameraError
 
@@ -15,7 +16,6 @@ from frheed.cameras.flir.install_pyspin import install_pyspin
 
 install_pyspin()
 import PySpin
-
 
 # Editable camera settings to show
 _GUI_SETTINGS = {
@@ -260,8 +260,7 @@ class FlirCamera:
 
         elif attr in self.camera_methods:
             raise CameraError(
-                f"Camera method '{attr}' is a function -- "
-                "you can't assign it a value!"
+                f"Camera method '{attr}' is a function -- " "you can't assign it a value!"
             )
         else:
             if attr == "__class__":
@@ -518,10 +517,7 @@ class FlirCamera:
         return image_ptr
 
     def get_array(
-        self,
-        wait: bool = True,
-        get_chunk: bool = False,
-        complete_frames_only: bool = False,
+        self, wait: bool = True, get_chunk: bool = False, complete_frames_only: bool = False
     ) -> Union[np.ndarray, Tuple[np.ndarray, PySpin.PySpin.ChunkData]]:
         """
         Get an image from the camera, and convert it to a numpy array.
@@ -683,8 +679,7 @@ class FlirCamera:
                             lines.append("    - '%s'" % e)
                 else:
                     lines.append(
-                        "  - possible values: %s"
-                        % (", ".join("'%s'" % e for e in info["entries"]))
+                        "  - possible values: %s" % (", ".join("'%s'" % e for e in info["entries"]))
                     )
 
             lines.append("")

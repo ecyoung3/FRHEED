@@ -2,23 +2,21 @@
 Widgets for RHEED analysis.
 """
 
-from typing import Union
 import os
+from typing import Union
 
-from PyQt5.QtWidgets import QWidget, QGridLayout, QSizePolicy, QMenuBar, QMessageBox
-from PyQt5.QtCore import (
-    pyqtSlot,
-)
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
 
-from frheed.widgets.camera_widget import VideoWidget
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.usb import UsbCamera
-from frheed.widgets.plot_widgets import PlotGridWidget
-from frheed.widgets.canvas_widget import CanvasShape, CanvasLine
-from frheed.widgets.selection_widgets import CameraSelection
-from frheed.widgets.common_widgets import HSpacer, VSpacer
+from frheed.constants import CONFIG_DIR, DATA_DIR
 from frheed.utils import snip_lists
-from frheed.constants import DATA_DIR, CONFIG_DIR
+from frheed.widgets.camera_widget import VideoWidget
+from frheed.widgets.canvas_widget import CanvasLine, CanvasShape
+from frheed.widgets.common_widgets import HSpacer, VSpacer
+from frheed.widgets.plot_widgets import PlotGridWidget
+from frheed.widgets.selection_widgets import CameraSelection
 
 
 class RHEEDWidget(QWidget):
@@ -80,9 +78,7 @@ class RHEEDWidget(QWidget):
         # Create the camera widget
         camera = self.cam_selection._cam
         self.camera_widget = VideoWidget(camera, parent=self)
-        self.camera_widget.setSizePolicy(
-            QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding
-        )
+        self.camera_widget.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
 
         # Create the plot widgets
         # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
@@ -101,9 +97,7 @@ class RHEEDWidget(QWidget):
         self.camera_widget.analysis_worker.data_ready.connect(self.plot_data)
         self.camera_widget.display.canvas.shape_deleted.connect(self.remove_line)
         self.plot_grid.closed.connect(self.live_plots_closed)
-        self.camera_widget.display.canvas.shape_deleted.connect(
-            self.plot_grid.remove_curves
-        )
+        self.camera_widget.display.canvas.shape_deleted.connect(self.plot_grid.remove_curves)
 
         # Reconnect camera_selected signal
         self.cam_selection.camera_selected.disconnect()
@@ -143,9 +137,7 @@ class RHEEDWidget(QWidget):
 
                 # Catch RuntimeError if widget has been closed
                 try:
-                    curve.setData(
-                        *snip_lists(color_data["time"], color_data["average"])
-                    )
+                    curve.setData(*snip_lists(color_data["time"], color_data["average"]))
                 except RuntimeError:
                     pass
 

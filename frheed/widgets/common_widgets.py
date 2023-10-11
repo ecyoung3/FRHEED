@@ -2,25 +2,12 @@
 Commonly used subclassed PyQt5 widgets.
 """
 
-from typing import Optional, Union
 import math
+from typing import Optional, Union
 
-from PyQt5.QtWidgets import (
-    QSlider,
-    QLabel,
-    QSizePolicy,
-    QFrame,
-    QSpacerItem,
-    QSplitter,
-)
-from PyQt5.QtGui import (
-    QFontMetrics,
-)
-from PyQt5.QtCore import (
-    pyqtSignal,
-    pyqtSlot,
-    Qt,
-)
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QFontMetrics
+from PyQt5.QtWidgets import QFrame, QLabel, QSizePolicy, QSlider, QSpacerItem, QSplitter
 
 from frheed.utils import unit_string
 
@@ -31,19 +18,14 @@ class DoubleSlider(QSlider):
     doubleValueChanged = pyqtSignal(float)
 
     def __init__(
-        self,
-        decimals: int,
-        log: bool = False,
-        base: Union[float, int] = 1.5,
-        parent=None,
+        self, decimals: int, log: bool = False, base: Union[float, int] = 1.5, parent=None
     ):
         super().__init__(parent)
 
         # Validate input
         if decimals < 0 or not isinstance(decimals, int):
             raise ValueError(
-                "Number of decimals must be a positive integer;"
-                f"got {decimals} instead"
+                "Number of decimals must be a positive integer;" f"got {decimals} instead"
             )
 
         # Store inputs
