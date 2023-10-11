@@ -337,7 +337,9 @@ class VideoWidget(QWidget):
             fps = self.camera.real_fps
             h, w = self.frame.shape[:2]
             shape = (w, h)
-            logging.info("Creating video writer with FPS = %.2f and shape = %s", fps, shape)
+            logging.info(
+                "Creating video writer with FPS = %.2f and shape = %s", fps, shape
+            )
             self._writer = cv2.VideoWriter(
                 filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, shape
             )
