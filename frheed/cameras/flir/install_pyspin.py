@@ -4,14 +4,11 @@ Spinnaker can be downloaded from the Teledyne FLIR website:
     https://flir.app.boxcn.net/v/SpinnakerSDK
 """
 
+import logging
 import os
-from pathlib import Path
 import re
 
-from frheed.utils import install_whl, get_logger
-
-
-logger = get_logger()
+import frheed.utils as utils
 
 
 def install_pyspin(reinstall: bool = False) -> None:
@@ -30,7 +27,7 @@ def install_pyspin(reinstall: bool = False) -> None:
         import PySpin
 
         if __name__ == "__main__":
-            logger.info("PySpin is already installed")
+            logging.info("PySpin is already installed")
 
         # Return if not reinstalling
         if not reinstall:
@@ -45,9 +42,7 @@ def install_pyspin(reinstall: bool = False) -> None:
     bitsize = get_platform_bitsize()
 
     if bitsize not in [32, 64]:
-        msg = f"Unsupported platform bitsize: {bitsize}"
-        logger.exception(msg)
-        raise ValueError(msg)
+        raise ValueError(f"Unsupported platform bitsize: {bitsize}")
 
     # Get proper .whl file
     whl_filepaths = []
@@ -57,19 +52,18 @@ def install_pyspin(reinstall: bool = False) -> None:
                 whl_filepaths.append(os.path.join(root, file))
 
     if not whl_filepaths:
-        msg = f"Unable to find any .whl files for platform bitsize {bitsize}"
-        logger.exception(msg)
-        raise ValueError(msg)
+        raise ValueError(
+            f"Unable to find any .whl files for platform bitsize {bitsize}"
+        )
 
-    pretty_filepaths = "\n\t".join(whl_filepaths)
-    logger.info(f"Found .whl files:\n{pretty_filepaths}")
+    logging.info("Found .whl files:\n\t%s", "\n\t".join(whl_filepaths))
 
     # Try to install each of the .whl files via subprocess
     # NOTE: Different .whl files are for different versions; try each one
     # https://stackoverflow.com/a/50255019/10342097
     for file in whl_filepaths:
-        logger.info(f"Trying to install PySpin from {file}")
-        exit_code = install_whl(file)
+        logging.info("Trying to install PySpin from %s", file)
+        exit_code = utils.install_whl(file)
         whl_filepath = file
         if exit_code == 0:
             break
@@ -78,10 +72,10 @@ def install_pyspin(reinstall: bool = False) -> None:
     try:
         import PySpin
 
-        logger.info(f"PySpin installed successfully from {whl_filepath}")
+        logging.info("PySpin installed successfully from %s", whl_filepath)
 
     except ImportError:
-        logger.info(f"PySpin failed to install from {whl_filepath}")
+        logging.info("PySpin failed to install from %s", whl_filepath)
 
 
 if __name__ == "__main__":
