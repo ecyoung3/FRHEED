@@ -35,76 +35,73 @@ if not VERSION:
         exec(f.read(), about)
 else:
     about["__version__"] = VERSION
-    
 
-# https://github.com/kennethreitz/setup.py/blob/master/setup.py 
+
+# https://github.com/kennethreitz/setup.py/blob/master/setup.py
 class UploadCommand(Command):
-    """ 
-    Support setup.py uploading to PyPI. 
-    To use, run `python setup.py upload` in the command prompt 
+    """
+    Support setup.py uploading to PyPI.
+    To use, run `python setup.py upload` in the command prompt
     from the directory that this file is in.
     """
-    
+
     description = "Build and publish the package to PyPI."
     user_options = []
-    
+
     @staticmethod
     def status(s):
-        """ Print status in bold. """
+        """Print status in bold."""
         print(f"\033[1m{s}\033[0m")
-        
+
     def initialize_options(self):
         pass
-    
+
     def finalize_options(self):
         pass
-    
+
     def run(self):
         try:
             self.status("Removing previous builds...")
             rmtree(os.path.join(here, "dist"))
         except OSError:
             pass
-        
+
         self.status("Updating requirements.txt")
         from frheed.utils import gen_reqs
+
         gen_reqs()
-        
+
         self.status("Building source and wheel (universal) distribution...")
         os.system(f"{sys.executable} setup.py sdist bdist_wheel --universal")
-        
+
         self.status("Uploading the package to PyPI via Twine...")
         os.system("twine upload dist/*")
-        
+
         self.status("Pushing git tags...")
         os.system(f"git tag v{VERSION}")
         os.system("git push --tags")
-        
+
         sys.exit()
 
-    
+
 setup(
-      name = NAME,
-      version = about["__version__"],
-      description = DESCRIPTION,
-      author = AUTHOR,
-      author_email = AUTHOR_EMAIL,
-      url = URL,
-      packages = find_packages(),
-      include_package_data = True,
-      long_description = LONG_DESCRIPTION,
-      long_description_content_type = "text/markdown",
-      exclude_package_data = {
-          "": [".gitignore"],
-          },
-      setup_requires = [
-          "setuptools-git"
-          ],
-      install_requires = INSTALL_REQUIRES,
-      classifiers = [
+    name=NAME,
+    version=about["__version__"],
+    description=DESCRIPTION,
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    url=URL,
+    packages=find_packages(),
+    include_package_data=True,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
+    exclude_package_data={
+        "": [".gitignore"],
+    },
+    setup_requires=["setuptools-git"],
+    install_requires=INSTALL_REQUIRES,
+    classifiers=[
         "Programming Language :: Python :: 3.8",
-        ],
-      cmdclass = {
-          "upload": UploadCommand
-          },
-      )
+    ],
+    cmdclass={"upload": UploadCommand},
+)
