@@ -6,8 +6,7 @@ import os
 from typing import Union
 
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import (QGridLayout, QMenuBar, QMessageBox, QSizePolicy,
-                             QWidget)
+from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
 
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.usb import UsbCamera

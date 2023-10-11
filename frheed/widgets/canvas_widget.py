@@ -5,11 +5,17 @@ PyQt widgets for drawing shapes.
 from typing import List, Optional, Union
 
 import numpy as np
-from PyQt5.QtCore import (QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal,
-                          pyqtSlot)
+from PyQt5.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import (QAction, QActionGroup, QApplication, QLabel,
-                             QMenu, QMessageBox, QWidget)
+from PyQt5.QtWidgets import (
+    QAction,
+    QActionGroup,
+    QApplication,
+    QLabel,
+    QMenu,
+    QMessageBox,
+    QWidget,
+)
 
 from frheed.constants import COLOR_DICT
 from frheed.utils import get_qcolor

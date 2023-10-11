@@ -9,9 +9,18 @@ import numpy as np
 import pyqtgraph as pg  # import *after* PyQt5
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPixmap
-from PyQt5.QtWidgets import (QAction, QCheckBox, QDoubleSpinBox,
-                             QGraphicsPixmapItem, QGridLayout, QLabel,
-                             QMenuBar, QPushButton, QSizePolicy, QWidget)
+from PyQt5.QtWidgets import (
+    QAction,
+    QCheckBox,
+    QDoubleSpinBox,
+    QGraphicsPixmapItem,
+    QGridLayout,
+    QLabel,
+    QMenuBar,
+    QPushButton,
+    QSizePolicy,
+    QWidget,
+)
 
 import frheed.utils as utils
 from frheed.calcs import apply_cutoffs, calc_fft, detect_peaks

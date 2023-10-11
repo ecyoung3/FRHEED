@@ -13,20 +13,38 @@ import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QSize, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,
-                             QDoubleSpinBox, QFrame, QGridLayout, QInputDialog,
-                             QLabel, QLineEdit, QMessageBox, QPushButton,
-                             QScrollArea, QSizePolicy, QSlider, QStatusBar,
-                             QWidget)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFrame,
+    QGridLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QStatusBar,
+    QWidget,
+)
 
 import frheed.utils as utils
 from frheed.cameras import CameraError
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.usb import UsbCamera
 from frheed.constants import DATA_DIR
-from frheed.image_processing import (apply_cmap, column_to_image, extend_image,
-                                     get_valid_colormaps, ndarray_to_qpixmap,
-                                     to_grayscale)
+from frheed.image_processing import (
+    apply_cmap,
+    column_to_image,
+    extend_image,
+    get_valid_colormaps,
+    ndarray_to_qpixmap,
+    to_grayscale,
+)
 from frheed.widgets.canvas_widget import CanvasWidget
 from frheed.widgets.common_widgets import DoubleSlider, HLine, SliderLabel
 
