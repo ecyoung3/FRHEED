@@ -22,57 +22,55 @@ os.makedirs(ICONS_DIR, exist_ok=True)
 
 WINDOW_ICON_PATH = os.path.join(ICONS_DIR, "FRHEED.ico")
 
-# Colors from matplotlib tableau colors 
+# Colors from matplotlib tableau colors
 # Used matplotlib.colors.to_hex(...) for each color
 # https://matplotlib.org/3.1.0/gallery/color/named_colors.html
 COLOR_DICT = {
-    "blue":     "#1f77b4",
-    "orange":   "#ff7f0e",
-    "green":    "#2ca02c",
-    "red":      "#d62728",
-    "purple":   "#9467bd",
-    "brown":    "#8c564b",
-    "pink":     "#e377c2",
-    "gray":     "#7f7f7f",
-    "olive":    "#bcbd22",
-    "cyan":     "#17becf",
-    }
+    "blue": "#1f77b4",
+    "orange": "#ff7f0e",
+    "green": "#2ca02c",
+    "red": "#d62728",
+    "purple": "#9467bd",
+    "brown": "#8c564b",
+    "pink": "#e377c2",
+    "gray": "#7f7f7f",
+    "olive": "#bcbd22",
+    "cyan": "#17becf",
+}
 
 
-def get_data_dir(
-        user: Optional[str] = None, 
-        experiment: Optional[str] = None
-    ) -> str:
+def get_data_dir(user: Optional[str] = None, experiment: Optional[str] = None) -> str:
     """Create a data directory based on the given user and experiment name.
 
     Args:
-        user (Optional[str], optional): The name of the current user. 
+        user (Optional[str], optional): The name of the current user.
             If the default of None is used, no user subfolder will be created.
-        experiment (Optional[str], optional): The name of the current experiment. 
+        experiment (Optional[str], optional): The name of the current experiment.
             If the default of None is used, no experiment subfolder will be created.
 
     Returns:
         str: Path to the generated data directory.
     """
-    
+
     # Base data directory for FRHEED
     data_dir = DATA_DIR
-    
+
     # Create subfolder for user
     if user is not None:
         data_dir = os.path.join(data_dir, user, "")
-        
+
     # Create subfolder for experiment
     if experiment is not None:
         data_dir = os.path.join(data_dir, experiment, "")
-        
+
     # Make sure directories exist
     os.makedirs(data_dir, exist_ok=True)
-        
+
     return data_dir
 
 
 if __name__ == "__main__":
+
     def test():
         print(f"Data directory: {DATA_DIR}")
         print(f"Config directory: {CONFIG_DIR}")
