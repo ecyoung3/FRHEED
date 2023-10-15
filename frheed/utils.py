@@ -398,18 +398,6 @@ def get_locals(frame) -> dict:
     return dict(frame.f_back.f_locals.items())
 
 
-def install_whl(filepath: str) -> int:
-    """Install a module using pip, either from a PyPi library or local file."""
-    # Make sure .whl filepath and python.exe filepath are single-escaped
-    python_path = sys.executable.replace("\\", "/")
-    filepath = filepath.replace("\\", "/")
-
-    # Use subprocess to execute the commands
-    args = [python_path, "-m", "pip", "install", filepath]
-    exit_code = subprocess.check_call(args)
-    return exit_code
-
-
 def gen_reqs() -> str:
     """Create the requirements.txt file for FRHEED."""
     python = sys.executable.replace("\\", "/")
