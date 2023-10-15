@@ -44,7 +44,7 @@ class FRHEED(QMainWindow):
 
 
 def show() -> FRHEED:
-    logger.info("Opening FRHEED...")
+    logging.info("Opening FRHEED...")
     return FRHEED()
 
 
