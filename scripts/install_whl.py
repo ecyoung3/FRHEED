@@ -8,7 +8,6 @@ import pathlib
 import subprocess
 import sys
 import warnings
-
 from collections.abc import Sequence
 
 
