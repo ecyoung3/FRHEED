@@ -8,14 +8,9 @@ from collections import deque
 from typing import Tuple, Union
 
 import numpy as np
+import PySpin
 
 from frheed.cameras import CameraError
-
-# Make sure PySpin is installed
-from frheed.cameras.flir.install_pyspin import install_pyspin
-
-install_pyspin()
-import PySpin
 
 # Editable camera settings to show
 _GUI_SETTINGS = {
