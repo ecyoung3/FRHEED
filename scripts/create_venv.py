@@ -28,20 +28,40 @@ def create_venv(venv_path: pathlib.Path, python: str, dryrun: bool = False) -> i
         python,
         venv_path.parent,
     )
-    command_args = ["virtualenv", "-p", python, str(venv_path)]
+    command_args = ["virtualenv", "-p", str(python), str(venv_path)]
     if dryrun:
         command = subprocess.list2cmdline(command_args)
         logging.info("Virtual environment would be created using command: %s", command)
         exit_code = 0
     else:
         try:
-            exit_code = subprocess.check_call(args)
+            exit_code = subprocess.check_call(command_args)
             logging.info("Successfully created virtual environment")
+            add_frheed_pth(venv_path)
         except subprocess.CalledProcessError as cpe:
             exit_code = cpe.returncode
             logging.error("Failed to create virtual environment")
 
     return exit_code
+
+
+def add_frheed_pth(venv_path: pathlib.Path) -> pathlib.Path:
+    """Add the FRHEED repo root path to a `frheed.pth` file in a virtual environment.
+
+    This allows the `frheed` code to be run from within the virtual environment.
+
+    Args:
+        venv_path: Path to the virtual environment root.
+
+    Returns:
+        The path to the created `frheed.pth` file.
+    """
+    frheed_root = pathlib.Path(__file__).parent.parent
+    insert_frheed_path = f"import sys; sys.path.insert(0, r'{frheed_root}')"
+    pth_file = venv_path / "frheed.pth"
+    pth_file.write_text(insert_frheed_path)
+    logging.info("Wrote to '%s': '%s'", pth_file, insert_frheed_path)
+    return pth_file
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -77,5 +97,4 @@ def main(args: argparse.Namespace) -> int:
 
 
 if __name__ == "__main__":
-    args = parse_args(sys.argv[1:])
-    sys.exit(main(args))
+    sys.exit(main(parse_args(sys.argv[1:])))
