@@ -1,0 +1,45 @@
+############################## WARNING ##############################
+# THIS FILE IS GENERATED AUTOMATICALLY FROM THE POETRY LOCKFILE
+#
+# DO NOT EDIT MANUALLY
+#
+# TO UPDATE REQUIREMENTS, SEE `scripts/poetry_tools.py`
+############################## WARNING ##############################
+appdirs==1.4.4 ; python_full_version >= "3.10.4" and python_version < "3.11"
+astroid==2.15.8 ; python_full_version >= "3.10.4" and python_version < "3.11"
+black==23.9.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+click==8.1.7 ; python_full_version >= "3.10.4" and python_version < "3.11"
+cmapy==0.6.6 ; python_full_version >= "3.10.4" and python_version < "3.11"
+colorama==0.4.6 ; python_full_version >= "3.10.4" and python_version < "3.11" and (sys_platform == "win32" or platform_system == "Windows")
+contourpy==1.1.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+cycler==0.12.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+dill==0.3.7 ; python_full_version >= "3.10.4" and python_version < "3.11"
+fonttools==4.43.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+isort==5.12.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+kiwisolver==1.4.5 ; python_full_version >= "3.10.4" and python_version < "3.11"
+lazy-object-proxy==1.9.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+matplotlib==3.8.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+mccabe==0.7.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+mypy-extensions==1.0.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+mypy==1.6.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+numpy==1.26.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+opencv-python==4.8.1.78 ; python_full_version >= "3.10.4" and python_version < "3.11"
+packaging==23.2 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pathspec==0.11.2 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pillow==10.1.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+platformdirs==3.11.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pylint==2.17.7 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pyparsing==3.1.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pyqt5-qt5==5.15.2 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pyqt5-sip==12.13.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pyqt5==5.15.10 ; python_full_version >= "3.10.4" and python_version < "3.11"
+pyqtgraph==0.13.3 ; python_full_version >= "3.10.4" and python_version < "3.11"
+python-dateutil==2.8.2 ; python_full_version >= "3.10.4" and python_version < "3.11"
+scipy==1.11.3 ; python_full_version >= "3.10.4" and python_version < "3.11"
+setuptools-scm==8.0.4 ; python_full_version >= "3.10.4" and python_version < "3.11"
+setuptools==68.2.2 ; python_full_version >= "3.10.4" and python_version < "3.11"
+six==1.16.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+tomli==2.0.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+tomlkit==0.12.1 ; python_full_version >= "3.10.4" and python_version < "3.11"
+typing-extensions==4.8.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
+wrapt==1.15.0 ; python_full_version >= "3.10.4" and python_version < "3.11"
