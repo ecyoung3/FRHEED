@@ -14,7 +14,7 @@ REPO_ROOT = pathlib.Path(__file__).parent.parent
 DEFAULT_PATHS = [REPO_ROOT]
 
 
-def run_mypy(paths: list[pathlib.Path], dryrun: bool=False) -> int:
+def run_mypy(paths: list[pathlib.Path], dryrun: bool = False) -> int:
     """Run `mypy` to typecheck the given files or directories.
 
     Args:

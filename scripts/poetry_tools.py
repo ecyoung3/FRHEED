@@ -18,7 +18,7 @@ from collections.abc import Sequence
 REQUIREMENTS_FILENAME_BY_POETRY_GROUPS: dict[str, str] = {
     ("main",): "requirements.txt",
     ("main", "typechecking", "linting"): "requirements-dev.txt",
-    }
+}
 
 # Header for all requirements files
 REQUIREMENTS_HEADER = """\
