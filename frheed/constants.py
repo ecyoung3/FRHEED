@@ -2,7 +2,6 @@
 Constants and settings for use elsewhere.
 """
 import os
-from dataclasses import dataclass
 from typing import Optional
 
 from appdirs import user_config_dir, user_log_dir

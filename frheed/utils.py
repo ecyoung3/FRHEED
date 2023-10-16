@@ -2,11 +2,8 @@
 General utility functions for FRHEED.
 """
 
-import logging
 import os
-import subprocess
 import sys
-from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
@@ -14,24 +11,6 @@ from PyQt5.QtGui import QColor, QIcon, QPen
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from frheed import settings
-from frheed.constants import LOG_DIR
-
-
-def get_platform_bitsize() -> int:
-    """
-    Get the Windows platform bit size (32 or 64).
-
-    Returns
-    -------
-    int
-        Windows architecture bit size (either 32 or 64).
-
-    """
-    import struct
-
-    bitsize = struct.calcsize("P") * 8
-
-    return bitsize
 
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
@@ -396,14 +375,6 @@ def snip_lists(*lists) -> list:
 
 def get_locals(frame) -> dict:
     return dict(frame.f_back.f_locals.items())
-
-
-def gen_reqs() -> str:
-    """Create the requirements.txt file for FRHEED."""
-    python = sys.executable.replace("\\", "/")
-    subprocess.check_call([python, "-m", "pip", "freeze", ">", "requirements.txt"])
-    requirements = Path("requirements.txt").read_text()
-    logging.info(f"Generated requirements:\n{requirements}")
 
 
 if __name__ == "__main__":

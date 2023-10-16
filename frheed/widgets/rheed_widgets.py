@@ -8,13 +8,10 @@ from typing import Union
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
 
-from frheed.cameras.flir import FlirCamera
-from frheed.cameras.usb import UsbCamera
 from frheed.constants import CONFIG_DIR, DATA_DIR
 from frheed.utils import snip_lists
 from frheed.widgets.camera_widget import VideoWidget
 from frheed.widgets.canvas_widget import CanvasLine, CanvasShape
-from frheed.widgets.common_widgets import HSpacer, VSpacer
 from frheed.widgets.plot_widgets import PlotGridWidget
 from frheed.widgets.selection_widgets import CameraSelection
 
