@@ -15,7 +15,10 @@ import sys
 from collections.abc import Sequence
 
 # Requirements files to export by Poetry groups
-REQUIREMENTS_FILENAME_BY_POETRY_GROUPS: dict[str, str] = {("main",): "requirements.txt"}
+REQUIREMENTS_FILENAME_BY_POETRY_GROUPS: dict[str, str] = {
+    ("main",): "requirements.txt",
+    ("main", "typechecking", "linting"): "requirements-dev.txt",
+    }
 
 # Header for all requirements files
 REQUIREMENTS_HEADER = """\

@@ -17,6 +17,18 @@ cmapy = "0.6.6"
 appdirs = "1.4.4"
 pyqt5-qt5 = "5.15.2" # latest version 5.15.11 not recognized by pip for some reason
 
+[tool.poetry.group.typechecking]
+optional = true
+[tool.poetry.group.typechecking.dependencies]
+mypy = "^1.6"
+
+[tool.poetry.group.linting]
+optional = true
+[tool.poetry.group.linting.dependencies]
+black = "^23.3"
+isort = "^5.12"
+pylint = "^2.17"
+
 [tool.black]
 line-length = 100
 target_version = ["py310"]
