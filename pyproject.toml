@@ -8,13 +8,14 @@ packages = [{include = "pyle"}]
 
 [tool.poetry.dependencies]
 python = "^3.10.4, <3.11" # PySpin only supports up to 3.10
-PyQt5 = "^5.14"
+pyqt5 = "^5.14"
 numpy = "^1.23"
 opencv-python = "^4.7"
 scipy = "^1.9"
 pyqtgraph = "^0.13"
 cmapy = "0.6.6"
 appdirs = "1.4.4"
+pyqt5-qt5 = "5.15.2" # latest version 5.15.11 not recognized by pip for some reason
 
 [tool.black]
 line-length = 100
