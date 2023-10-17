@@ -7,20 +7,20 @@ import sys
 from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
-from PyQt5.QtGui import QColor, QIcon, QPen
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt6.QtGui import QColor, QIcon, QPen
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from frheed import settings
 
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     """Fit a widget in the center of the main screen"""
-    from PyQt5.QtWidgets import QDesktopWidget
+    from PyQt6.QtGui import QScreen
 
     # Get main screen geometry
-    desktop = QDesktopWidget()
-    screen = desktop.availableGeometry()
-    tot_w, tot_h = screen.width(), screen.height()
+    screen = QScreen()
+    geom = screen.availableGeometry()
+    tot_w, tot_h = geom.width(), geom.height()
 
     # Resize widget to 75% of available space
     w, h = int(tot_w * scale), int(tot_h * scale)
@@ -62,8 +62,8 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWid
 
     """
 
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QLabel
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QLabel
 
     # Get QApplication instance
     app = QApplication.instance() or QApplication(["FRHEED"])

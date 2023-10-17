@@ -8,7 +8,7 @@ import cmapy
 import cv2
 import matplotlib as mpl
 import numpy as np
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QImage, QPixmap
 
 
 # https://stackoverflow.com/a/1735122/10342097

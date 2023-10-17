@@ -6,11 +6,10 @@ import logging
 from typing import Optional, Union
 
 import numpy as np
-import pyqtgraph as pg  # import *after* PyQt5
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QColor, QPixmap
-from PyQt5.QtWidgets import (
-    QAction,
+import pyqtgraph as pg
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QAction, QColor, QPixmap
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
     QGraphicsPixmapItem,

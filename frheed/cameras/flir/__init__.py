@@ -3,9 +3,9 @@ Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 """
 
+import collections
 import logging
 import time
-import collections
 from typing import Any
 
 import numpy as np

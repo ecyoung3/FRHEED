@@ -128,10 +128,7 @@ class UsbCamera:
     }
 
     def __init__(
-        self,
-        src: int | str = 0,
-        lock: bool = False,
-        backend: int | None = _DEFAULT_BACKEND,
+        self, src: int | str = 0, lock: bool = False, backend: int | None = _DEFAULT_BACKEND
     ):
         """
         Parameters

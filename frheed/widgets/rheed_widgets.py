@@ -5,8 +5,8 @@ Widgets for RHEED analysis.
 import os
 from typing import Union
 
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
 
 from frheed.constants import CONFIG_DIR, DATA_DIR
 from frheed.utils import snip_lists

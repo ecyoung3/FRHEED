@@ -4,7 +4,7 @@ Styling for the PyQt5 interfaces and widgets.
 
 from dataclasses import dataclass
 
-from PyQt5.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor, QPalette
 
 
 @dataclass

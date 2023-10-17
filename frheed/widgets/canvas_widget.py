@@ -2,12 +2,14 @@
 PyQt widgets for drawing shapes.
 """
 
+from __future__ import annotations
+
 from typing import List, Optional, Union
 
 import numpy as np
-from PyQt5.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QColor, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import QAction, QActionGroup, QApplication, QLabel, QMenu, QMessageBox, QWidget
+from PyQt6.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QAction, QActionGroup, QColor, QPainter, QPen, QPixmap
+from PyQt6.QtWidgets import QApplication, QLabel, QMenu, QMessageBox, QWidget
 
 from frheed.constants import COLOR_DICT
 from frheed.utils import get_qcolor
@@ -336,26 +338,26 @@ class CanvasWidget(QLabel):
 
         # Update the mouse cursor
         if moving:
-            self.app.setOverrideCursor(Qt.SizeAllCursor)
+            self.app.setOverrideCursor(Qt.CursorShape.SizeAllCursor)
         else:
             self.app.restoreOverrideCursor()
 
     @property
-    def shapes(self) -> List["CanvasShape"]:
+    def shapes(self) -> list[CanvasShape]:
         return self._shapes
 
     @shapes.setter
-    def shapes(self, shapes: List) -> None:
+    def shapes(self, shapes: list[CanvasShape]) -> None:
         self._shapes = shapes
         self.active_shape = None
         self.draw()
 
     @property
-    def active_shape(self) -> "CanvasShape":
+    def active_shape(self) -> CanvasShape:
         return self._active_shape
 
     @active_shape.setter
-    def active_shape(self, shape: "CanvasShape") -> None:
+    def active_shape(self, shape: CanvasShape) -> None:
         self._active_shape = shape
 
         # Deactivate other shapes so only one can be active at once
