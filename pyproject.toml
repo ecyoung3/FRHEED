@@ -21,6 +21,7 @@ pyqt5-qt5 = "5.15.2" # latest version 5.15.11 not recognized by pip for some rea
 optional = true
 [tool.poetry.group.typechecking.dependencies]
 mypy = "^1.6"
+types-Pillow = "^10"
 
 [tool.poetry.group.linting]
 optional = true
@@ -38,3 +39,18 @@ skip-magic-trailing-comma = true
 [tool.isort]
 profile = "black"
 line_length = 100
+remove_redundant_aliases = true
+extra_standard_library = ["typing_extensions"]
+
+[tool.mypy]
+local_partial_types = true
+plugins = ["numpy.typing.mypy_plugin"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# 3rd-party libraries that are missing type stubs.
+[[tool.mypy.overrides]]
+module = [
+    "PySpin",  # TODO(ecyoung3): Try to generate stubs using stubgen
+]
+ignore_missing_imports = true
