@@ -107,17 +107,45 @@ def column_to_image(column: Union[np.ndarray, list]) -> np.ndarray:
     # Convert to 2D array
     return column[::-1, np.newaxis]
 
-def extend_image(image: np.ndarray, new_col: np.ndarray) -> np.ndarray:
+def extend_image(img: np.ndarray, new_col: np.ndarray, pad: bool=True) -> np.ndarray:
     """ Append a new column onto the right side of an image. """
-    # Make sure the new column is the same height as the image
-    # If it isn't, pad the edges with np.nan
-    h, w = image.shape[:2]
-    if new_col.size != h:
-        print(f"Image height {h} does not match column height {new_col.size}")
-        return column_to_image(new_col)
+    # Convert new column to 2D array so it can be appended to image
+    col = column_to_image(new_col)
     
-    return np.append(image, column_to_image(new_col), axis=1)
-
+    # Get image and column dimensions
+    im_h, im_w = img.shape[:2]
+    col_h, col_w = new_col.size, 1
+    
+    # If column and image are same height, append column to image
+    if im_h == col_h:
+        return np.append(img, col, axis=1)
+    
+    # If padding and column is taller than image, pad image w/ zeros
+    elif pad and col_h > im_h:
+        # Create "blank" image
+        new_img = np.zeros((col_h, im_w))
+        
+        # Paste the old image vertically centered
+        dy = int((col_h - im_h) / 2)
+        new_img[dy:dy+im_h, :] = img
+        
+        return np.append(new_img, col, axis=1)
+        
+    # If padding and column is shorter than image, pad column w/ zeros
+    elif pad and col_h < im_h:
+        # Create "blank" column
+        _col = np.zeros((im_h, 1))
+        
+        # Paste the column vertically centered
+        dy = int((im_h - col_h) / 2)
+        _col[dy:dy+col_h, :] = col
+        
+        return np.append(img, _col, axis=1)
+        
+    # If not padding and sizes don't match, create a new image
+    elif not pad and col_h != im_h:
+        return col
+    
 def get_valid_colormaps() -> List[str]:
     return mpl.pyplot.colormaps()
 

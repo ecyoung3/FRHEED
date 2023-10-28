@@ -47,27 +47,53 @@ from PyQt5.QtCore import (
     
     )
 
-from frheed.widgets.common_widgets import SliderLabel, DoubleSlider, HLine
+from frheed.widgets.common_widgets import (
+    SliderLabel, 
+    DoubleSlider, 
+    HLine, 
+    VLine,
+    
+    )
 from frheed.widgets.canvas_widget import CanvasWidget
+from frheed.widgets.cmap_widgets import ColormapMenu
 from frheed.cameras import CameraError
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.usb import UsbCamera
 from frheed.image_processing import (
-    apply_cmap, to_grayscale, ndarray_to_qpixmap, extend_image, column_to_image,
+    apply_cmap, to_grayscale,
+    ndarray_to_qpixmap, 
+    extend_image, 
+    column_to_image,
     get_valid_colormaps,
+    
     )
 from frheed.constants import DATA_DIR
-from frheed.utils import load_settings, save_settings
+from frheed.utils import load_settings, save_settings, get_logger
+from frheed.settings import DEFAULT_CMAP
     
 
+# Local settings
 MIN_ZOOM = 0.20
 MAX_ZOOM = 2.0
 MIN_W = 480
 MIN_H = 348
 MAX_W = 2560
 MAX_H = 2560
-DEFAULT_CMAP = "Spectral"
 DEFAULT_INTERPOLATION = cv2.INTER_CUBIC
+
+# Logger
+logger = get_logger()
+
+# TODO list
+TODO = """
+Create icons for each of the toolbar buttons
+Add tooltip text to each item
+Add vertical splitters between logical groups
+Ability to switch user & set experiment
+Save settings of last user & sample
+Add image annotation
+Ability to change colormaps
+""".strip("\n").split("\n")
 
 
 class VideoWidget(QWidget):
@@ -78,6 +104,7 @@ class VideoWidget(QWidget):
     _min_w = 480
     _min_h = 348
     _max_w = MAX_W
+    _output_folder = DATA_DIR
     
     def __init__(self, camera: Union[FlirCamera, UsbCamera], parent = None):
         super().__init__(parent)
@@ -134,14 +161,13 @@ class VideoWidget(QWidget):
         self.zoom_label = SliderLabel(self.slider, name="Zoom", precision=2)
         
         # Create button for opening settings
-        self.settings_button = QPushButton()
-        self.settings_button.setText("Edit Settings")
+        self.settings_button = QPushButton("Edit Settings")
         self.settings_button.setSizePolicy(QSizePolicy.Maximum,
                                            QSizePolicy.Maximum)
         
         # Create button for opening output folder
-        self.folder_button = QPushButton()
-        # TODO: Finish functionality of this button
+        self.folder_button = QPushButton("Open Output Folder")
+        self.folder_button.setToolTip("Open the capture save folder")
         
         # Create settings widget
         self.make_camera_settings_widget()
@@ -160,6 +186,14 @@ class VideoWidget(QWidget):
         # Create status bar
         self.status_bar = CameraStatusBar(self)
         
+        # Add colormap list to Canvas widget menu
+        self.menu = self.display.canvas.menu
+        self.menu.addSeparator()
+        self.cmap_menu = ColormapMenu()
+        self.menu.addMenu(self.cmap_menu)
+        self.cmap_menu.select_cmap(DEFAULT_CMAP)
+        self.status_bar.update_colormap(DEFAULT_CMAP)
+        
         # Add widgets
         self.layout.addLayout(self.toolbar_layout, 0, 0, 1, 1)
         self.toolbar_layout.addWidget(self.capture_button, 0, 0, 1, 1)
@@ -167,6 +201,7 @@ class VideoWidget(QWidget):
         self.toolbar_layout.addWidget(self.zoom_label, 0, 2, 1, 1)
         self.toolbar_layout.addWidget(self.slider, 0, 3, 1, 1)
         self.toolbar_layout.addWidget(self.settings_button, 0, 4, 1, 1)
+        self.toolbar_layout.addWidget(self.folder_button, 0, 5, 1, 1)
         self.layout.addWidget(self.scroll, 1, 0, 1, 1)
         self.layout.addWidget(self.status_bar, 2, 0, 1, 1)
         
@@ -176,6 +211,7 @@ class VideoWidget(QWidget):
         self.settings_button.clicked.connect(self.edit_settings)
         self.slider.valueChanged.connect(self.display.force_resize)
         self.frame_changed.connect(self.status_bar.frame_changed)
+        self.folder_button.clicked.connect(self.open_output_folder)
         
         # Attributes to be assigned later
         self.frame:         Union[np.ndarray, None] = None
@@ -202,6 +238,7 @@ class VideoWidget(QWidget):
         
         # Connect other signals
         self.frame_ready.connect(self.analysis_worker.analyze_frame)
+        self.cmap_menu.cmap_selected.connect(self.status_bar.update_colormap)
         
         # Variables to be used in properties
         self._workers = (self.camera_worker, self.analysis_worker)
@@ -285,6 +322,14 @@ class VideoWidget(QWidget):
         # Show the QPixmap
         self.display.label.setPixmap(qpix)
         
+        # Update the tooltip
+        tooltip = "\n".join([
+            f"Width: {self.frame.shape[1]} px",
+            f"Height: {self.frame.shape[0]} px",
+            f"Colormap: {self.colormap}"
+            ])
+        self.display.setToolTip(tooltip)
+        
         # Emit frame_changed signal
         self.frame_changed.emit()
         
@@ -312,6 +357,11 @@ class VideoWidget(QWidget):
     def set_colormap(self, colormap: str) -> None:
         self.colormap = colormap
         
+    @pyqtSlot()
+    def open_output_folder(self) -> None:
+        """ Open the output folder where videos and images are saved. """
+        os.startfile(self.output_folder)
+        
     @property
     def camera(self) -> Union[FlirCamera, UsbCamera]:
         return self._camera
@@ -334,14 +384,38 @@ class VideoWidget(QWidget):
         return QApplication.instance()
     
     @property
+    def valid_colormaps(self) -> list:
+        """ Available colormaps to choose from. """
+        return get_valid_colormaps()
+    
+    @property
+    def valid_cmaps(self) -> list:
+        """ Alias for valid_colormaps """
+        return self.valid_colormaps
+    
+    @property
     def colormap(self) -> str:
-        return self._colormap
+        try:
+            return self.cmap_menu.cmap
+        except Exception as ex:
+            # print(ex)
+            # logger.exception(ex)
+            # logger.info(f"Using default colormap {DEFAULT_CMAP}")
+            return DEFAULT_CMAP
     
     @colormap.setter
     def colormap(self, colormap: str) -> None:
-        if colormap in get_valid_colormaps():
-            self._colormap = colormap
-            # TODO: Update label that shows current colormap
+        self.cmap_menu.select_cmap(colormap)
+    
+    @property
+    def output_folder(self) -> str:
+        return self._output_folder
+    
+    @output_folder.setter
+    def output_folder(self, folder: str) -> None:
+        if isinstance(folder, str):
+            os.mkdirs(folder, exist_ok=True)
+            self._output_folder = folder
     
     def make_camera_settings_widget(self) -> None:
         self.settings_widget = CameraSettingsWidget(self)
@@ -921,14 +995,22 @@ class CameraStatusBar(QStatusBar):
         self.incomplete_frames_label = QLabel()
         self.incomplete_frames_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         
+        # Add widget for displaying current colormap
+        self.colormap_label = QLabel()
+        self.colormap_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        
         # Add widget for displaying errors
         self.error_label = QLabel()
         self.error_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         
         # Add widgets
         self.insertWidget(0, self.fps_label, 0)
-        self.insertWidget(1, self.incomplete_frames_label, 1)
-        self.insertWidget(2, self.error_label, 0)
+        self.insertWidget(1, VLine(), 0)
+        self.insertWidget(2, self.incomplete_frames_label, 0)
+        self.insertWidget(3, VLine(), 0)
+        self.insertWidget(4, self.colormap_label, 1)
+        self.insertWidget(5, VLine(), 0)
+        self.insertWidget(6, self.error_label, 0)
         
         # Display status
         
@@ -965,6 +1047,10 @@ class CameraStatusBar(QStatusBar):
             f"Incomplete images: {self.incomplete_image_count}"
             )
         self.error_label.setText(self.error_status)
+        
+    @pyqtSlot(str)
+    def update_colormap(self, cmap: str) -> None:
+        self.colormap_label.setText(f"Colormap: {cmap} ")
 
 
 class Worker(QObject):
@@ -1127,8 +1213,8 @@ if __name__ == "__main__":
     def test():
         from frheed.utils import test_widget
     
-        camera = FlirCamera(lock=False)
-        # camera = UsbCamera(lock=False)
+        # camera = FlirCamera(lock=False)
+        camera = UsbCamera(lock=False)
         widget, app = test_widget(VideoWidget, camera=camera, 
                                   block=True)
         return widget, app

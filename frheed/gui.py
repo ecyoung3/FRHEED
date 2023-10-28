@@ -25,7 +25,7 @@ class FRHEED(QMainWindow):
         # Initialize window
         super().__init__(parent=None)
         
-        # Store reference so the window doesn't get garbage-collected
+        # Store reference so the window doesn't get garbage collected
         windows.append(self)
         
         # Create the main widget
