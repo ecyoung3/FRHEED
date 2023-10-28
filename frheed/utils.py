@@ -2,11 +2,13 @@
 General utility functions for FRHEED.
 """
 
+import contextlib
 import os
 import sys
-from typing import Dict, Optional, Tuple, Union
+from typing import Iterator
 
 import numpy as np
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
@@ -38,7 +40,7 @@ def get_icon(name: str) -> QIcon:
     return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
-def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWidget, QApplication]:
+def test_widget(widget_class: type, block: bool = False, **kwargs) -> tuple[QWidget, QApplication]:
     """
     Create a widget from the provided class using the *args and **kwargs,
     and start a blocking application event loop if block = True.
@@ -101,7 +103,7 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWid
 
 
 def unit_string(
-    value: Union[float, int], unit: str, sep: Optional[str] = None, precision: Optional[int] = 2
+    value: float | int, unit: str, sep: str | None = None, precision: int | None = 2
 ) -> str:
     """
     Format a unit string depending on the order of magnitude.
@@ -375,6 +377,15 @@ def snip_lists(*lists) -> list:
 
 def get_locals(frame) -> dict:
     return dict(frame.f_back.f_locals.items())
+
+
+@contextlib.contextmanager
+def with_cursor(cursor_shape: Qt.CursorShape) -> Iterator[None]:
+    try:
+        QApplication.setOverrideCursor(cursor_shape)
+        yield
+    finally:
+        QApplication.restoreOverrideCursor()
 
 
 if __name__ == "__main__":
