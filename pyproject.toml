@@ -25,7 +25,7 @@ mypy = "^1.6"
 [tool.poetry.group.linting]
 optional = true
 [tool.poetry.group.linting.dependencies]
-black = "^23.3"
+black = "^24.3"
 isort = "^5.12"
 pylint = "^2.17"
 
