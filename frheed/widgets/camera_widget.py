@@ -3,17 +3,29 @@ PyQt widgets for camera streaming and settings.
 https://stackoverflow.com/a/33453124/10342097
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import time
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any
 
 import cv2
 import numpy as np
-from PyQt5.QtCore import QObject, QSize, Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QObject,
+    QSize,
+    Qt,
+    QThread,
+    pyqtBoundSignal,
+    pyqtSignal,
+    pyqtSlot,
+)
+from PyQt6.QtGui import QCloseEvent, QKeyEvent, QWheelEvent
+from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
@@ -45,7 +57,7 @@ from frheed.image_processing import (
     ndarray_to_qpixmap,
     to_grayscale,
 )
-from frheed.widgets.canvas_widget import CanvasWidget
+from frheed.widgets.canvas_widget import CanvasShape, CanvasWidget
 from frheed.widgets.common_widgets import DoubleSlider, HLine, SliderLabel
 
 MIN_ZOOM = 0.20
@@ -67,7 +79,7 @@ class VideoWidget(QWidget):
     _min_h = 348
     _max_w = MAX_W
 
-    def __init__(self, camera: Union[FlirCamera, UsbCamera], parent=None, zoomable: bool = True):
+    def __init__(self, camera: FlirCamera | UsbCamera, parent=None, zoomable: bool = True):
         super().__init__(parent)
 
         # Store colormap
@@ -77,21 +89,21 @@ class VideoWidget(QWidget):
         self._zoomable = zoomable
 
         # Video writer for saving video
-        self._writer: Optional[cv2.VideoWriter] = None
+        self._writer: cv2.VideoWriter | None = None
 
         # Store camera reference and start the camera
         self.set_camera(camera)
 
         # Frame settings
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
         self.setMinimumSize(QSize(MIN_W, MIN_H))
         self.setMouseTracking(True)
 
         # Create main layout (2 rows x 1 column)
-        self.layout = QGridLayout()
-        self.layout.setContentsMargins(4, 4, 4, 4)
-        self.layout.setSpacing(4)
-        self.setLayout(self.layout)
+        self.main_layout = QGridLayout()
+        self.setLayout(self.main_layout)
+        self.main_layout.setContentsMargins(4, 4, 4, 4)
+        self.main_layout.setSpacing(4)
 
         # Create toolbar layout
         self.toolbar_layout = QGridLayout()
@@ -100,15 +112,15 @@ class VideoWidget(QWidget):
 
         # Create capture button for saving an image of the current frame
         self.capture_button = QPushButton("Capture", self)
-        self.capture_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.capture_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         # Create record button for saving video
         self.record_button = QPushButton("Start Recording", self)
-        self.record_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.record_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         # Create start/stop button
         self.play_button = QPushButton("Stop Camera")
-        self.play_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.play_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         # Determine maximum zoom because huge images cause lag
         cam_w, cam_h = camera.width, camera.height
@@ -116,14 +128,14 @@ class VideoWidget(QWidget):
 
         # Create zoom slider
         self.slider = DoubleSlider(decimals=2, log=False, parent=self)
-        self.slider.setFocusPolicy(Qt.NoFocus)
+        self.slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.slider.setMinimum(MIN_ZOOM)
         self.slider.setMaximum(max_zoom)
         self.slider.setValue(1.0)
         self.slider.setSingleStep(0.01)
-        self.slider.setTickPosition(QSlider.TicksAbove)
+        self.slider.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.slider.setTickInterval(0.10)
-        self.slider.setOrientation(Qt.Horizontal)
+        self.slider.setOrientation(Qt.Orientation.Horizontal)
 
         # Create zoom label
         self.zoom_label = SliderLabel(self.slider, name="Zoom", precision=2)
@@ -131,7 +143,7 @@ class VideoWidget(QWidget):
         # Create button for opening settings
         self.settings_button = QPushButton()
         self.settings_button.setText("Edit Settings")
-        self.settings_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.settings_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         # Create button for opening output folder
         self.folder_button = QPushButton()
@@ -144,26 +156,26 @@ class VideoWidget(QWidget):
         self.display = CameraDisplay(self)
 
         # Create scroll area for holding camera frame
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setWidget(self.display)
-        self.scroll.wheelEvent = lambda evt: self.wheelEvent(evt, self.scroll)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setWidget(self.display)
+        self.scroll_area.installEventFilter(self)
 
         # Create status bar
         self.status_bar = CameraStatusBar(self)
 
         # Add widgets
-        self.layout.addLayout(self.toolbar_layout, 0, 0, 1, 1)
+        self.main_layout.addLayout(self.toolbar_layout, 0, 0, 1, 1)
         self.toolbar_layout.addWidget(self.capture_button, 0, 0, 1, 1)
         self.toolbar_layout.addWidget(self.record_button, 0, 1, 1, 1)
         self.toolbar_layout.addWidget(self.play_button, 0, 2, 1, 1)
         self.toolbar_layout.addWidget(self.zoom_label, 0, 3, 1, 1)
         self.toolbar_layout.addWidget(self.slider, 0, 4, 1, 1)
         self.toolbar_layout.addWidget(self.settings_button, 0, 5, 1, 1)
-        self.layout.addWidget(self.scroll, 1, 0, 1, 1)
-        self.layout.addWidget(self.status_bar, 2, 0, 1, 1)
+        self.main_layout.addWidget(self.scroll_area, 1, 0, 1, 1)
+        self.main_layout.addWidget(self.status_bar, 2, 0, 1, 1)
 
         # Connect signals
         self.capture_button.clicked.connect(self.save_image)
@@ -174,8 +186,8 @@ class VideoWidget(QWidget):
         self.frame_changed.connect(self.status_bar.frame_changed)
 
         # Attributes to be assigned later
-        self.frame: Union[np.ndarray, None] = None
-        self.raw_frame: Union[np.ndarray, None] = None
+        self.frame: np.ndarray | None = None
+        self.raw_frame: np.ndarray | None = None
         self.region_data: dict = {}
         self.analyze_frames = True
 
@@ -200,49 +212,43 @@ class VideoWidget(QWidget):
         self.frame_ready.connect(self.analysis_worker.analyze_frame)
 
         # Variables to be used in properties
-        self._workers = (self.camera_worker, self.analysis_worker)
+        self._workers: tuple[Worker, ...] = (self.camera_worker, self.analysis_worker)
 
     def __del__(self) -> None:
         """Close the camera when the widget is deleted."""
         self.camera.close()
 
-    def keyPressEvent(self, event) -> None:
-        """Propagate keyPressEvent to children."""
-        super().keyPressEvent(event)
-        self.display.canvas.keyPressEvent(event)
-
-    def wheelEvent(self, event, parent=None) -> None:
-        # Zoom the camera if zooming is enabled
-        # TODO: Keep frame location constant under mouse while zooming
-        if event.modifiers() == Qt.ControlModifier and self.zoomable:
-            old_zoom = self.slider.value()
-            step = self.slider.singleStep()
-            dy = event.angleDelta().y()
-
-            # Zoom out if scrolling down
-            if dy < 0:
-                new_zoom = max(self.slider.minimum(), old_zoom - step)
-
-            # Zoom in if scrolling up
-            elif dy > 0:
-                new_zoom = min(self.slider.maximum(), old_zoom + step)
-
-            # Set the new zoom value
-            self.slider.setValue(new_zoom)
-
-        # Make sure scroll area doesn't scroll while CTRL is pressed
-        elif parent is not None:
-            super(type(parent), parent).wheelEvent(event)
-
-        # Make sure other wheelEvents function normally
-        else:
-            super().wheelEvent(event)
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        """Returns whether or not the event should be filtered out."""
+        if obj == self.display.canvas:
+            if type(event) == QKeyEvent:
+                self.display.canvas.keyPressEvent(event)
+        elif type(event) == QWheelEvent:
+            if event.modifiers() == Qt.KeyboardModifier.ControlModifier and self.zoomable:
+                # Zoom the camera if zooming is enabled
+                # TODO: Keep frame location constant under mouse while zooming
+                old_zoom = self.slider.value()
+                step = self.slider.singleStep()
+                dy = event.angleDelta().y()
+                if dy < 0:
+                    # Zoom out if scrolling down
+                    self.slider.setValue(max(self.slider.minimum(), old_zoom - step))
+                elif dy > 0:
+                    # Zoom in if scrolling up
+                    self.slider.setValue(min(self.slider.maximum(), old_zoom + step))
+                return True
+            elif obj == self.scroll_area:
+                # Make sure scroll area doesn't scroll while CTRL is pressed
+                self.scroll_area.wheelEvent(event)
+                return True
+        return False
 
     @pyqtSlot(QCloseEvent)
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         """Stop the camera and close settings when the widget is closed"""
         [worker.stop() for worker in self.workers]
         self.settings_widget.deleteLater()
+        super().closeEvent(event)
 
     @pyqtSlot()
     def start_or_stop_camera(self) -> None:
@@ -288,21 +294,27 @@ class VideoWidget(QWidget):
         self.frame_changed.emit()
 
     @pyqtSlot()
-    def save_image(self) -> None:
+    def save_image(self) -> str | None:
         """Save the currently displayed frame."""
-        frame = self.frame.copy()
+        if self.frame is None:
+            logging.warning("Cannot save image if the current frame is None")
+            return None
 
-        # Generate filename
+        frame = self.frame.copy()
         tstamp = datetime.now().strftime("%d-%b-%Y_%H%M%S")
         filename = f"{tstamp}.png"
         filepath = os.path.join(DATA_DIR, filename)
-
-        # Save the image
         cv2.imwrite(filepath, frame)
+
+        return filepath
 
     @pyqtSlot()
     def start_or_stop_recording(self) -> None:
         """Start or stop recording video."""
+        if self.frame is None:
+            logging.warning("Cannot start or stop recording if the current frame is None")
+            return
+
         # If there is no video writer, create one and start recording
         # https://www.geeksforgeeks.org/saving-a-video-using-opencv/
         if self._writer is None:
@@ -324,8 +336,9 @@ class VideoWidget(QWidget):
             fps = self.camera.real_fps
             h, w = self.frame.shape[:2]
             shape = (w, h)
+            fourcc = cv2.VideoWriter.fourcc(*"MJPG")
             logging.info("Creating video writer with FPS = %.2f and shape = %s", fps, shape)
-            self._writer = cv2.VideoWriter(filepath, cv2.VideoWriter_fourcc(*"MJPG"), fps, shape)
+            self._writer = cv2.VideoWriter(filepath, fourcc=fourcc, fps=fps, frameSize=shape)
 
         # Otherwise, stop recording
         else:
@@ -358,20 +371,18 @@ class VideoWidget(QWidget):
         self.display.force_resize()
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera]:
+    def camera(self) -> FlirCamera | UsbCamera:
         return self._camera
 
     @camera.setter
-    def camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
-        # Cannot set camera while recording
+    def camera(self, camera: FlirCamera | UsbCamera) -> None:
         if self._writer is not None:
-            return QMessageBox.warning(
-                self, "Warning", "Cannot change camera while recording video."
-            )
+            # Cannot set camera while recording
+            QMessageBox.warning(self, "Warning", "Cannot change camera while recording video.")
+            return
 
-        # Set the camera
-        self.set_camera(camera)
         # TODO: Fully implement this and test it
+        self.set_camera(camera)
 
     @property
     def zoomable(self) -> bool:
@@ -391,7 +402,7 @@ class VideoWidget(QWidget):
         return self._workers
 
     @property
-    def app(self) -> QApplication:
+    def app(self) -> QCoreApplication | None:
         return QApplication.instance()
 
     @property
@@ -407,7 +418,7 @@ class VideoWidget(QWidget):
     def make_camera_settings_widget(self) -> None:
         self.settings_widget = CameraSettingsWidget(self)
 
-    def set_camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+    def set_camera(self, camera: FlirCamera | UsbCamera) -> None:
         """Set the camera to use as capture device for the display.
 
         Args:
@@ -416,11 +427,9 @@ class VideoWidget(QWidget):
         Returns:
             None
         """
-        # Cannot set camera while recording
         if self._writer is not None:
-            return QMessageBox.warning(
-                self, "Warning", "Cannot change camera while recording video."
-            )
+            QMessageBox.warning(self, "Warning", "Cannot change camera while recording video.")
+            return
 
         # Change the camera and start it
         self._camera = camera
@@ -458,10 +467,12 @@ class VideoWidget(QWidget):
         self.slider.setEnabled(zoomable)
 
     def _start_workers(self) -> None:
-        [worker.start() for worker in self._workers]
+        for worker in self._workers:
+            worker.start()
 
     def _stop_workers(self) -> None:
-        [worker.stop() for worker in self._workers]
+        for worker in self._workers:
+            worker.stop()
 
     def _resize_frame(self, frame: np.ndarray, interp: int = DEFAULT_INTERPOLATION) -> np.ndarray:
         size = self.display.sizeHint()
@@ -472,47 +483,51 @@ class VideoWidget(QWidget):
 class CameraDisplay(QWidget):
     """Displays the camera frame itself"""
 
-    def __init__(self, parent: VideoWidget):
+    def __init__(self, parent: VideoWidget) -> None:
         super().__init__(parent)
-        self._parent = parent
+        self._video_widget = parent
 
         # Settings
         self.setMouseTracking(True)
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         # Create layout
-        self.layout = QGridLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
-        self.layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        self.setLayout(self.layout)
+        self.main_layout = QGridLayout()
+        self.setLayout(self.main_layout)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # Create display label
         self.label = QLabel()
-        self.label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         # Create canvas
         self.canvas = CanvasWidget(self, shape_limit=6)
         # self.canvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # Add widgets on top of each other
-        self.layout.addWidget(self.label, 0, 0, 1, 1)
-        self.layout.addWidget(self.canvas, 0, 0, 1, 1)
+        self.main_layout.addWidget(self.label, 0, 0, 1, 1)
+        self.main_layout.addWidget(self.canvas, 0, 0, 1, 1)
 
         # # Stretch so widget stays in top left
-        self.layout.setRowStretch(1, 1)
-        self.layout.setColumnStretch(1, 1)
+        self.main_layout.setRowStretch(1, 1)
+        self.main_layout.setColumnStretch(1, 1)
 
         # Bring the canvas to the front
         self.canvas.raise_()
 
     @property
-    def raw_frame(self) -> Union[None, np.ndarray]:
-        return self._parent.raw_frame
+    def video_widget(self) -> VideoWidget:
+        return self._video_widget
+
+    @property
+    def raw_frame(self) -> np.ndarray | None:
+        return self.video_widget.raw_frame
 
     @property
     def zoom(self) -> float:
-        return self._parent.zoom
+        return self.video_widget.zoom
 
     def minimumSizeHint(self) -> QSize:
         """Define the minimum dimensions of the widget"""
@@ -533,9 +548,10 @@ class CameraDisplay(QWidget):
         # print(self.canvas.size(), self.label.size(), self.size())
 
     def sizeHint(self) -> QSize:
-        if getattr(self, "raw_frame", None) is not None:
-            width = int(self.raw_frame.shape[1] * self.zoom)
-            height = int(self.raw_frame.shape[0] * self.zoom)
+        raw_frame = getattr(self, "raw_frame", None)
+        if isinstance(raw_frame, np.ndarray):
+            width = int(raw_frame.shape[1] * self.zoom)
+            height = int(raw_frame.shape[0] * self.zoom)
             return QSize(width, height)
         else:
             return super().sizeHint()
@@ -543,28 +559,25 @@ class CameraDisplay(QWidget):
     @pyqtSlot()
     def force_resize(self) -> None:
         """If the FPS is low, sometimes the display can be unresponsive"""
-        return
-        # Resize the widget
-        self.resize(self.sizeHint())
+        pass
+        # TODO(ecyoung3): Investigate functionality
+        # # Resize the widget
+        # self.resize(self.sizeHint())
 
-        # Resize the image
-        self.label.setPixmap(
-            self.label.pixmap().scaled(self.sizeHint(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        )
-
-    def parent(self) -> Union[None, VideoWidget]:
-        return self._parent or super().parent()
+        # # Resize the image
+        # self.label.setPixmap(
+        # self.label.pixmap().scaled(self.sizeHint(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # )
 
 
 class CameraSettingsWidget(QWidget):
     """A popup widget that shows camera settings"""
 
-    def __init__(self, parent: VideoWidget = None, popup: bool = True):
+    def __init__(self, parent: VideoWidget | None = None, popup: bool = True):
         super().__init__(parent)
-        self._parent = parent
 
         # Make widget open in separate window if "popup" is True
-        self.setWindowFlags(Qt.Window) if popup else None
+        self.setWindowFlags(Qt.WindowType.Window) if popup else None
         self.setWindowTitle("Edit Camera Settings") if popup else None
 
         # Settings
@@ -579,15 +592,15 @@ class CameraSettingsWidget(QWidget):
         self.status_bar.setContentsMargins(0, 0, 0, 0)
 
         # Create main layout
-        self.layout = QGridLayout()
-        self.layout.setContentsMargins(8, 8, 8, 8)
-        self.layout.setSpacing(8)
-        self.setLayout(self.layout)
+        self.main_layout = QGridLayout()
+        self.setLayout(self.main_layout)
+        self.main_layout.setContentsMargins(8, 8, 8, 8)
+        self.main_layout.setSpacing(8)
 
         # Create label for QComboBox
         self.config_label = QLabel()
         self.config_label.setText("Configuration:")
-        self.config_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.config_label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         # Create QComboBox for selelecting configuration
         self.config_box = QComboBox()
@@ -605,8 +618,9 @@ class CameraSettingsWidget(QWidget):
         self.delete_button.setEnabled(False)
 
         # Create camera settings widgets (sort alphabetically)
+        # TODO(ecyoung3): Move the CameraSettingWidget definition to a different scope
+        self._settings_widgets: dict[str, CameraSettingsWidget.CameraSettingWidget] = {}
         row = 2
-        self._settings_widgets = {}
         for title, info in sorted(self.settings.items(), key=lambda i: i[0]):
             # Create widget
             info["title"] = title
@@ -614,17 +628,17 @@ class CameraSettingsWidget(QWidget):
             self._settings_widgets[info["name"]] = widget
 
             # Add widget to layout
-            self.layout.addWidget(widget, row, 0, 1, 4)
+            self.main_layout.addWidget(widget, row, 0, 1, 4)
             row += 1
 
         # Add the widgets
-        self.layout.addWidget(self.config_label, 0, 0, 1, 1)
-        self.layout.addWidget(self.config_box, 0, 1, 1, 1)
-        self.layout.addWidget(self.save_button, 0, 2, 1, 1)
-        self.layout.addWidget(self.delete_button, 0, 3, 1, 1)
-        self.layout.addWidget(HLine(), 1, 0, 1, 4)
-        self.layout.addWidget(HLine(), row + 2, 0, 1, 4)
-        self.layout.addWidget(self.status_bar, row + 3, 0, 1, 4)
+        self.main_layout.addWidget(self.config_label, 0, 0, 1, 1)
+        self.main_layout.addWidget(self.config_box, 0, 1, 1, 1)
+        self.main_layout.addWidget(self.save_button, 0, 2, 1, 1)
+        self.main_layout.addWidget(self.delete_button, 0, 3, 1, 1)
+        self.main_layout.addWidget(HLine(), 1, 0, 1, 4)
+        self.main_layout.addWidget(HLine(), row + 2, 0, 1, 4)
+        self.main_layout.addWidget(self.status_bar, row + 3, 0, 1, 4)
 
         # Load the configurations
         self._saved = True
@@ -637,7 +651,7 @@ class CameraSettingsWidget(QWidget):
         self.delete_button.clicked.connect(self.delete_config)
 
         # Stretch the last row
-        self.layout.setRowStretch(row + 1, 1)
+        self.main_layout.setRowStretch(row + 1, 1)
 
         # Set fixed size
         width = int(self.sizeHint().width() * 1.5)
@@ -653,12 +667,17 @@ class CameraSettingsWidget(QWidget):
         self.setVisible(False)
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
-        return getattr(self._parent, "camera", None)
+    def camera(self) -> FlirCamera | UsbCamera | None:
+        parent = self.parent()
+        if type(parent) == VideoWidget:
+            return parent.camera
+        return None
 
     @property
     def settings(self) -> dict:
         """Only get read/write-accessible camera settings"""
+        if self.camera is None:
+            return {}
         settings = getattr(self.camera, "gui_settings", {})
         return {title: self.camera.get_info(name) for name, title in settings.items()}
 
@@ -687,7 +706,7 @@ class CameraSettingsWidget(QWidget):
                 "Current configuration has not been saved.\n"
                 "Would you like to save before switching?",
             )
-            if confirm == QMessageBox.Yes:
+            if confirm == QMessageBox.StandardButton.Yes:
                 self.save_configs()
 
         # Update previous config
@@ -728,7 +747,7 @@ class CameraSettingsWidget(QWidget):
             self,
             "Save Configuration",
             "Enter configuration name:",
-            QLineEdit.Normal,
+            QLineEdit.EchoMode.Normal,
             self.current_config,
         )
 
@@ -749,7 +768,7 @@ class CameraSettingsWidget(QWidget):
                 "Confirm Configuration Name",
                 f'A configuration "{name}" already exists.\n' f"Would you like to {action} it?",
             )
-            if confirm != QMessageBox.Yes:
+            if confirm != QMessageBox.StandardButton.Yes:
                 return
 
         # Save configurations
@@ -769,7 +788,7 @@ class CameraSettingsWidget(QWidget):
 
         # Prompt before deleting
         confirm = QMessageBox.question(self, "Confirm Delete", "Delete this configuration?")
-        if confirm != QMessageBox.Yes:
+        if confirm != QMessageBox.StandardButton.Yes:
             return
 
         # Remove the current configuration name
@@ -813,15 +832,15 @@ class CameraSettingsWidget(QWidget):
         return d
 
     class CameraSettingWidget(QWidget):
-        def __init__(self, info: dict, parent: "CameraSettingsWidget"):
+        def __init__(self, info: dict[str, Any], parent: CameraSettingsWidget):
             super().__init__(parent)
             self._parent = parent
 
             # Store info
             self.info = info
-            self.name = info["name"]
-            self.title = info["title"]
-            self.description = info.get("description", "")
+            self.name: str = info["name"]
+            self.title: str = info["title"]
+            self.description: str = info.get("description", "")
             unit = info.get("unit", "")
             self.unit = "µs" if unit == "us" else unit  # fix microsecond formatting
             self.entries = info.get("entries", None)
@@ -836,12 +855,13 @@ class CameraSettingsWidget(QWidget):
             self.setMouseTracking(True)
 
             # Create layout
-            self.layout = QGridLayout()
-            self.layout.setContentsMargins(0, 0, 0, 0)
-            self.layout.setSpacing(4)
-            self.setLayout(self.layout)
+            self.main_layout = QGridLayout()
+            self.setLayout(self.main_layout)
+            self.main_layout.setContentsMargins(0, 0, 0, 0)
+            self.main_layout.setSpacing(4)
 
             # Use a DoubleSlider if min & max provided
+            self.widget: QWidget
             if min_val is not None and max_val is not None:
                 # Use log scale if difference between min & max is > 1,000
                 log = (max_val / min_val) > 1e3 if min_val != 0 else False
@@ -874,12 +894,13 @@ class CameraSettingsWidget(QWidget):
                 return print(f"Unable to create widget for setting '{info['name']}'")
 
             # Create label
+            self.label: QLabel
             if isinstance(self.widget, QSlider):
                 self.label = SliderLabel(self.widget, name=self.title, unit=self.unit, precision=2)
             else:
                 self.label = QLabel()
                 self.label.setText(f"{self.title}:")
-            self.label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+            self.label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
             self.label.setToolTip(self.description.replace(". ", ".\n"))
 
             # Hide the label if the widget is a QCheckBox since it has a label already
@@ -887,11 +908,12 @@ class CameraSettingsWidget(QWidget):
                 self.label.setVisible(False)
 
             # Ignore wheel events for non-spinboxes
-            if not isinstance(self.widget, QDoubleSpinBox):
-                self.widget.wheelEvent = lambda event: None
+            self.widget.installEventFilter(self)
 
             # Set size policy
-            self.widget.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Maximum)
+            self.widget.setSizePolicy(
+                QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Maximum
+            )
 
             # Disable the widget if currently inaccessible
             writable = "write" in info.get("access", "write")
@@ -905,62 +927,60 @@ class CameraSettingsWidget(QWidget):
             self.connect_signal()
 
             # Add widgets to layout
-            self.layout.addWidget(self.label, 0, 0, 1, 1)
-            self.layout.addWidget(self.widget, 0, 1, 1, 1)
+            self.main_layout.addWidget(self.label, 0, 0, 1, 1)
+            self.main_layout.addWidget(self.widget, 0, 1, 1, 1)
+
+        def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+            if type(event) == QWheelEvent:
+                if obj == self.widget and not isinstance(obj, QDoubleSpinBox):
+                    # Ignore wheel events for non-spinboxes
+                    return True
+            return False
 
         def connect_signal(self) -> None:
             if getattr(self, "_connected", False):
                 return
-
-            if isinstance(self.widget, QDoubleSpinBox):
+            elif isinstance(self.widget, QDoubleSpinBox):
                 sig = "valueChanged"
-
             elif isinstance(self.widget, DoubleSlider):
                 sig = "doubleValueChanged"
-
             elif isinstance(self.widget, QComboBox):
                 sig = "currentTextChanged"
-
             elif isinstance(self.widget, QCheckBox):
                 sig = "stateChanged"
-
             elif isinstance(self.widget, QLineEdit):
                 sig = "textChanged"
-
             else:
                 return
 
-            getattr(self.widget, sig).connect(self.change_setting)
+            signal: pyqtBoundSignal = getattr(self.widget, sig)
+            signal.connect(self.change_setting)
             self._connected = True
 
-        def set_value(self, value: Union[bool, str, float]) -> None:
-            if isinstance(self.widget, (QDoubleSpinBox, DoubleSlider)):
+        def set_value(self, value: bool | str | float) -> None:
+            if isinstance(self.widget, (QDoubleSpinBox, DoubleSlider)) and type(value) == float:
                 self.widget.setValue(value)
-
             elif isinstance(self.widget, QComboBox):
-                self.widget.setCurrentIndex(self.info["entries"].index(value))
-
+                entries: list[Any] = self.info.get("entries", [])
+                self.widget.setCurrentIndex(entries.index(value))
             elif isinstance(self.widget, QCheckBox):
-                self.widget.setChecked(value)
-
+                self.widget.setChecked(bool(value))
             elif isinstance(self.widget, QLineEdit):
                 self.widget.setText(str(value))
 
-        def get_value(self) -> Union[bool, str, float]:
+        def get_value(self) -> bool | str | float:
             """Get the current value of the setting"""
             if isinstance(self.widget, (QDoubleSpinBox, DoubleSlider)):
                 return self.widget.value()
-
             elif isinstance(self.widget, QComboBox):
                 return self.widget.currentText()
-
             elif isinstance(self.widget, QLineEdit):
                 return self.widget.text()
-
             elif isinstance(self.widget, QCheckBox):
                 return self.widget.isChecked()
+            raise TypeError(f"Widget has unsupported type {type(self.widget)}")
 
-        def change_setting(self, value: Union[bool, str, float]) -> None:
+        def change_setting(self, value: bool | str | float) -> None:
             # Mark the SettingsWidget as not saved
             self._parent.saved = False
 
@@ -975,13 +995,10 @@ class CameraSettingsWidget(QWidget):
 
                 if self.unit:
                     message += f" {self.unit}"
-
             except CameraError as cam_error:
                 message = f"Error setting {self.name}: {cam_error}"
-
             except Exception as ex:
                 message = f"Error setting {self.name}: {ex}"
-
             finally:
                 self._parent.status_bar.showMessage(message)
                 self._parent.status_bar.setToolTip(message)
@@ -991,7 +1008,7 @@ class CameraSettingsWidget(QWidget):
 
 
 class CameraStatusBar(QStatusBar):
-    def __init__(self, parent: VideoWidget = None):
+    def __init__(self, parent: VideoWidget | None = None):
         super().__init__(parent)
         self._parent = parent
 
@@ -1003,11 +1020,13 @@ class CameraStatusBar(QStatusBar):
 
         # Add widget for displaying incomplete frame count
         self.incomplete_frames_label = QLabel()
-        self.incomplete_frames_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.incomplete_frames_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
 
         # Add widget for displaying errors
         self.error_label = QLabel()
-        self.error_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.error_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         # Add widgets
         self.insertWidget(0, self.fps_label, 0)
@@ -1016,6 +1035,7 @@ class CameraStatusBar(QStatusBar):
 
         # Display status
 
+        # TODO(ecyoung3): Finish implementation
         # # Remove border on widget
         # self.setStyleSheet(self.styleSheet() + """
         #                    QStatusBar::item {border: None;}
@@ -1023,7 +1043,7 @@ class CameraStatusBar(QStatusBar):
         #                    )
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
+    def camera(self) -> FlirCamera | UsbCamera | None:
         return getattr(self._parent, "camera", None)
 
     @property
@@ -1049,6 +1069,7 @@ class CameraStatusBar(QStatusBar):
         self.error_label.setText(self.error_status)
 
 
+# TODO(ecyoung3): Make this an abstract base class
 class Worker(QObject):
     """
     A base class for worker objects.
@@ -1065,13 +1086,20 @@ class Worker(QObject):
         self._parent = parent
         self._running = False
 
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
+    # TODO(ecyoung3): Make start and stop return boolean indicating success
+    def start(self) -> None:
+        raise NotImplementedError()
+
+    def stop(self) -> None:
+        raise NotImplementedError()
+
+    def camera(self) -> FlirCamera | UsbCamera | None:
         return getattr(self._parent, "camera", None)
 
-    def display(self) -> Union[CameraDisplay, None]:
+    def display(self) -> CameraDisplay | None:
         return getattr(self._parent, "display", None)
 
-    def canvas(self) -> Union[CanvasWidget, None]:
+    def canvas(self) -> CanvasWidget | None:
         return getattr(self.display(), "canvas", None)
 
     def running(self) -> bool:
@@ -1085,12 +1113,17 @@ class CameraWorker(Worker):
 
     @pyqtSlot()
     def start(self) -> None:
+        camera = self.camera()
+        if camera is None:
+            logging.warning("Cannot start CameraWorker if camera is None")
+            return
+
         self._running = True
         while self.running():
             # Emit the next frame
             try:
-                if self.camera().running:
-                    self.frame_ready.emit(self.camera().get_array(complete_frames_only=True))
+                if camera.running:
+                    self.frame_ready.emit(camera.get_array(complete_frames_only=True))
 
             # Ignore RuntimeError, for example if the object is deleted
             except RuntimeError:
@@ -1102,8 +1135,12 @@ class CameraWorker(Worker):
 
     @pyqtSlot()
     def stop(self) -> None:
+        camera = self.camera()
+        if camera is None:
+            logging.warning("Cannot stop the CameraWorker if camera is None")
+            return
         self._running = False
-        self.camera().close()
+        camera.close()
         self.finished.emit()
 
 
@@ -1114,15 +1151,16 @@ class AnalysisWorker(Worker):
 
     data_ready = pyqtSignal(dict)
 
-    data = {}
-    start_time = None
+    # TODO(ecyoung3): Make a dataclass for data instances
+    data: dict[str, dict[str, Any]] = {}
+    start_time: float | None = None
 
     @property
-    def shapes(self) -> Union[list, tuple]:
-        return getattr(self.canvas(), "shapes", ())
+    def shapes(self) -> list[CanvasShape]:
+        return getattr(self.canvas(), "shapes", [])
 
     @property
-    def raw_frame(self) -> Union[np.ndarray, None]:
+    def raw_frame(self) -> np.ndarray | None:
         return getattr(self.camera(), "raw_frame", None)
 
     @pyqtSlot(np.ndarray)
@@ -1133,6 +1171,11 @@ class AnalysisWorker(Worker):
         # Get time of data collection relative to start
         if self.start_time is None or len(self.shapes) == 0:
             self.reset_timer()
+
+        if self.start_time is None:
+            # This should never happen, but it tells mypy that start_time is a float
+            raise TypeError("Somehow start_time is still None after calling reset_timer")
+
         t = time.time() - self.start_time
 
         # Get pixel intensities under regions of interest

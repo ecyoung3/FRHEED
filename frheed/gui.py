@@ -4,7 +4,7 @@ Main GUI for FRHEED.
 import logging
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from frheed import utils
 from frheed.widgets.rheed_widgets import RHEEDWidget
