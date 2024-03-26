@@ -133,7 +133,7 @@ class CanvasWidget(QLabel):
 
     shape_deleted = pyqtSignal(object)
 
-    def __init__(self, parent: QWidget | None = None, shape_limit: int = 10):
+    def __init__(self, parent: QWidget | None = None, shape_limit: int = 10) -> None:
         super().__init__(parent)
         self._shape_limit = shape_limit
 
@@ -529,7 +529,7 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
     """Base class for objects that can be drawn on a canvas."""
 
     shape_type: ShapeType | None = None
-    regions: tuple[ShapeRegion] = ()
+    regions: tuple[ShapeRegion, ...] = tuple()
 
     @property
     @abc.abstractmethod
@@ -539,7 +539,12 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
     @property
     @abc.abstractmethod
     def linewidth(self) -> int:
-        """Width of the shape's lines."""    
+        """Width of the shape's lines."""
+
+    @linewidth.setter
+    @abc.abstractmethod
+    def linewidth(self, linewidth: int) -> None:
+        """Sets the linewidth"""
 
     @property
     @abc.abstractmethod
@@ -567,9 +572,11 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
     def is_active(self) -> bool:
         """Whether or not the shape is active on its canvas."""
         return self.canvas is not None and self.canvas.active_shape == self
-    
+
     def point_distance_from_region(self, point: QPointF, region: ShapeRegion) -> float:
         """Returns the distance from a point to a region of the shape."""
+        # TODO(ecyoung3): Implement
+        raise NotImplementedError()
 
     def constrain_to_canvas(self, point: QPointF) -> QPointF:
         """Make sure a point falls inside the canvas."""
@@ -609,11 +616,10 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
 class CanvasLine(QLineF, CanvasShape):
     """A line that can be drawn on a CanvasWidget."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._linewidth: int = DEFAULT_LINEWIDTH
-        self._color: str = DEFAULT_COLOR
-        self._color_name: str | None = None
+        self._color = get_qcolor(DEFAULT_COLOR)
 
     def getCoords(self) -> tuple[float, float, float, float]:
         """Returns (x1, y1, x2, y2)."""
@@ -630,8 +636,8 @@ class CanvasLine(QLineF, CanvasShape):
 
         # Validate coordinates
         if self.canvas is not None:
-            new_line = CanvasLine(p1, new_p2)
-            x1, y1, x2, y2 = new_line.getCoords()
+            new_line = QLineF(p1, new_p2)
+            x1, y1, x2, y2 = (new_line.x1(), new_line.y1(), new_line.x2(), new_line.y2())
             xmin, xmax = sorted([x1, x2])
             ymin, ymax = sorted([y1, y2])
             width, height = self.canvas.width(), self.canvas.height()
@@ -672,7 +678,9 @@ class CanvasLine(QLineF, CanvasShape):
         self._color = get_qcolor(color)
 
     @property
-    def color_name(self) -> str:
+    def color_name(self) -> str | None:
+        if self.color is None:
+            return None
         return self.color.name()
 
     @property
@@ -693,7 +701,7 @@ class CanvasLine(QLineF, CanvasShape):
     def dist_from_point(self, point: QPointF) -> float:
         return line_point_dist(self, point)
 
-    def point_nearby(self, point: QPointF) -> float:
+    def point_nearby(self, point: QPointF) -> bool:
         """Determine if a point is near the line"""
         return self.dist_from_point(point) < EDGE_PAD
 
@@ -724,7 +732,7 @@ class CanvasLine(QLineF, CanvasShape):
         """Get a list of regions that are near a point"""
         # TODO(ecyoung3): Also streamline this logic if possible
         if self.near_p1(point):
-           yield ShapeRegion.P1
+            yield ShapeRegion.P1
         if self.near_p2(point):
             yield ShapeRegion.P2
         if self.near_center(point):
@@ -741,7 +749,7 @@ class CanvasLine(QLineF, CanvasShape):
         else:
             # Determine which region is closest if there are multiple
             # TODO(ecyoung3): This needs to return a ShapeRegion instead
-            seps = [(r, getattr(self, f"dist_from_{r.name.lower()}")(point)) for r in regions]
+            seps = [(r, getattr(self, f"dist_from_{str(r.name).lower()}")(point)) for r in regions]
 
             # Get the name of the nearest region
             return sorted(seps, key=lambda i: i[1])[0][0]
@@ -769,12 +777,12 @@ class CanvasLine(QLineF, CanvasShape):
         y1, y2 = sorted([y1, y2])
 
         # Create linspace of points along the X and Y dimensions
-        num = max(self.width(), self.height()) * 10  # this can probably be optimized
-        x = np.linspace(min(x1, width - 1), min(x2, width - 1), num, endpoint=False)
-        y = np.linspace(min(y1, height - 1), min(y2, height - 1), num, endpoint=False)
+        num = int(max(self.width(), self.height()) * 10)  # this can probably be optimized
+        x = np.linspace(int(min(x1, width - 1)), int(min(x2, width - 1)), num, endpoint=False)
+        y = np.linspace(int(min(y1, height - 1)), int(min(y2, height - 1)), num, endpoint=False)
 
         # Mask values along the line
-        mask[y.astype(np.int), x.astype(np.int)] = True
+        mask[y, x] = True
         return mask
 
     def rescale(self, old: QSize, new: QSize) -> None:
@@ -807,23 +815,25 @@ class CanvasLine(QLineF, CanvasShape):
 class CanvasRect(QRectF, CanvasShape):
     """A rectangle that can be drawn on a canvas."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._kind = ShapeType.RECTANGLE
+        self._color = get_qcolor(DEFAULT_COLOR)
 
         # Attributes to be assigned later
         self._linewidth: int = DEFAULT_LINEWIDTH
-        self._color: str = DEFAULT_COLOR
-        self._color_name: str | None = None
         self._canvas: CanvasWidget | None = None
 
-    def moveTo(self, p: QPoint) -> None:
+    def moveTo(self, p: QPointF) -> None:  # type: ignore[override]
         """Move the top left corner to point 'p'"""
 
         # Make sure the resulting position is valid
         if self.canvas is not None:
-            new_shape = QRect(p.x(), p.y(), self.width(), self.height())
+            new_shape = QRectF(p.x(), p.y(), self.width(), self.height())
             x1, y1, x2, y2 = new_shape.getCoords()
+            if x1 is None or y1 is None or x2 is None or y2 is None:
+                raise ValueError("Somehow the new QRectF coordinates are not set")
+            
             width, height = self.canvas.width(), self.canvas.height()
             lw = self.linewidth
             if x1 < 0 or y1 < 0 or x2 > (width - lw) or y2 > (height - lw):
@@ -832,6 +842,16 @@ class CanvasRect(QRectF, CanvasShape):
         # Move the shape
         super().moveTo(p)
         self.update()
+
+    def get_coords(self) -> tuple[float, float, float, float]:
+        """Returns the bounding coordinates (x1, y1, x2, y2) for the rectangle."""
+        x1, y1, x2, y2 = self.getCoords()
+
+        # NOTE: Written this way so mypy downcasts types for each coord from float | None -> float
+        if x1 is None or y1 is None or x2 is None or y2 is None:
+            raise ValueError(f"CanvasRect coordinates are not fully set: ({x1}, {y1}, {x2}, {y2})")
+
+        return (x1, y1, x2, y2)
 
     def normalize(self) -> None:
         """Normalize the shape so it has non-negative width/height"""
@@ -855,11 +875,11 @@ class CanvasRect(QRectF, CanvasShape):
             self.setBottomLeft(top_left)
 
     @property
-    def kind(self) -> str:
+    def kind(self) -> ShapeType:
         return self._kind
 
     @kind.setter
-    def kind(self, kind: str) -> None:
+    def kind(self, kind: ShapeType) -> None:
         self._kind = kind
         self.update()
 
@@ -872,7 +892,9 @@ class CanvasRect(QRectF, CanvasShape):
         self._color = get_qcolor(color)
 
     @property
-    def color_name(self) -> str:
+    def color_name(self) -> str | None:
+        if self.color is None:
+            return None
         return self.color.name()
 
     @property
@@ -891,109 +913,109 @@ class CanvasRect(QRectF, CanvasShape):
     @property
     def top_left_region(self) -> tuple:
         """Top left corner bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        x1, y1, _, _ = self.get_coords()
         return ((x1 - EDGE_PAD), (y1 - EDGE_PAD), (x1 + EDGE_PAD), (y1 + EDGE_PAD))
 
-    def near_top_left(self, p: QPoint) -> bool:
+    def near_top_left(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.top_left_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_top_left(self, p: QPoint) -> float:
+    def dist_from_top_left(self, p: QPointF) -> float:
         """Get the distance from a point to the top left corner"""
         return np.sqrt((self.top() - p.y()) ** 2 + (self.left() - p.x()) ** 2)
 
     @property
     def top_right_region(self) -> tuple:
         """Top right corner bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        _, y1, x2, _ = self.get_coords()
         return ((x2 - EDGE_PAD), (y1 - EDGE_PAD), (x2 + EDGE_PAD), (y1 + EDGE_PAD))
 
-    def near_top_right(self, p: QPoint) -> bool:
+    def near_top_right(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.top_right_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_top_right(self, p: QPoint) -> float:
+    def dist_from_top_right(self, p: QPointF) -> float:
         """Get the distance from a point to the top right corner"""
         return np.sqrt((self.top() - p.y()) ** 2 + (self.right() - p.x()) ** 2)
 
     @property
     def bottom_left_region(self) -> tuple:
         """Bottom left corner bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        x1, _, _, y2 = self.get_coords()
         return ((x1 - EDGE_PAD), (y2 - EDGE_PAD), (x1 + EDGE_PAD), (y2 + EDGE_PAD))
 
-    def near_bottom_left(self, p: QPoint) -> bool:
+    def near_bottom_left(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.bottom_left_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_bottom_left(self, p: QPoint) -> float:
+    def dist_from_bottom_left(self, p: QPointF) -> float:
         """Get the distance from a point to the bottom left corner"""
         return np.sqrt((self.bottom() - p.y()) ** 2 + (self.left() - p.x()) ** 2)
 
     @property
     def bottom_right_region(self) -> tuple:
         """Bottom right corner bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        _, _, x2, y2 = self.get_coords()
         return ((x2 - EDGE_PAD), (y2 - EDGE_PAD), (x2 + EDGE_PAD), (y2 + EDGE_PAD))
 
-    def near_bottom_right(self, point: QPoint) -> bool:
+    def near_bottom_right(self, point: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.bottom_right_region
         return (xmin < point.x() < xmax) and (ymin < point.y() < ymax)
 
-    def dist_from_bottom_right(self, p: QPoint) -> float:
+    def dist_from_bottom_right(self, p: QPointF) -> float:
         """Get the distance from a point to the bottom left corner"""
         return np.sqrt((self.bottom() - p.y()) ** 2 + (self.right() - p.x()) ** 2)
 
     @property
     def left_region(self) -> tuple:
         """Left region bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        x1, y1, _, y2 = self.get_coords()
         return ((x1 - EDGE_PAD), (y1 + EDGE_PAD), (x1 + EDGE_PAD), (y2 - EDGE_PAD))
 
-    def near_left(self, p: QPoint) -> bool:
+    def near_left(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.left_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_left(self, p: QPoint) -> float:
+    def dist_from_left(self, p: QPointF) -> float:
         """Get the distance from a point to the left edge"""
         return abs(p.x() - self.left())
 
     @property
     def right_region(self) -> tuple:
         """Right region bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        _, y1, x2, y2 = self.get_coords()
         xmin, xmax = (x2 - EDGE_PAD), (x2 + EDGE_PAD)
         ymin, ymax = (y1 + EDGE_PAD), (y2 - EDGE_PAD)
         return (xmin, ymin, xmax, ymax)
 
-    def near_right(self, p: QPoint) -> bool:
+    def near_right(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.right_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_right(self, point: QPoint) -> float:
+    def dist_from_right(self, point: QPointF) -> float:
         """Get the distance from a point to the right edge"""
         return abs(point.x() - self.right())
 
     @property
     def bottom_region(self) -> tuple:
         """Bottom region bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        x1, _, x2, y2 = self.get_coords()
         xmin, xmax = (x1 + EDGE_PAD), (x2 - EDGE_PAD)
         ymin, ymax = (y2 - EDGE_PAD), (y2 + EDGE_PAD)
         return (xmin, ymin, xmax, ymax)
 
-    def near_bottom(self, p: QPoint) -> bool:
+    def near_bottom(self, p: QPointF) -> bool:
         xmin, ymin, xmax, ymax = self.bottom_region
         return (xmin < p.x() < xmax) and (ymin < p.y() < ymax)
 
-    def dist_from_bottom(self, p: QPoint) -> float:
+    def dist_from_bottom(self, p: QPointF) -> float:
         """Get the distance from a point to the bottom edge"""
         return abs(p.y() - self.bottom())
 
     @property
     def top_region(self) -> tuple:
         """Top region bounding box (xmin, ymin, xmax, ymax)"""
-        x1, y1, x2, y2 = self.getCoords()
+        x1, y1, x2, _ = self.get_coords()
         xmin, xmax = (x1 + EDGE_PAD), (x2 - EDGE_PAD)
         ymin, ymax = (y1 - EDGE_PAD), (y1 + EDGE_PAD)
         return (xmin, ymin, xmax, ymax)
@@ -1002,11 +1024,11 @@ class CanvasRect(QRectF, CanvasShape):
         xmin, ymin, xmax, ymax = self.top_region
         return (xmin < point.x() < xmax) and (ymin < point.y() < ymax)
 
-    def dist_from_top(self, point: QPoint) -> float:
+    def dist_from_top(self, point: QPointF) -> float:
         """Get the distance from a point to the top edge"""
         return abs(point.y() - self.top())
 
-    def point_nearby(self, point: QPoint) -> bool:
+    def point_nearby(self, point: QPointF) -> bool:
         """Check if a QPoint is near any border of the shape"""
         return any(
             (
@@ -1017,7 +1039,7 @@ class CanvasRect(QRectF, CanvasShape):
             )
         )
 
-    def nearby_regions(self, point: QPoint) -> Iterator[ShapeRegion]:
+    def nearby_regions(self, point: QPointF) -> Iterator[ShapeRegion]:
         """Get list of regions that are near a point"""
         # TODO(ecyoung3): There has to be a better way of doing this...
         if self.near_top(point):
@@ -1077,14 +1099,14 @@ class CanvasRect(QRectF, CanvasShape):
         h, k = center.x(), center.y()
 
         # Get the shape dimensions, avoiding divide-by-zero error
-        x1, y1, x2, y2 = self.getCoords()
+        x1, y1, x2, y2 = self.get_coords()
         a = max(abs(x2 - x1) / 2, 1)
         b = max(abs(y2 - y1) / 2, 1)
 
         # Create the mask by calculating which pixels fall inside the shape
         if self.kind == ShapeType.RECTANGLE:
             mask = np.full((height, width), False, dtype=bool)
-            mask[y1 : y2 + 1, x1 : x2 + 1] = True
+            mask[int(y1) : int(y2 + 1), int(x1) : int(x2 + 1)] = True
         elif self.kind == ShapeType.ELLIPSE:
             # Equation for ellipse: ((x - h)^2 / a^2) + ((y - k)^2 / b^2) = 1
             # with center (h, k) and horizontal/vertical radii (a, b)
@@ -1104,7 +1126,7 @@ class CanvasRect(QRectF, CanvasShape):
         w_scale, h_scale = (w1 / max(w0, 1)), (h1 / max(h0, 1))
 
         # Work in floating point to avoid rounding problems
-        x1, y1, x2, y2 = self.getCoords()
+        x1, y1, x2, y2 = self.get_coords()
         x1_new, x2_new = (x1 * w_scale), (x2 * w_scale)
         y1_new, y2_new = (y1 * h_scale), (y2 * h_scale)
 
@@ -1112,9 +1134,9 @@ class CanvasRect(QRectF, CanvasShape):
         self.setCoords(x1_new, y1_new, x2_new, y2_new)
         self.update()
 
-    def resize(self, region: ShapeRegion, pos: QPoint) -> None:
+    def resize(self, region: ShapeRegion, pos: QPointF) -> None:
         """Resize the shape by moving a region to a new position."""
-        p = self.constrain_to_canvas(p)
+        pos = self.constrain_to_canvas(pos)
 
         if region == ShapeRegion.LEFT:
             self.setLeft(pos.x())
