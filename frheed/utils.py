@@ -5,7 +5,7 @@ General utility functions for FRHEED.
 import contextlib
 import os
 import sys
-from typing import Iterator
+from typing import Any, Iterator
 
 import numpy as np
 from PyQt6.QtCore import Qt
@@ -40,7 +40,9 @@ def get_icon(name: str) -> QIcon:
     return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
-def test_widget(widget_class: type, block: bool = False, **kwargs) -> tuple[QWidget, QApplication]:
+def test_widget(
+    widget_class: type[QWidget], block: bool = False, **kwargs
+) -> tuple[QWidget, QApplication]:
     """
     Create a widget from the provided class using the *args and **kwargs,
     and start a blocking application event loop if block = True.
@@ -68,7 +70,15 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> tuple[QWid
     from PyQt6.QtWidgets import QLabel
 
     # Get QApplication instance
-    app = QApplication.instance() or QApplication(["FRHEED"])
+    if (app_instance := QApplication.instance()) is not None:
+        app = QApplication(["FRHEED"])
+    elif isinstance(app_instance, QApplication):
+        app = app_instance
+    else:
+        raise ValueError(
+            f"Current application has type '{type(app_instance)}', but expected 'QApplication'"
+        )
+
     app.setStyle(settings.APP_STYLE)
 
     # Create widget
@@ -79,7 +89,7 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> tuple[QWid
     else:
         widget = QLabel()
         widget.setText("Demo Widget")
-        widget.setAlignment(Qt.AlignCenter)
+        widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # Set window icon
     widget.setWindowIcon(get_icon("FRHEED"))
@@ -97,7 +107,7 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> tuple[QWid
     widget.show()
 
     # NOTE: _exec() starts a blocking loop; any code after will not run
-    sys.exit(app.exec_()) if block else None
+    sys.exit(app.exec()) if block else None
 
     return (widget, app)
 
@@ -213,7 +223,7 @@ def unit_string(
     return unit_str
 
 
-def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str) -> None:
+def save_settings(settings: dict[str, dict[str, Any]], name: str) -> None:
     """
     Save a dictionary of settings to a .json file.
 
@@ -232,7 +242,7 @@ def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], 
     # TODO: Switch to using TOML config
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
-    config = {}
+    config: dict[str, dict[str, Any]] = {}
     for group_name, setting_dict in settings.items():
         config[group_name] = {}
         for setting, value in setting_dict.items():
@@ -246,7 +256,7 @@ def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], 
         json.dump(config, f, indent="\t")
 
 
-def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]]]:
+def load_settings(name: str) -> dict[str, dict[str, Any]]:
     """
     Load a .json file into a dictionary of settings with proper types.
 
@@ -273,10 +283,10 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
 
     # This will raise an OSError if the file doesn't exist or is inaccessible
     with open(path, "r") as f:
-        json_dict = json.load(f)
+        json_dict: dict[str, dict[str, Any]] = json.load(f)
 
     # Convert to proper types
-    config = {}
+    config: dict[str, dict[str, Any]] = {}
     for group_name, setting_dict in json_dict.items():
         config[group_name] = {}
 
@@ -347,7 +357,7 @@ def sample_array(
     return arr
 
 
-def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
+def get_qcolor(color: str | tuple | QColor) -> QColor:
     """Create a QColor. See https://doc.qt.io/qt-5/qcolor.html"""
 
     if isinstance(color, str):
@@ -363,7 +373,7 @@ def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
         raise TypeError(f"Unsupported color type {type(color)}")
 
 
-def get_qpen(color: Union[str, tuple, QColor], cosmetic: bool = True) -> QColor:
+def get_qpen(color: str | tuple | QColor, cosmetic: bool = True) -> QPen:
     """Create a QPen with the specified color"""
     pen = QPen(get_qcolor(color))
     pen.setCosmetic(cosmetic)
