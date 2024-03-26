@@ -14,12 +14,13 @@ opencv-python = "^4.7"
 scipy = "^1.9"
 pyqtgraph = "^0.13"
 cmapy = "0.6.6"
-appdirs = "1.4.4"
+appdirs = "1.4.4"  # TODO(elliotyoung): Deprecated - replace with `platformdirs`
 
 [tool.poetry.group.typechecking]
 optional = true
 [tool.poetry.group.typechecking.dependencies]
 mypy = "^1.6"
+types-appdirs = "1.4.3.5"  # TODO(elliotyoung): Remove when deprecating `appdirs`
 types-Pillow = "^10"
 
 [tool.poetry.group.linting]
