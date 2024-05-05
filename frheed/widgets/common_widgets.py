@@ -5,9 +5,9 @@ Commonly used subclassed PyQt5 widgets.
 import math
 from typing import Optional, Union
 
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QFontMetrics
-from PyQt5.QtWidgets import QFrame, QLabel, QSizePolicy, QSlider, QSpacerItem, QSplitter
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QFontMetrics
+from PyQt6.QtWidgets import QFrame, QLabel, QSizePolicy, QSlider, QSpacerItem, QSplitter
 
 from frheed.utils import unit_string
 
@@ -80,7 +80,7 @@ class DoubleSlider(QSlider):
     def setSingleStep(self, value: Union[float, int]) -> None:
         super().setSingleStep(self._to_int(value))
 
-    def singleStep(self) -> None:
+    def singleStep(self) -> float:
         return self._to_float(super().singleStep())
 
     def setValue(self, value: Union[float, int]) -> None:

@@ -3,9 +3,10 @@ Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 """
 
+import collections
+import logging
 import time
-from collections import deque
-from typing import Tuple, Union
+from typing import Any
 
 import numpy as np
 import PySpin
@@ -63,9 +64,7 @@ _GUI_FUNCTIONS = {
     "SerialReceiveQueueClear": "Clear Serial Port",
 }
 
-_DEBUG = __name__ == "__main__"
-
-_SYSTEM = None
+_SYSTEM: PySpin.System | None = None
 
 
 def list_cameras() -> PySpin.CameraList:
@@ -178,7 +177,7 @@ class FlirCamera:
         PySpin.intfICommand: "command",
     }
 
-    def __init__(self, src: Union[int, str] = 0, lock: bool = False):
+    def __init__(self, src: int | str = 0, lock: bool = False):
         """
         Parameters
         ----------
@@ -196,9 +195,7 @@ class FlirCamera:
         super().__setattr__("lock", lock)
 
         cam_list = list_cameras()
-
-        if _DEBUG:
-            print(f"Found {cam_list.GetSize()} FLIR camera(s)")
+        logging.debug("Found %s FLIR camera(s)", cam_list.GetSize())
 
         self._src_type = type(src)
         self._src = src
@@ -216,10 +213,10 @@ class FlirCamera:
 
         # Other attributes which may be accessed later
         self._running = False
-        self._frame_times = deque()
+        self._frame_times: collections.deque[float] = collections.deque()
         self._incomplete_image_count = 0
 
-    def __getattr__(self, attr: str) -> object:
+    def __getattr__(self, attr: str) -> Any:
         # Add this in so @property decorator works as expected
         if attr in self.__dict__:
             return self.__dict__[attr]
@@ -388,7 +385,7 @@ class FlirCamera:
         return int(height)
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Get the camera array dimensions (Height x Width)"""
         if not self.initialized:
             self.init()
@@ -405,10 +402,11 @@ class FlirCamera:
         Initializes the camera. Automatically called if the camera is opened
         using a 'with' clause.
         """
-
         self.cam.Init()
 
-        for node in self.cam.GetNodeMap().GetNodes():
+        node_map: PySpin.INodeMap = self.cam.GetNodeMap()
+        nodes: list[PySpin.INode] = node_map.GetNodes()
+        for node in nodes:
             pit = node.GetPrincipalInterfaceType()
             name = node.GetName()
             self.camera_node_types[name] = self._attr_type_names.get(pit, pit)
@@ -456,7 +454,7 @@ class FlirCamera:
 
         if self.running:
             self.cam.EndAcquisition()
-        self._frame_times = deque()
+        self._frame_times.clear()
         self._incomplete_image_count = 0
         self._running = False
 
@@ -474,11 +472,10 @@ class FlirCamera:
             pass
 
         # Reset attributes
-        self.camera_attributes = {}
-        self.camera_methods = {}
-        self.camera_node_types = {}
+        self.camera_attributes: dict[str, Any] = {}
+        self.camera_methods: dict[str, PySpin.CCommandPtr] = {}
+        self.camera_node_types: dict[str, str] = {}
         self._initialized = False
-        # self.system.ReleaseInstance()
 
     def get_image(self, wait: bool = True) -> PySpin.ImagePtr:
         """
@@ -513,7 +510,7 @@ class FlirCamera:
 
     def get_array(
         self, wait: bool = True, get_chunk: bool = False, complete_frames_only: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray, PySpin.PySpin.ChunkData]]:
+    ) -> np.ndarray | tuple[np.ndarray, PySpin.PySpin.ChunkData]:
         """
         Get an image from the camera, and convert it to a numpy array.
 
@@ -552,7 +549,7 @@ class FlirCamera:
         else:
             return img.GetNDArray()
 
-    def get_info(self, name: str) -> dict:
+    def get_info(self, name: str) -> dict[str, Any]:
         """
         Get information on a camera node (attribute or method).
 
@@ -570,7 +567,7 @@ class FlirCamera:
                 - "unit": the unit of the value (as a string).
                 - "min" and "max": the min/max value.
         """
-        info = {"name": name}
+        info: dict[str, Any] = {"name": name}
 
         if name in self.camera_attributes:
             node = self.camera_attributes[name]

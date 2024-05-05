@@ -8,19 +8,20 @@ packages = [{include = "pyle"}]
 
 [tool.poetry.dependencies]
 python = "^3.10.4, <3.11" # PySpin only supports up to 3.10
-pyqt5 = "^5.14"
+pyqt6 = "^6.5"
 numpy = "^1.23"
 opencv-python = "^4.7"
 scipy = "^1.9"
 pyqtgraph = "^0.13"
 cmapy = "0.6.6"
-appdirs = "1.4.4"
-pyqt5-qt5 = "5.15.2" # latest version 5.15.11 not recognized by pip for some reason
+appdirs = "1.4.4"  # TODO(elliotyoung): Deprecated - replace with `platformdirs`
 
 [tool.poetry.group.typechecking]
 optional = true
 [tool.poetry.group.typechecking.dependencies]
 mypy = "^1.6"
+types-appdirs = "1.4.3.5"  # TODO(elliotyoung): Remove when deprecating `appdirs`
+types-Pillow = "^10"
 
 [tool.poetry.group.linting]
 optional = true
@@ -38,3 +39,20 @@ skip-magic-trailing-comma = true
 [tool.isort]
 profile = "black"
 line_length = 100
+remove_redundant_aliases = true
+extra_standard_library = ["typing_extensions"]
+
+[tool.mypy]
+local_partial_types = true
+plugins = ["numpy.typing.mypy_plugin"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# 3rd-party libraries that are missing type stubs.
+[[tool.mypy.overrides]]
+module = [
+    # TODO(ecyoung3): Try to generate stubs using stubgen
+    "PySpin",
+    "cv2",
+]
+ignore_missing_imports = true

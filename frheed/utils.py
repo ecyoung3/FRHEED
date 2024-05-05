@@ -2,25 +2,27 @@
 General utility functions for FRHEED.
 """
 
+import contextlib
 import os
 import sys
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Iterator
 
 import numpy as np
-from PyQt5.QtGui import QColor, QIcon, QPen
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QIcon, QPen
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from frheed import settings
 
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     """Fit a widget in the center of the main screen"""
-    from PyQt5.QtWidgets import QDesktopWidget
+    from PyQt6.QtGui import QScreen
 
     # Get main screen geometry
-    desktop = QDesktopWidget()
-    screen = desktop.availableGeometry()
-    tot_w, tot_h = screen.width(), screen.height()
+    screen = QScreen()
+    geom = screen.availableGeometry()
+    tot_w, tot_h = geom.width(), geom.height()
 
     # Resize widget to 75% of available space
     w, h = int(tot_w * scale), int(tot_h * scale)
@@ -38,7 +40,9 @@ def get_icon(name: str) -> QIcon:
     return QIcon(os.path.join(ICONS_DIR, f"{name}.ico"))
 
 
-def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWidget, QApplication]:
+def test_widget(
+    widget_class: type[QWidget], block: bool = False, **kwargs
+) -> tuple[QWidget, QApplication]:
     """
     Create a widget from the provided class using the *args and **kwargs,
     and start a blocking application event loop if block = True.
@@ -62,11 +66,19 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWid
 
     """
 
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QLabel
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QLabel
 
     # Get QApplication instance
-    app = QApplication.instance() or QApplication(["FRHEED"])
+    if (app_instance := QApplication.instance()) is not None:
+        app = QApplication(["FRHEED"])
+    elif isinstance(app_instance, QApplication):
+        app = app_instance
+    else:
+        raise ValueError(
+            f"Current application has type '{type(app_instance)}', but expected 'QApplication'"
+        )
+
     app.setStyle(settings.APP_STYLE)
 
     # Create widget
@@ -77,7 +89,7 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWid
     else:
         widget = QLabel()
         widget.setText("Demo Widget")
-        widget.setAlignment(Qt.AlignCenter)
+        widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # Set window icon
     widget.setWindowIcon(get_icon("FRHEED"))
@@ -95,13 +107,13 @@ def test_widget(widget_class: type, block: bool = False, **kwargs) -> Tuple[QWid
     widget.show()
 
     # NOTE: _exec() starts a blocking loop; any code after will not run
-    sys.exit(app.exec_()) if block else None
+    sys.exit(app.exec()) if block else None
 
     return (widget, app)
 
 
 def unit_string(
-    value: Union[float, int], unit: str, sep: Optional[str] = None, precision: Optional[int] = 2
+    value: float | int, unit: str, sep: str | None = None, precision: int | None = 2
 ) -> str:
     """
     Format a unit string depending on the order of magnitude.
@@ -211,7 +223,7 @@ def unit_string(
     return unit_str
 
 
-def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], name: str) -> None:
+def save_settings(settings: dict[str, dict[str, Any]], name: str) -> None:
     """
     Save a dictionary of settings to a .json file.
 
@@ -230,7 +242,7 @@ def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], 
     # TODO: Switch to using TOML config
     # Create dictionary with each setting represented by as dictionary
     # containing the value and type of that value so it can be converted back
-    config = {}
+    config: dict[str, dict[str, Any]] = {}
     for group_name, setting_dict in settings.items():
         config[group_name] = {}
         for setting, value in setting_dict.items():
@@ -244,7 +256,7 @@ def save_settings(settings: Dict[str, Dict[str, Union[bool, str, float, int]]], 
         json.dump(config, f, indent="\t")
 
 
-def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]]]:
+def load_settings(name: str) -> dict[str, dict[str, Any]]:
     """
     Load a .json file into a dictionary of settings with proper types.
 
@@ -271,10 +283,10 @@ def load_settings(name: str) -> Dict[str, Dict[str, Union[bool, str, float, int]
 
     # This will raise an OSError if the file doesn't exist or is inaccessible
     with open(path, "r") as f:
-        json_dict = json.load(f)
+        json_dict: dict[str, dict[str, Any]] = json.load(f)
 
     # Convert to proper types
-    config = {}
+    config: dict[str, dict[str, Any]] = {}
     for group_name, setting_dict in json_dict.items():
         config[group_name] = {}
 
@@ -345,7 +357,7 @@ def sample_array(
     return arr
 
 
-def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
+def get_qcolor(color: str | tuple | QColor) -> QColor:
     """Create a QColor. See https://doc.qt.io/qt-5/qcolor.html"""
 
     if isinstance(color, str):
@@ -361,7 +373,7 @@ def get_qcolor(color: Union[str, tuple, QColor]) -> QColor:
         raise TypeError(f"Unsupported color type {type(color)}")
 
 
-def get_qpen(color: Union[str, tuple, QColor], cosmetic: bool = True) -> QColor:
+def get_qpen(color: str | tuple | QColor, cosmetic: bool = True) -> QPen:
     """Create a QPen with the specified color"""
     pen = QPen(get_qcolor(color))
     pen.setCosmetic(cosmetic)
@@ -375,6 +387,15 @@ def snip_lists(*lists) -> list:
 
 def get_locals(frame) -> dict:
     return dict(frame.f_back.f_locals.items())
+
+
+@contextlib.contextmanager
+def with_cursor(cursor_shape: Qt.CursorShape) -> Iterator[None]:
+    try:
+        QApplication.setOverrideCursor(cursor_shape)
+        yield
+    finally:
+        QApplication.restoreOverrideCursor()
 
 
 if __name__ == "__main__":

@@ -9,9 +9,10 @@ import subprocess
 import sys
 import warnings
 from collections.abc import Sequence
+from types import ModuleType
 
 
-def import_module_without_warnings(module_name: str) -> importlib.ModuleType:
+def import_module_without_warnings(module_name: str) -> ModuleType:
     """Return a module imported with warnings suppressed."""
     # Suppress warnings when importing the module, e.g. PySpin KMP_AFFINITY warnings
     with warnings.catch_warnings():
