@@ -521,40 +521,58 @@ class CanvasWidget(QLabel):
             self.shapes[0].delete()
 
 
-class _CanvasShapeMeta(type(QObject), abc.ABCMeta):
-    """Metaclass for the canvas shape base class."""
-
-
-class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
-    """Base class for objects that can be drawn on a canvas."""
-
-    shape_type: ShapeType | None = None
-    regions: tuple[ShapeRegion, ...] = tuple()
+class CanvasShape(abc.ABC):
+    """Base class for shapes that can be drawn on a canvas.
+    
+    All coordinates follow the [Qt coordinate system](https://doc.qt.io/qt-6/coordsys.html) where
+    (0, 0) is the top left corner of the canvas the shape is drawn on.
+    """
 
     @property
     @abc.abstractmethod
-    def canvas(self) -> CanvasWidget | None:
-        """The canvas the shape is drawn on."""
+    def canvas(self) -> CanvasWidget:
+        """The canvas to draw the shape on."""
 
-    @property
     @abc.abstractmethod
-    def linewidth(self) -> int:
-        """Width of the shape's lines."""
+    def get_color(self) -> QColor:
+        """Returns the color of the shape."""
 
-    @linewidth.setter
     @abc.abstractmethod
-    def linewidth(self, linewidth: int) -> None:
-        """Sets the linewidth"""
+    def set_color(self, color: QColor) -> None:
+        """Sets the color of the shape."""
 
-    @property
     @abc.abstractmethod
-    def color(self) -> QColor | None:
-        """Color of the shape."""
+    def get_linewidth(self) -> int:
+        """Returns the width in pixels of the shape's lines."""
 
-    @property
     @abc.abstractmethod
-    def mask(self) -> np.ndarray:
-        """Mask representing pixels covered by the shape."""
+    def set_linewidth(self, linewidth: int) -> None:
+        """Sets the width in pixels of the shape's lines."""
+
+    @abc.abstractmethod
+    def get_coordinates(self) -> tuple[float, float, float, float]:
+        """Returns the shape's coordinates (x1, y1, x2, y2) relative to the canvas origin.
+        
+        The top left corner of the shape is (x1, y1), and the bottom right corner is (x2, y2).
+        """
+
+    @abc.abstractmethod
+    def set_coordinates(self, x1: float, y1: float, x2: float, y2: float) -> None:
+        """Sets the top left corner of the shape to (x1, y1) and the bottom right to (x2, y2)."""
+
+    @abc.abstractmethod
+    def scale(self, factor: float) -> None:
+        """Scale the shape by the given factor."""
+
+    @abc.abstractmethod
+    def as_mask(self) -> np.ndarray:
+        """Returns a mask of the canvas pixels covered by the shape."""
+
+    @abc.abstractmethod
+    def point_distance_from_region(self, point: QPointF, region: ShapeRegion) -> float:
+        """Returns the distance from a point to a region of the shape."""
+        # TODO(ecyoung3): Implement
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def nearby_regions(self, point: QPointF) -> Iterator[ShapeRegion]:
@@ -573,30 +591,21 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
         """Whether or not the shape is active on its canvas."""
         return self.canvas is not None and self.canvas.active_shape == self
 
-    def point_distance_from_region(self, point: QPointF, region: ShapeRegion) -> float:
-        """Returns the distance from a point to a region of the shape."""
-        # TODO(ecyoung3): Implement
-        raise NotImplementedError()
-
     def constrain_to_canvas(self, point: QPointF) -> QPointF:
-        """Make sure a point falls inside the canvas."""
-        if self.canvas is None:
-            return point
+        """Make sure a point falls within the canvas dimensions."""
         x = max(0, min(self.canvas.width() - self.linewidth, point.x()))
         y = max(0, min(self.canvas.height() - self.linewidth, point.y()))
         return QPointF(x, y)
 
     def update(self) -> None:
         """Redraw this shape (and all others) on the parent canvas"""
-        if self.canvas is not None:
-            self.canvas.draw()
+        self.canvas.draw()
 
     def delete(self) -> None:
         """Remove the shape from the associated canvas"""
-        if self.canvas is not None:
-            self.canvas.shape_deleted.emit(self)
-            self.canvas.shapes.remove(self)
-            self.deactivate()
+        self.canvas.shape_deleted.emit(self)
+        self.canvas.shapes.remove(self)
+        self.deactivate()
 
     @pyqtSlot()
     def activate(self) -> None:
@@ -613,20 +622,18 @@ class CanvasShape(QObject, abc.ABC, metaclass=_CanvasShapeMeta):
         self.update()
 
 
-class CanvasLine(QLineF, CanvasShape):
-    """A line that can be drawn on a CanvasWidget."""
+class CanvasLine(CanvasShape):
+    """A line that can be drawn on a canvas."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._linewidth: int = DEFAULT_LINEWIDTH
-        self._color = get_qcolor(DEFAULT_COLOR)
+    def __init__(self, canvas: CanvasWidget, shape: QLineF) -> None:
+        self.canvas = canvas
+        self.shape = shape
 
-    def getCoords(self) -> tuple[float, float, float, float]:
-        """Returns (x1, y1, x2, y2)."""
-        return (self.x1(), self.y1(), self.x2(), self.y2())
+    def get_coordinates(self) -> tuple[float, float, float, float]:
+        return (self.shape.x1(), self.shape.y1(), self.shape.x2(), self.shape.y2())
 
-    def setCoords(self, x1: float, y1: float, x2: float, y2: float) -> None:
-        self.setLine(x1, y1, x2, y2)
+    def set_coordinates(self, x1: float, y1: float, x2: float, y2: float) -> None:
+        self.shape.setLine(x1, y1, x2, y2)
 
     def moveTo(self, p1: QPointF) -> None:
         """Move the line's p1 to a new point"""
@@ -833,7 +840,7 @@ class CanvasRect(QRectF, CanvasShape):
             x1, y1, x2, y2 = new_shape.getCoords()
             if x1 is None or y1 is None or x2 is None or y2 is None:
                 raise ValueError("Somehow the new QRectF coordinates are not set")
-            
+
             width, height = self.canvas.width(), self.canvas.height()
             lw = self.linewidth
             if x1 < 0 or y1 < 0 or x2 > (width - lw) or y2 > (height - lw):
