@@ -23,12 +23,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 requirements_file = os.path.join(here, "requirements.txt")
 INSTALL_REQUIRES = Path(requirements_file).read_text().split("\n")
 
-# Load long description using regular description as fallback.
-try:
-    readme_file = os.path.join(here, "README.md")
-    LONG_DESCRIPTION = Path(readme_file).read_text()
-except:
-    LONG_DESCRIPTION = DESCRIPTION
+# Load long description from the README.
+readme_file = os.path.join(here, "README.md")
+LONG_DESCRIPTION = Path(readme_file).read_text()
 
 # Load version info from __version__.py
 about = {}

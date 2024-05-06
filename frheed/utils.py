@@ -171,7 +171,6 @@ def unit_string(
     magnitudes["u"] = -6
 
     # Make sure value is > 0 so log is valid
-    orig_value = value
     if value < 0:
         value = abs(value)
         sign = "-"

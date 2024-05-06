@@ -46,10 +46,7 @@ def calc_fft(x: list, y: list) -> tuple:
     samplespacing = (x[-1] - x[0]) / numsamples
 
     # Generate array of frequencies
-    try:
-        freq = np.fft.rfftfreq(numsamples, d=samplespacing)
-    except:
-        return None, None
+    freq = np.fft.rfftfreq(numsamples, d=samplespacing)
 
     # Convert y to float32 to avoid type conflict error in following operation
     y = np.array(y, dtype=np.float32)
@@ -92,8 +89,8 @@ def apply_cutoffs(
     Args:
         x (list): x values; data is filtered based on these values
         y (list): y values
-        minval (Optional[float], optional): Cutoff minimum (inclusive). Defaults to None if no lower bound.
-        maxval (Optional[float], optional): Cutoff maximum (inclusive). Defaults to None if no upper bound.
+        minval (Optional[float], optional): Cutoff minimum (inclusive).
+        maxval (Optional[float], optional): Cutoff maximum (inclusive).
 
     Returns:
         tuple: the filtered x and y arrays
