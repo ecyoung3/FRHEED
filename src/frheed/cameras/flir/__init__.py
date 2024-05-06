@@ -3,9 +3,13 @@ Connecting to FLIR cameras.
 Adapted from simple_pyspin: https://github.com/klecknerlab/simple_pyspin
 """
 
+from __future__ import annotations
+
+import collections
+import logging
 import time
-from collections import deque
-from typing import Tuple, Union
+from types import TracebackType
+from typing import Any
 
 import numpy as np
 import PySpin
@@ -63,9 +67,7 @@ _GUI_FUNCTIONS = {
     "SerialReceiveQueueClear": "Clear Serial Port",
 }
 
-_DEBUG = __name__ == "__main__"
-
-_SYSTEM = None
+_SYSTEM: PySpin.System | None = None
 
 
 def list_cameras() -> PySpin.CameraList:
@@ -178,7 +180,7 @@ class FlirCamera:
         PySpin.intfICommand: "command",
     }
 
-    def __init__(self, src: Union[int, str] = 0, lock: bool = False):
+    def __init__(self, src: int | str = 0, lock: bool = False):
         """
         Parameters
         ----------
@@ -196,9 +198,7 @@ class FlirCamera:
         super().__setattr__("lock", lock)
 
         cam_list = list_cameras()
-
-        if _DEBUG:
-            print(f"Found {cam_list.GetSize()} FLIR camera(s)")
+        logging.debug("Found %s FLIR camera(s)", cam_list.GetSize())
 
         self._src_type = type(src)
         self._src = src
@@ -216,10 +216,10 @@ class FlirCamera:
 
         # Other attributes which may be accessed later
         self._running = False
-        self._frame_times = deque()
+        self._frame_times: collections.deque[float] = collections.deque()
         self._incomplete_image_count = 0
 
-    def __getattr__(self, attr: str) -> object:
+    def __getattr__(self, attr: str) -> Any:
         # Add this in so @property decorator works as expected
         if attr in self.__dict__:
             return self.__dict__[attr]
@@ -265,11 +265,16 @@ class FlirCamera:
             else:
                 super().__setattr__(attr, val)
 
-    def __enter__(self) -> "FlirCamera":
+    def __enter__(self) -> FlirCamera:
         self.init()
         return self
 
-    def __exit__(self, type, value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def __del__(self) -> None:
@@ -388,7 +393,7 @@ class FlirCamera:
         return int(height)
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Get the camera array dimensions (Height x Width)"""
         if not self.initialized:
             self.init()
@@ -405,10 +410,11 @@ class FlirCamera:
         Initializes the camera. Automatically called if the camera is opened
         using a 'with' clause.
         """
-
         self.cam.Init()
 
-        for node in self.cam.GetNodeMap().GetNodes():
+        node_map: PySpin.INodeMap = self.cam.GetNodeMap()
+        nodes: list[PySpin.INode] = node_map.GetNodes()
+        for node in nodes:
             pit = node.GetPrincipalInterfaceType()
             name = node.GetName()
             self.camera_node_types[name] = self._attr_type_names.get(pit, pit)
@@ -456,7 +462,7 @@ class FlirCamera:
 
         if self.running:
             self.cam.EndAcquisition()
-        self._frame_times = deque()
+        self._frame_times.clear()
         self._incomplete_image_count = 0
         self._running = False
 
@@ -474,11 +480,10 @@ class FlirCamera:
             pass
 
         # Reset attributes
-        self.camera_attributes = {}
-        self.camera_methods = {}
-        self.camera_node_types = {}
+        self.camera_attributes: dict[str, Any] = {}
+        self.camera_methods: dict[str, PySpin.CCommandPtr] = {}
+        self.camera_node_types: dict[str, str] = {}
         self._initialized = False
-        # self.system.ReleaseInstance()
 
     def get_image(self, wait: bool = True) -> PySpin.ImagePtr:
         """
@@ -513,7 +518,7 @@ class FlirCamera:
 
     def get_array(
         self, wait: bool = True, get_chunk: bool = False, complete_frames_only: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray, PySpin.PySpin.ChunkData]]:
+    ) -> np.ndarray | tuple[np.ndarray, PySpin.PySpin.ChunkData]:
         """
         Get an image from the camera, and convert it to a numpy array.
 
@@ -547,12 +552,14 @@ class FlirCamera:
         if len(self._frame_times) > 3600:
             self._frame_times.popleft()
 
+        arr: np.ndarray = img.GetNDArray()
         if get_chunk:
-            return img.GetNDArray(), img.GetChunkData()
+            chunk: PySpin.PySpin.ChunkData = img.GetChunkData()
+            return (arr, chunk)
         else:
-            return img.GetNDArray()
+            return arr
 
-    def get_info(self, name: str) -> dict:
+    def get_info(self, name: str) -> dict[str, Any]:
         """
         Get information on a camera node (attribute or method).
 
@@ -570,7 +577,7 @@ class FlirCamera:
                 - "unit": the unit of the value (as a string).
                 - "min" and "max": the min/max value.
         """
-        info = {"name": name}
+        info: dict[str, Any] = {"name": name}
 
         if name in self.camera_attributes:
             node = self.camera_attributes[name]
@@ -716,25 +723,3 @@ class FlirCamera:
             lines.append("")
 
         return "\n".join(lines)
-
-
-if __name__ == "__main__":
-
-    def test():
-        with FlirCamera() as cam:
-            print(cam.document(verbose=False))
-            print(cam)
-            cam.start()
-            while True:
-                try:
-                    global image
-                    image = cam.get_array()
-                    # print(cam.incomplete_image_count, cam.real_fps)
-                    print(cam.DeviceTemperature)
-
-                except KeyboardInterrupt:
-                    break
-
-    # test()
-
-    print(list_cameras())

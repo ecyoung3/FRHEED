@@ -58,21 +58,27 @@ include = [
 packages = ["src/frheed"]
 
 [tool.ruff]
-# Increase the line length from the default of 88
 line-length = 100
-
-# Always autofix when possible
 fix = true
 
 [tool.ruff.lint]
-# Specify rules explicitly to avoid configuration drift due to defaults changing
 select = [
     "E",  # all pyflakes rules
     "F",  # all pycodestyle rules
     "I",  # all isort rules
 ]
-
-# Rules to exclude from autofix
 unfixable = [
     "F401",  # unused imports
 ]
+
+[tool.mypy]
+disallow_untyped_defs = true
+warn_return_any = true
+
+# Third-party libraries without stubs
+[[tool.mypy.overrides]]
+module = [
+    "PySpin",
+]
+follow_imports = "silent"
+ignore_missing_imports = true

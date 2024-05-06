@@ -2,10 +2,14 @@
 Connecting to USB cameras.
 """
 
+from __future__ import annotations
+
+import collections
+import logging
 import os
 import time
-from collections import deque
-from typing import List, Optional, Tuple, Union
+from types import TracebackType
+from typing import Any
 
 import cv2
 import numpy as np
@@ -15,8 +19,6 @@ from frheed.cameras import CameraError
 # Suppress warning from MSMF backend bug
 # https://stackoverflow.com/a/54585850/10342097
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
-
-_DEBUG = __name__ == "__main__"
 
 # Get non-platform-specific capture properties (0 < id < 50)
 _CAP_PROPS = [
@@ -43,7 +45,7 @@ _GUI_INFO = {
 _DEFAULT_BACKEND = cv2.CAP_DSHOW  # cv2.CAP_DSHOW or cv2.CAP_MSMF
 
 
-def list_cameras() -> List[int]:
+def list_cameras() -> list[int]:
     """
     Get list of indices of available USB cameras.
 
@@ -129,11 +131,8 @@ class UsbCamera:
     }
 
     def __init__(
-        self,
-        src: Union[int, str] = 0,
-        lock: bool = False,
-        backend: Optional[int] = _DEFAULT_BACKEND,  # cv2.CAP_DSHOW
-    ):
+        self, src: int | str = 0, lock: bool = False, backend: int | None = _DEFAULT_BACKEND
+    ) -> None:
         """
         Parameters
         ----------
@@ -149,10 +148,12 @@ class UsbCamera:
         super().__setattr__("camera_attributes", {})
         super().__setattr__("camera_methods", {})
         super().__setattr__("lock", lock)
+        self.camera_attributes: dict[str, Any]
+        self.camera_methods: dict[str, Any]
+        self.lock: bool
 
         cam_list = list_cameras()
-        if _DEBUG:
-            print(f"Found {len(cam_list)} USB camera(s)")
+        logging.debug("Found %s USB camera(s)", len(cam_list))
 
         if not cam_list:
             raise CameraError("No USB cameras detected.")
@@ -174,10 +175,10 @@ class UsbCamera:
 
         # Other attributes which may be accessed later
         self._running = True  # camera is running as soon as you connect to it
-        self._frame_times = deque()
+        self._frame_times: collections.deque[float] = collections.deque()
         self._incomplete_image_count = 0
 
-    def __getattr__(self, attr: str) -> object:
+    def __getattr__(self, attr: str) -> Any:
         # Add this in so @property decorator works as expected
         if attr in self.__dict__:
             return self.__dict__[attr]
@@ -191,7 +192,7 @@ class UsbCamera:
         else:
             raise AttributeError(attr)
 
-    def __setattr__(self, attr: str, val: object) -> None:
+    def __setattr__(self, attr: str, val: Any) -> None:
         if attr in self.camera_attributes:
             propId = getattr(cv2, attr, None)
             if propId is None:
@@ -205,8 +206,7 @@ class UsbCamera:
 
             success = self.cam.set(propId, val)
             result = "succeeded" if success else "failed"
-            if _DEBUG or not success:
-                print(f"Setting {attr} to {val} {result}")
+            logging.debug("Setting %s to %s %s", attr, val, result)
 
         else:
             if attr == "__class__":
@@ -216,11 +216,16 @@ class UsbCamera:
             else:
                 super().__setattr__(attr, val)
 
-    def __enter__(self) -> "UsbCamera":
+    def __enter__(self) -> UsbCamera:
         self.init()
         return self
 
-    def __exit__(self, type, value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def __del__(self) -> None:
@@ -275,10 +280,10 @@ class UsbCamera:
         return int(self.CAP_PROP_FRAME_HEIGHT)
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         return (self.width, self.height)
 
-    def init(self):
+    def init(self) -> None:
         if not self.initialized:
             self.cam.open(self._src)
 
@@ -291,7 +296,7 @@ class UsbCamera:
         self._running = True
 
     def stop(self) -> None:
-        self._frame_times = []
+        self._frame_times.clear()
         self._incomplete_image_count = 0
         self._running = False
 
@@ -337,26 +342,3 @@ class UsbCamera:
         """Get information about a camera node (attribute or method)."""
         # TODO: Fully implement
         return {"name": name}
-
-
-if __name__ == "__main__":
-
-    def test():
-        from PIL import Image
-
-        with UsbCamera() as cam:
-            while True:
-                try:
-                    for prop in cam._cap_props:
-                        print(prop, (getattr(cam, prop)))
-
-                    break
-
-                    array = cam.get_array()
-                    Image.fromarray(array).show()
-                    break
-
-                except KeyboardInterrupt:
-                    break
-
-    test()
