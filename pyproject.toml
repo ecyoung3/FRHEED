@@ -4,7 +4,7 @@ description = "A GUI for real-time RHEED analysis."
 authors = [
     { name = "Elliot Young", email = "elliot.young1996@gmail.com" },
 ]
-requires-python = "^3.10.4, <3.11"  # PySpin only supports up to 3.10
+requires-python = ">=3.10.4, <3.11"  # PySpin only supports up to 3.10
 readme = "README.md"
 dependencies = [
     "appdirs == 1.4.4",
@@ -30,6 +30,10 @@ dev = [
 # Increase the line length from the default of 88
 line-length = 100
 
+# Always autofix when possible
+fix = true
+
+[tool.ruff.lint]
 # Specify rules explicitly to avoid configuration drift due to defaults changing
 select = [
     "E",  # all pyflakes rules
@@ -37,8 +41,7 @@ select = [
     "I",  # all isort rules
 ]
 
-# Always autofix when possible, except for `F401` (unused imports)
-fix = true
+# Rules to exclude from autofix
 unfixable = [
     "F401",  # unused imports
 ]
