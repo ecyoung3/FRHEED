@@ -2,6 +2,8 @@
 Connecting to USB cameras.
 """
 
+from __future__ import annotations
+
 import collections
 import logging
 import os
@@ -214,7 +216,7 @@ class UsbCamera:
             else:
                 super().__setattr__(attr, val)
 
-    def __enter__(self) -> "UsbCamera":
+    def __enter__(self) -> UsbCamera:
         self.init()
         return self
 
