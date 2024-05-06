@@ -115,7 +115,6 @@ class PlotWidget(QWidget):
 
         # Create menu for showing/hiding curves
         self.curve_menu = self.menubar.addMenu(_CURVE_MENU_TITLE)
-        # self.curve_menu.setStyleSheet(self.curve_menu.styleSheet() + "QMenu { font-weight: bold; }")
 
         # Create cursor label
         self.cursor_label = QLabel()
@@ -142,10 +141,6 @@ class PlotWidget(QWidget):
         )
 
         # Hide options from the context menu that seem to be broken
-        # menus = [self.plot_item.vb.menu, self.plot_item.ctrlMenu, self.plot_item.vb.scene().contextMenu[0]]
-        # for menu in menus:
-        #     for action in menu.actions():
-        #         print(action.text())
         self.plot_item.ctrlMenu.menuAction().setVisible(False)
 
         # Show widget
@@ -253,9 +248,9 @@ class PlotWidget(QWidget):
             cursor = self.plot_item.vb.mapSceneToView(pos)
             x, y = cursor.x(), cursor.y()
             self.cursor_label.setText(f"{x:.2f}, {y:.2f}")
-
-        # Catch exception if the plot is collapsed in splitter
-        except:
+        except:  # noqa: E722
+            # Exception raised if the plot is collapsed in splitter
+            # TODO(ecyoung3): Catch specific error type
             pass
 
     @pyqtSlot(str, bool)

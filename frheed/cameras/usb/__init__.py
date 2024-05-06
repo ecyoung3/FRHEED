@@ -122,7 +122,7 @@ class UsbCamera:
         "CAP_PROP_HUE": "Hue of the image (only for cameras).",
         "CAP_PROP_GAIN": "Gain of the image (only for cameras).",
         "CAP_PROP_EXPOSURE": "Exposure (only for cameras).",
-        "CAP_PROP_CONVERT_RGB": "Boolean flags indicating whether images should be converted to RGB.",
+        "CAP_PROP_CONVERT_RGB": "Booleans indicating whether images should be converted to RGB.",
         "CAP_PROP_RECTIFICATION": "Rectification flag for stereo cameras.",
         "CAP_PROP_ISO_SPEED": "The ISO speed of the camera.",
         "CAP_PROP_BUFFERSIZE": "Amount of frames stored in internal buffer memory.",

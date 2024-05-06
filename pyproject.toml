@@ -1,40 +1,47 @@
-[tool.poetry]
-name = "frheed"
-version = "0.0.3"
+[project]
+name = "FRHEED"
 description = "A GUI for real-time RHEED analysis."
-authors = ["Elliot Young <elliot.young1996@gmail.com>"]
+authors = [
+    { name = "Elliot Young", email = "elliot.young1996@gmail.com" },
+]
+requires-python = ">=3.10.4, <3.11"  # PySpin only supports up to 3.10
 readme = "README.md"
-packages = [{include = "pyle"}]
+dependencies = [
+    "appdirs == 1.4.4",
+    "cmapy == 0.6.6",  # TODO(ecyoung3): Replace with own implementation
+    "numpy == 1.26.*",
+    "opencv-python == 4.9.0.*",
+    "PyQt5 == 5.15.*",
+    "pyqtgraph == 0.13.*",
+    "scipy == 1.13.*",
+]
+dynamic = ["version"]
 
-[tool.poetry.dependencies]
-python = "^3.10.4, <3.11" # PySpin only supports up to 3.10
-pyqt5 = "^5.14"
-numpy = "^1.23"
-opencv-python = "^4.7"
-scipy = "^1.9"
-pyqtgraph = "^0.13"
-cmapy = "0.6.6"
-appdirs = "1.4.4"
-pyqt5-qt5 = "5.15.2" # latest version 5.15.11 not recognized by pip for some reason
+[project.optional-dependencies]
+dev = [
+    "mypy == 1.10.*",
+    "pytest == 8.2.*",
+    "ruff == 0.4.3",
+    "uv == 0.1.39",
+]
+# TODO(ecyoung3): Add requirements for 3rd-part (e.g. FLIR) cameras (maybe use open source, aravis?)
 
-[tool.poetry.group.typechecking]
-optional = true
-[tool.poetry.group.typechecking.dependencies]
-mypy = "^1.6"
-
-[tool.poetry.group.linting]
-optional = true
-[tool.poetry.group.linting.dependencies]
-black = "^23.3"
-isort = "^5.12"
-pylint = "^2.17"
-
-[tool.black]
+[tool.ruff]
+# Increase the line length from the default of 88
 line-length = 100
-target_version = ["py310"]
-skip-string-normalization = true
-skip-magic-trailing-comma = true
 
-[tool.isort]
-profile = "black"
-line_length = 100
+# Always autofix when possible
+fix = true
+
+[tool.ruff.lint]
+# Specify rules explicitly to avoid configuration drift due to defaults changing
+select = [
+    "E",  # all pyflakes rules
+    "F",  # all pycodestyle rules
+    "I",  # all isort rules
+]
+
+# Rules to exclude from autofix
+unfixable = [
+    "F401",  # unused imports
+]

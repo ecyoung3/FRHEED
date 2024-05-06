@@ -9,7 +9,6 @@ from typing import List, Optional, Union
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QPushButton, QWidget
 
-from frheed.cameras import CameraError
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.flir import get_available_cameras as get_flir_cams
 from frheed.cameras.usb import UsbCamera
@@ -96,7 +95,8 @@ class CameraSelection(QWidget):
         # Deselect existing camera
         try:
             self._cam.close()
-        except:
+        except:  # noqa: E722
+            # TODO(ecyoung3): Determine exact error type
             pass
 
         # Initialize camera
