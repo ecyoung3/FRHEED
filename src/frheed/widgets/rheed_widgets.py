@@ -2,8 +2,9 @@
 Widgets for RHEED analysis.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Union
 
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
@@ -154,7 +155,7 @@ class RHEEDWidget(QWidget):
                 self.region_plot.set_fft_max(color_data["time"][-1])
 
     @pyqtSlot(object)
-    def remove_line(self, shape: Union["CanvasShape", "CanvasLine"]) -> None:
+    def remove_line(self, shape: CanvasShape | CanvasLine) -> None:
         """Remove a line from the plot it is part of"""
         # Get the plot widget
         plot = self.profile_plot if shape.kind == "line" else self.region_plot
@@ -187,13 +188,3 @@ class RHEEDWidget(QWidget):
             os.startfile(path)
         except Exception as ex:
             QMessageBox.warning(self, "Error", f"Error opening {path}:\n{ex}")
-
-
-if __name__ == "__main__":
-
-    def test():
-        from frheed.utils import test_widget
-
-        return test_widget(RHEEDWidget, block=True)
-
-    widget, app = test()

@@ -4,7 +4,6 @@ Widgets for selecting things, including the source camera to use.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Union
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QPushButton, QWidget
@@ -24,10 +23,10 @@ class CameraClasses(Enum):
 @dataclass
 class CameraObject:
     cam_class: object
-    src: Union[str, int]
-    name: Optional[str] = None
+    src: str | int
+    name: str | None = None
 
-    def get_camera(self) -> Union[FlirCamera, UsbCamera]:
+    def get_camera(self) -> FlirCamera | UsbCamera:
         return self.cam_class(src=self.src)
 
 
@@ -42,7 +41,7 @@ class CameraSelection(QWidget):
         # TODO: Apply global stylesheet
 
         # Reference to Camera object that will be instantiated later
-        self._cam: Union[FlirCamera, UsbCamera, None] = None
+        self._cam: FlirCamera | UsbCamera | None = None
 
         # Check for available cameras
         cams = self.available_cameras()
@@ -84,7 +83,7 @@ class CameraSelection(QWidget):
         # Show the widget
         self.setVisible(True)
 
-    def available_cameras(self) -> List[CameraObject]:
+    def available_cameras(self) -> list[CameraObject]:
         # Check each camera class for availability
         usb_cams = [CameraObject(UsbCamera, src, name) for src, name in get_usb_cams().items()]
         flir_cams = [CameraObject(FlirCamera, src, name) for src, name in get_flir_cams().items()]

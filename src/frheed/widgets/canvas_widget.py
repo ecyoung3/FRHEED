@@ -2,7 +2,7 @@
 PyQt widgets for drawing shapes.
 """
 
-from typing import List, Optional, Union
+from __future__ import annotations
 
 import numpy as np
 from PyQt5.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
@@ -112,18 +112,18 @@ class CanvasWidget(QLabel):
 
         # Attributes to be assigned later
         self._drawing: bool = False
-        self._draw_start_pos: Optional[QPoint] = None
+        self._draw_start_pos: QPoint | None = None
 
         self._resizing: bool = False
-        self._resizing_from: Optional[str] = None
+        self._resizing_from: str | None = None
 
         self._moving: bool = False
-        self._move_start_pos: Optional[QPoint] = None
+        self._move_start_pos: QPoint | None = None
 
-        self._shapes: List[CanvasShape] = []
-        self._active_shape: Optional[CanvasShape] = None
+        self._shapes: list[CanvasShape] = []
+        self._active_shape: CanvasShape | None = None
 
-        self._pressed_buttons: List[int] = []
+        self._pressed_buttons: list[int] = []
 
         # Connect signals
         self.customContextMenuRequested.connect(self.menu_requested)
@@ -323,7 +323,7 @@ class CanvasWidget(QLabel):
         self._resizing_from = None
 
     @property
-    def resizing_from(self) -> Union[str, None]:
+    def resizing_from(self) -> str | None:
         return self._resizing_from
 
     @property
@@ -341,21 +341,21 @@ class CanvasWidget(QLabel):
             self.app.restoreOverrideCursor()
 
     @property
-    def shapes(self) -> List["CanvasShape"]:
+    def shapes(self) -> list[CanvasShape]:
         return self._shapes
 
     @shapes.setter
-    def shapes(self, shapes: List) -> None:
+    def shapes(self, shapes: list) -> None:
         self._shapes = shapes
         self.active_shape = None
         self.draw()
 
     @property
-    def active_shape(self) -> "CanvasShape":
+    def active_shape(self) -> CanvasShape:
         return self._active_shape
 
     @active_shape.setter
-    def active_shape(self, shape: "CanvasShape") -> None:
+    def active_shape(self, shape: CanvasShape) -> None:
         self._active_shape = shape
 
         # Deactivate other shapes so only one can be active at once
@@ -467,8 +467,8 @@ class CanvasShape(QRect):
         self._kind = SHAPE_TYPES[0]
         self._linewidth: int = DEFAULT_LINEWIDTH
         self._color: str = DEFAULT_COLOR
-        self._color_name: Optional[str] = None
-        self._canvas: Optional[CanvasWidget] = None
+        self._color_name: str | None = None
+        self._canvas: CanvasWidget | None = None
 
         # Store floating point coords for resizing precision
         self.float_coords = super().getCoords()
@@ -526,11 +526,11 @@ class CanvasShape(QRect):
         self.update()
 
     @property
-    def color(self) -> Union[QColor, None]:
+    def color(self) -> QColor | None:
         return self._color
 
     @color.setter
-    def color(self, color: Union[str, tuple, QColor]) -> None:
+    def color(self, color: str | tuple | QColor) -> None:
         self._color = get_qcolor(color)
 
     @property
@@ -538,7 +538,7 @@ class CanvasShape(QRect):
         return self.color.name()
 
     @property
-    def canvas(self) -> Union[CanvasWidget, None]:
+    def canvas(self) -> CanvasWidget | None:
         return self._canvas
 
     @canvas.setter
@@ -687,11 +687,11 @@ class CanvasShape(QRect):
         """Check if a QPoint is near any border of the shape"""
         return any(getattr(self, f"near_{reg}")(p) for reg in _SHAPE_REGIONS)
 
-    def nearby_regions(self, p: QPoint) -> List[str]:
+    def nearby_regions(self, p: QPoint) -> list[str]:
         """Get list of regions that are near a point"""
         return [r for r in _SHAPE_REGIONS if getattr(self, f"near_{r}")(p)]
 
-    def nearest_region(self, p: QPoint) -> Union[str, None]:
+    def nearest_region(self, p: QPoint) -> str | None:
         """Determine which region of the shape is closest to the point"""
 
         # Get list of nearby regions
@@ -853,8 +853,8 @@ class CanvasLine(QLine):
         # Attributes to be assigned later
         self._linewidth: int = DEFAULT_LINEWIDTH
         self._color: str = DEFAULT_COLOR
-        self._color_name: Optional[str] = None
-        self._canvas: Optional[CanvasWidget] = None
+        self._color_name: str | None = None
+        self._canvas: CanvasWidget | None = None
 
         # Store floating point coords for resizing precision
         self.float_coords = self.getCoords()
@@ -919,11 +919,11 @@ class CanvasLine(QLine):
         self._canvas._shapes.append(self)
 
     @property
-    def color(self) -> Union[QColor, None]:
+    def color(self) -> QColor | None:
         return self._color
 
     @color.setter
-    def color(self, color: Union[str, tuple, QColor]) -> None:
+    def color(self, color: str | tuple | QColor) -> None:
         self._color = get_qcolor(color)
 
     @property
@@ -977,7 +977,7 @@ class CanvasLine(QLine):
         """Get a list of regions that are near a point"""
         return [r for r in _LINE_REGIONS if getattr(self, f"near_{r}")(p)]
 
-    def nearest_region(self, p: QPoint) -> Union[str, None]:
+    def nearest_region(self, p: QPoint) -> str | None:
         """Determine which region of the line is closest to the point"""
 
         # Get list of nearby regions

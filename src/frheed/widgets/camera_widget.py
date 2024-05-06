@@ -7,7 +7,6 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -67,7 +66,7 @@ class VideoWidget(QWidget):
     _min_h = 348
     _max_w = MAX_W
 
-    def __init__(self, camera: Union[FlirCamera, UsbCamera], parent=None, zoomable: bool = True):
+    def __init__(self, camera: FlirCamera | UsbCamera, parent=None, zoomable: bool = True) -> None:
         super().__init__(parent)
 
         # Store colormap
@@ -77,7 +76,7 @@ class VideoWidget(QWidget):
         self._zoomable = zoomable
 
         # Video writer for saving video
-        self._writer: Optional[cv2.VideoWriter] = None
+        self._writer: cv2.VideoWriter | None = None
 
         # Store camera reference and start the camera
         self.set_camera(camera)
@@ -174,8 +173,8 @@ class VideoWidget(QWidget):
         self.frame_changed.connect(self.status_bar.frame_changed)
 
         # Attributes to be assigned later
-        self.frame: Union[np.ndarray, None] = None
-        self.raw_frame: Union[np.ndarray, None] = None
+        self.frame: np.ndarray | None = None
+        self.raw_frame: np.ndarray | None = None
         self.region_data: dict = {}
         self.analyze_frames = True
 
@@ -358,11 +357,11 @@ class VideoWidget(QWidget):
         self.display.force_resize()
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera]:
+    def camera(self) -> FlirCamera | UsbCamera:
         return self._camera
 
     @camera.setter
-    def camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+    def camera(self, camera: FlirCamera | UsbCamera) -> None:
         # Cannot set camera while recording
         if self._writer is not None:
             return QMessageBox.warning(
@@ -407,7 +406,7 @@ class VideoWidget(QWidget):
     def make_camera_settings_widget(self) -> None:
         self.settings_widget = CameraSettingsWidget(self)
 
-    def set_camera(self, camera: Union[FlirCamera, UsbCamera]) -> None:
+    def set_camera(self, camera: FlirCamera | UsbCamera) -> None:
         """Set the camera to use as capture device for the display.
 
         Args:
@@ -507,7 +506,7 @@ class CameraDisplay(QWidget):
         self.canvas.raise_()
 
     @property
-    def raw_frame(self) -> Union[None, np.ndarray]:
+    def raw_frame(self) -> np.ndarray | None:
         return self._parent.raw_frame
 
     @property
@@ -552,7 +551,7 @@ class CameraDisplay(QWidget):
             self.label.pixmap().scaled(self.sizeHint(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
 
-    def parent(self) -> Union[None, VideoWidget]:
+    def parent(self) -> VideoWidget | None:
         return self._parent or super().parent()
 
 
@@ -653,7 +652,7 @@ class CameraSettingsWidget(QWidget):
         self.setVisible(False)
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
+    def camera(self) -> FlirCamera | UsbCamera | None:
         return getattr(self._parent, "camera", None)
 
     @property
@@ -933,7 +932,7 @@ class CameraSettingsWidget(QWidget):
             getattr(self.widget, sig).connect(self.change_setting)
             self._connected = True
 
-        def set_value(self, value: Union[bool, str, float]) -> None:
+        def set_value(self, value: bool | str | float) -> None:
             if isinstance(self.widget, (QDoubleSpinBox, DoubleSlider)):
                 self.widget.setValue(value)
 
@@ -946,7 +945,7 @@ class CameraSettingsWidget(QWidget):
             elif isinstance(self.widget, QLineEdit):
                 self.widget.setText(str(value))
 
-        def get_value(self) -> Union[bool, str, float]:
+        def get_value(self) -> bool | str | float:
             """Get the current value of the setting"""
             if isinstance(self.widget, (QDoubleSpinBox, DoubleSlider)):
                 return self.widget.value()
@@ -960,7 +959,7 @@ class CameraSettingsWidget(QWidget):
             elif isinstance(self.widget, QCheckBox):
                 return self.widget.isChecked()
 
-        def change_setting(self, value: Union[bool, str, float]) -> None:
+        def change_setting(self, value: bool | str | float) -> None:
             # Mark the SettingsWidget as not saved
             self._parent.saved = False
 
@@ -1023,7 +1022,7 @@ class CameraStatusBar(QStatusBar):
         #                    )
 
     @property
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
+    def camera(self) -> FlirCamera | UsbCamera | None:
         return getattr(self._parent, "camera", None)
 
     @property
@@ -1065,13 +1064,13 @@ class Worker(QObject):
         self._parent = parent
         self._running = False
 
-    def camera(self) -> Union[FlirCamera, UsbCamera, None]:
+    def camera(self) -> FlirCamera | UsbCamera | None:
         return getattr(self._parent, "camera", None)
 
-    def display(self) -> Union[CameraDisplay, None]:
+    def display(self) -> CameraDisplay | None:
         return getattr(self._parent, "display", None)
 
-    def canvas(self) -> Union[CanvasWidget, None]:
+    def canvas(self) -> CanvasWidget | None:
         return getattr(self.display(), "canvas", None)
 
     def running(self) -> bool:
@@ -1118,11 +1117,11 @@ class AnalysisWorker(Worker):
     start_time = None
 
     @property
-    def shapes(self) -> Union[list, tuple]:
+    def shapes(self) -> list | tuple:
         return getattr(self.canvas(), "shapes", ())
 
     @property
-    def raw_frame(self) -> Union[np.ndarray, None]:
+    def raw_frame(self) -> np.ndarray | None:
         return getattr(self.camera(), "raw_frame", None)
 
     @pyqtSlot(np.ndarray)
