@@ -11,4 +11,5 @@ jobs:
     steps:
       - uses: hmarr/auto-approve-action@v4
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           review-message: "Auto-approving PR from the FRHEED creator"
