@@ -3,7 +3,6 @@ Widgets for plotting data in PyQt.
 """
 
 import logging
-from typing import Optional, Union
 
 import numpy as np
 import pyqtgraph as pg  # import *after* PyQt5
@@ -83,8 +82,8 @@ class PlotWidget(QWidget):
         self,
         parent: QWidget = None,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
     ):
         super().__init__(parent)
@@ -182,13 +181,13 @@ class PlotWidget(QWidget):
     def axes(self) -> list:
         return [getattr(self, ax) for ax in _PG_AXES]
 
-    def get_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+    def get_curve(self, color: QColor | str | tuple) -> pg.PlotCurveItem:
         """Get an existing plot item."""
         color = utils.get_qcolor(color)
         return self.plot_items.get(color.name())
 
     @pyqtSlot(str)
-    def add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+    def add_curve(self, color: QColor | str | tuple) -> pg.PlotCurveItem:
         """Add a curve to the plot."""
         # Raise error if curve already exists
         color = utils.get_qcolor(color)
@@ -211,7 +210,7 @@ class PlotWidget(QWidget):
         return curve
 
     @pyqtSlot(str)
-    def get_or_add_curve(self, color: Union[QColor, str, tuple]) -> pg.PlotCurveItem:
+    def get_or_add_curve(self, color: QColor | str | tuple) -> pg.PlotCurveItem:
         """Get a curve or add it if it doesn't exist."""
         # Return curve if it already exists
         color = utils.get_qcolor(color)
@@ -222,7 +221,7 @@ class PlotWidget(QWidget):
         return self.add_curve(color)
 
     @pyqtSlot(str)
-    def remove_curve(self, color: Union[QColor, str, tuple]) -> None:
+    def remove_curve(self, color: QColor | str | tuple) -> None:
         """Remove a curve from the plot."""
         # Remove the curve from the plot
         color = utils.get_qcolor(color)
@@ -296,7 +295,7 @@ class PlotWidget(QWidget):
         # Emit curve_toggled signal
         self.curve_toggled.emit(color, visible) if not block_signal else None
 
-    def _get_menu_action(self, color: str) -> Union[QAction, None]:
+    def _get_menu_action(self, color: str) -> QAction | None:
         return next((i for i in self.curve_menu.actions() if i.text() == color), None)
 
 
@@ -305,8 +304,8 @@ class LinePlotWidget(PlotWidget):
         self,
         parent: PlotWidget,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
@@ -402,11 +401,11 @@ class FFTPlotWidget(PlotWidget):
         self,
         parent: PlotWidget,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
         autofind_peaks: bool = True,
-        low_freq_cutoff: Optional[float] = _MIN_FFT_PEAK_POS,
+        low_freq_cutoff: float | None = _MIN_FFT_PEAK_POS,
     ) -> None:
         super().__init__(
             parent=parent, popup=popup, name=name, title=title, show_menubar=show_menubar
@@ -472,7 +471,7 @@ class FFTPlotWidget(PlotWidget):
         """Show/hide lines for a particular curve."""
         [line.setVisible(visible) for line in self.vlines.get(color, [])]
 
-    def detect_and_show_peaks(self, x: list, y: list, color: Optional[str] = None) -> None:
+    def detect_and_show_peaks(self, x: list, y: list, color: str | None = None) -> None:
         # Find peaks
         peak_positions = detect_peaks(x, y, _MIN_FFT_PEAK_POS)
         if peak_positions is None:
@@ -503,8 +502,8 @@ class LineProfileWidget(PlotWidget):
         self,
         parent: FFTPlotWidget,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
@@ -523,8 +522,8 @@ class LineScanPlotWidget(PlotWidget):
         self,
         parent: FFTPlotWidget,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
@@ -537,14 +536,11 @@ class LineScanPlotWidget(PlotWidget):
 
         # Image placeholders
         # TODO: Handle line scans from multiple different lines
-        self._image: Optional[np.ndarray] = None
-        self._pixmap_item: Optional[QGraphicsPixmapItem] = None
-
-        # TESTING
-        # self.set_image(np.random.rand(100, 100))
+        self._image: np.ndarray | None = None
+        self._pixmap_item: QGraphicsPixmapItem | None = None
 
     @property
-    def image(self) -> Union[np.ndarray, None]:
+    def image(self) -> np.ndarray | None:
         return self._image
 
     @image.setter
@@ -563,7 +559,7 @@ class LineScanPlotWidget(PlotWidget):
         return self._pixmap_item
 
     @pixmap_item.setter
-    def pixmap_item(self, pixmap: Union[QPixmap, QGraphicsPixmapItem]) -> None:
+    def pixmap_item(self, pixmap: QPixmap | QGraphicsPixmapItem) -> None:
         if isinstance(pixmap, QPixmap) and self._pixmap_item is not None:
             # Replace the pixmap
             self._pixmap_item.setPixmap(pixmap)
@@ -585,7 +581,7 @@ class LineScanPlotWidget(PlotWidget):
             raise TypeError(f"Expected QPixmap or QGraphicsPixmapItem, got {type(pixmap)}")
 
     @property
-    def pixmap(self) -> Union[QPixmap, None]:
+    def pixmap(self) -> QPixmap | None:
         if self.pixmap_item is not None:
             return self.pixmap_item.pixmap()
         return None
@@ -614,8 +610,8 @@ class GrowthRatePlotWidget(PlotWidget):
         self,
         parent: FFTPlotWidget,
         popup: bool = False,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
+        name: str | None = None,
+        title: str | None = None,
         show_menubar: bool = True,
     ) -> None:
         super().__init__(
@@ -632,7 +628,7 @@ class PlotGridWidget(QWidget):
 
     """ Widget for containing the live RHEED plots and plot transformations. """
 
-    def __init__(self, parent=None, title: Optional[str] = None, popup: bool = True):
+    def __init__(self, parent=None, title: str | None = None, popup: bool = True):
         super().__init__(parent)
         self._parent = parent
 

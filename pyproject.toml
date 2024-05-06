@@ -67,11 +67,27 @@ select = [
     "E",  # all pyflakes rules
     "F",  # all pycodestyle rules
     "I",  # all isort rules
+    "TID251",  # banned imports, see below
     # "PLC0415",  # disallow imports outside module top-level scope
 ]
 unfixable = [
     "F401",  # unused imports
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Callable".msg = "Use `collections.abc.Callable` instead of `typing.Callable`"
+"typing.DefaultDict".msg = "Use `collections.defaultdict` instead of `typing.DefaultDict`"
+"typing.Dict".msg = "Use the standard library `dict` instead of `typing.Dict`"
+"typing.Iterable".msg = "Use `collections.abc.Iterable` instead of `typing.Iterable`"
+"typing.Iterator".msg = "Use `collections.abc.Iterator` instead of `typing.Iterator`"
+"typing.List".msg = "Use the standard library `list` instead of `typing.List`"
+"typing.Optional".msg = "Use the standard library `| None` syntax instead of `typing.Optional`"
+"typing.Sequence".msg = "Use `collections.abc.Sequence` instead of `typing.Sequence`"
+"typing.Set".msg = "Use the standard library `set` instead of `typing.Set`"
+"typing.Tuple".msg = "Use the standard library `tuple` instead of `typing.Tuple`"
+"typing.Type".msg = "Use the standard library `type` instead of `typing.Type`"
+"typing.Union".msg = "Use the standard library `|` syntax instead of `typing.Union`"
+"typing_extensions.Self".msg = "Use `typing.Self` instead of `typing_extensions.Self`"
 
 [tool.mypy]
 plugins = ["numpy.typing.mypy_plugin"]

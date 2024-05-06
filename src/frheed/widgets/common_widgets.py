@@ -3,7 +3,6 @@ Commonly used subclassed PyQt5 widgets.
 """
 
 import math
-from typing import Optional, Union
 
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFontMetrics
@@ -17,9 +16,7 @@ class DoubleSlider(QSlider):
 
     doubleValueChanged = pyqtSignal(float)
 
-    def __init__(
-        self, decimals: int, log: bool = False, base: Union[float, int] = 1.5, parent=None
-    ):
+    def __init__(self, decimals: int, log: bool = False, base: float | int = 1.5, parent=None):
         super().__init__(parent)
 
         # Validate input
@@ -66,35 +63,35 @@ class DoubleSlider(QSlider):
     def minimum(self) -> float:
         return getattr(self, "_minimum", self._to_float(super().minimum()))
 
-    def setMinimum(self, value: Union[float, int]) -> None:
+    def setMinimum(self, value: float) -> None:
         self._minimum = value
         super().setMinimum(self._to_int(value))
 
     def maximum(self) -> float:
         return getattr(self, "_maximum", self._to_float(super().maximum()))
 
-    def setMaximum(self, value: Union[float, int]) -> None:
+    def setMaximum(self, value: float) -> None:
         self._maximum = value
         super().setMaximum(self._to_int(value))
 
-    def setSingleStep(self, value: Union[float, int]) -> None:
+    def setSingleStep(self, value: float) -> None:
         super().setSingleStep(self._to_int(value))
 
     def singleStep(self) -> None:
         return self._to_float(super().singleStep())
 
-    def setValue(self, value: Union[float, int]) -> None:
+    def setValue(self, value: float) -> None:
         super().setValue(self._to_int(value))
 
-    def setTickInterval(self, value: Union[float, int]) -> None:
+    def setTickInterval(self, value: float) -> None:
         super().setTickInterval(self._to_int(value))
 
-    def _to_int(self, value: Union[int, float]) -> int:
+    def _to_int(self, value: float) -> int:
         if self.isLog():
             return int(round(math.log((value / self._multiplier), self.base())))
         return int(round(value / self._multiplier))
 
-    def _to_float(self, value: Union[int, float]) -> float:
+    def _to_float(self, value: float) -> float:
         if self.isLog():
             return float((self.base() ** value) * self._multiplier)
         return float(value * self._multiplier)
@@ -106,10 +103,10 @@ class SliderLabel(QLabel):
     def __init__(
         self,
         slider: QSlider,
-        name: Optional[str] = None,
-        unit: Optional[str] = None,
-        precision: Optional[int] = None,
-        pad: Optional[int] = 8,
+        name: str | None = None,
+        unit: str | None = None,
+        precision: int | None = None,
+        pad: int | None = 8,
     ):
         super().__init__(slider.parent())
 
@@ -184,7 +181,7 @@ class VSpacer(QSpacerItem):
 
 
 class VisibleSplitter(QSplitter):
-    def __init__(self, color: str, hover_color: Optional[str] = None, *args, **kwargs):
+    def __init__(self, color: str, hover_color: str | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         style = (
             self.styleSheet()
@@ -204,7 +201,3 @@ class VisibleSplitter(QSplitter):
                                 """
         )
         self.setStyleSheet(style)
-
-
-if __name__ == "__main__":
-    pass
