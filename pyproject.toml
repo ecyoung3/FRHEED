@@ -1,11 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "FRHEED"
 description = "A GUI for real-time RHEED analysis."
+license = {file = "LICENSE"}
+requires-python = ">=3.10.4, <3.11"  # PySpin only supports up to 3.10
 authors = [
     { name = "Elliot Young", email = "elliot.young1996@gmail.com" },
 ]
-requires-python = ">=3.10.4, <3.11"  # PySpin only supports up to 3.10
 readme = "README.md"
+keywords = [
+    "rheed",
+    "gui",
+    "pyqt",
+    "scientific",
+    "imaging",
+]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+]
 dependencies = [
     "appdirs == 1.4.4",
     "cmapy == 0.6.6",  # TODO(ecyoung3): Replace with own implementation
@@ -25,6 +41,21 @@ dev = [
     "uv == 0.1.39",
 ]
 # TODO(ecyoung3): Add requirements for 3rd-part (e.g. FLIR) cameras (maybe use open source, aravis?)
+
+[project.urls]
+Homepage = "https://github.com/ecyoung3/FRHEED"
+Repository = "https://github.com/ecyoung3/FRHEED.git"
+
+[tool.hatch.version]
+path = "src/frheed/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/.github",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/frheed"]
 
 [tool.ruff]
 # Increase the line length from the default of 88
