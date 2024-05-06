@@ -15,7 +15,7 @@ windows = []
 
 
 class FRHEED(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None:
         # Get application BEFORE initializing
         self.app = QApplication.instance() or QApplication(sys.argv)
 
@@ -30,7 +30,8 @@ class FRHEED(QMainWindow):
         self.setCentralWidget(self.rheed_widget)
 
         # Quit FRHEED when the last window closes
-        self.app.lastWindowClosed.connect(self.app.quit)
+        if isinstance(self.app, QApplication):
+            self.app.setQuitOnLastWindowClosed(True)
 
         # Set window properties
         self.setWindowTitle("FRHEED")

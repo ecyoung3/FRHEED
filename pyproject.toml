@@ -58,6 +58,7 @@ include = [
 packages = ["src/frheed"]
 
 [tool.ruff]
+# preview = true
 line-length = 100
 fix = true
 
@@ -66,19 +67,24 @@ select = [
     "E",  # all pyflakes rules
     "F",  # all pycodestyle rules
     "I",  # all isort rules
+    # "PLC0415",  # disallow imports outside module top-level scope
 ]
 unfixable = [
     "F401",  # unused imports
 ]
 
 [tool.mypy]
+plugins = ["numpy.typing.mypy_plugin"]
 disallow_untyped_defs = true
 warn_return_any = true
 
 # Third-party libraries without stubs
 [[tool.mypy.overrides]]
 module = [
+    "appdirs",
+    "cmapy",
     "PySpin",
+    "scipy.*",
 ]
 follow_imports = "silent"
 ignore_missing_imports = true
