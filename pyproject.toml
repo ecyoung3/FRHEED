@@ -81,6 +81,8 @@ warn_return_any = true
 # Third-party libraries without stubs
 [[tool.mypy.overrides]]
 module = [
+    "appdirs",
+    "cmapy",
     "PySpin",
     "scipy.*",
 ]

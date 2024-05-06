@@ -1,5 +1,7 @@
 """
 Material properties for use in computations.
+
+NOTE: Currently WIP and not used anywhere.
 """
 
 from dataclasses import dataclass
@@ -28,10 +30,6 @@ BINARY_LATTICE_PARAMETERS = {  # at 300 K
 }
 
 
-def compute_ternary_parameters():
-    pass  # TODO
-
-
 class CrystalStructure(Enum):
     WURTZITE = "Wurtzite"
     ZINC_BLENDE = "Zinc blende"
@@ -41,7 +39,3 @@ class CrystalStructure(Enum):
 class Material:
     compound: str
     structure: CrystalStructure
-
-
-if __name__ == "__main__":
-    pass

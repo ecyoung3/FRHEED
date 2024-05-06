@@ -3,17 +3,16 @@ Constants and settings for use elsewhere.
 """
 
 import os
-from typing import Optional
 
-from appdirs import user_config_dir, user_log_dir
+import appdirs
 
 DATA_DIR = os.path.normpath(os.path.expanduser("~/FRHEED"))
 os.makedirs(DATA_DIR, exist_ok=True)
 
-CONFIG_DIR = os.path.join(user_config_dir(), "FRHEED", "")
+CONFIG_DIR = os.path.join(appdirs.user_config_dir(), "FRHEED", "")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
-LOG_DIR = os.path.join(user_log_dir(), "FRHEED", "")
+LOG_DIR = os.path.join(appdirs.user_log_dir(), "FRHEED", "")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 _LOCAL_DIR = os.path.dirname(__file__)
@@ -40,7 +39,7 @@ COLOR_DICT = {
 }
 
 
-def get_data_dir(user: Optional[str] = None, experiment: Optional[str] = None) -> str:
+def get_data_dir(user: str | None = None, experiment: str | None = None) -> str:
     """Create a data directory based on the given user and experiment name.
 
     Args:
@@ -68,15 +67,3 @@ def get_data_dir(user: Optional[str] = None, experiment: Optional[str] = None) -
     os.makedirs(data_dir, exist_ok=True)
 
     return data_dir
-
-
-if __name__ == "__main__":
-
-    def test():
-        print(f"Data directory: {DATA_DIR}")
-        print(f"Config directory: {CONFIG_DIR}")
-        print(f"Resource directory: {RESOURCE_DIR}")
-        print(f"Icons directory: {ICONS_DIR}")
-        print(f"Test directory: {get_data_dir('test', 'test')}")
-
-    test()
