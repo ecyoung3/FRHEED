@@ -1,6 +1,7 @@
 """
 Main GUI for FRHEED.
 """
+
 import logging
 import sys
 

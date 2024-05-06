@@ -1,6 +1,7 @@
 """
 Constants and settings for use elsewhere.
 """
+
 import os
 from typing import Optional
 
