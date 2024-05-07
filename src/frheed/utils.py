@@ -81,7 +81,9 @@ def test_widget(
     return (widget, app)
 
 
-def unit_string(value: float, unit: str, sep: str | None = None, precision: int | None = 2) -> str:
+def unit_string(
+    value: float, unit: str | None, sep: str | None = None, precision: int | None = 2
+) -> str:
     """
     Format a unit string depending on the order of magnitude.
     For example: 3_000_000 µm -> 3 m if base_unit = "m".

@@ -100,6 +100,7 @@ local_partial_types = true
 module = [
     "appdirs",
     "cmapy",
+    "pyqtgraph",
     "PySpin",
     "scipy.*",
 ]
