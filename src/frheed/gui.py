@@ -5,13 +5,13 @@ Main GUI for FRHEED.
 import logging
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from frheed import utils
 from frheed.widgets.rheed_widgets import RHEEDWidget
 
 # Store reference to main window so it doesn't get garbage collected
-windows = []
+windows: list[QMainWindow] = []
 
 
 class FRHEED(QMainWindow):
@@ -42,7 +42,7 @@ class FRHEED(QMainWindow):
         utils.fit_screen(self)
 
         # Start blocking event loop that ends when app is closed
-        sys.exit(self.app.exec_())
+        sys.exit(self.app.exec())
 
 
 def show() -> FRHEED:
