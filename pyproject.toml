@@ -27,7 +27,7 @@ dependencies = [
     "cmapy == 0.6.6",  # TODO(ecyoung3): Replace with own implementation
     "numpy == 1.26.*",
     "opencv-python == 4.9.0.*",
-    "PyQt5 == 5.15.*",
+    "PyQt6 == 6.7.*",
     "pyqtgraph == 0.13.*",
     "scipy == 1.13.*",
 ]

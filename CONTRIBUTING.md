@@ -70,8 +70,14 @@ dependencies, including those required for development.
 
 To install development requirements:
 
+```console
+uv pip install -r requirements-dev.txt
 ```
-uv pip install requirements-dev.txt
+
+To sync the virtual environment with the requirements, uninstalling any unused packages:
+
+```console
+uv pip sync requirements-dev.txt
 ```
 
 #### Compiling Dependencies
