@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import os
 
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QGridLayout, QMenuBar, QMessageBox, QSizePolicy, QWidget
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtGui import QAction, QCloseEvent, QResizeEvent
+from PyQt6.QtWidgets import QGridLayout, QMenu, QMenuBar, QMessageBox, QSizePolicy, QWidget
 
 from frheed.constants import CONFIG_DIR, DATA_DIR
 from frheed.utils import snip_lists
@@ -18,20 +19,20 @@ from frheed.widgets.selection_widgets import CameraSelection
 
 
 class RHEEDWidget(QWidget):
-    def __init__(self, parent: QWidget = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
         # Widget UI will be initialized later
         self._initialized = False
 
         # Settings
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         # Create the layout
-        self.layout = QGridLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(4)
-        self.setLayout(self.layout)
+        layout = QGridLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        self.setLayout(layout)
 
         # Create the menu bar
         self.menubar = QMenuBar(self)
@@ -41,25 +42,29 @@ class RHEEDWidget(QWidget):
         # but will not be visible unless enabled manually in Windows.
         # To enable it, go to Control Panel -> Ease of Access -> Keyboard
         #                   -> Underline keyboard shortcuts and access keys
-        self.file_menu = self.menubar.addMenu("&File")
+        self.file_menu = QMenu("&File")
         self.file_menu.addAction("&Change camera", self.show_cam_selection)
         self.file_menu.addSeparator()
         self.file_menu.addAction("&Open Data Folder", self.open_data_folder)
         self.file_menu.addAction("Open &Settings Folder", self.open_settings_folder)
+        self.menubar.addMenu(self.file_menu)
 
         # "View" menu
-        self.view_menu = self.menubar.addMenu("&View")
-        self.show_live_plots_item = self.view_menu.addAction("&Live plots")
+        self.view_menu = QMenu("&View")
+        self.show_live_plots_item = QAction("&Live plots")
         self.show_live_plots_item.setCheckable(True)
         self.show_live_plots_item.setChecked(True)
         self.show_live_plots_item.toggled.connect(self.show_live_plots)
+        self.view_menu.addAction(self.show_live_plots_item)
+        self.menubar.addMenu(self.view_menu)
 
         # "Tools" menu
-        self.tools_menu = self.menubar.addMenu("&Tools")
+        self.tools_menu = QMenu("&Tools")
         self.preferences_item = self.tools_menu.addAction("&Preferences")
+        self.menubar.addMenu(self.tools_menu)
 
         # Add menubar
-        self.layout.addWidget(self.menubar, 0, 0, 1, 1)
+        layout.addWidget(self.menubar, 0, 0, 1, 1)
 
         # Create camera selection widget and wait for choice
         self.setVisible(False)
@@ -75,8 +80,13 @@ class RHEEDWidget(QWidget):
 
         # Create the camera widget
         camera = self.cam_selection._cam
+        if camera is None:
+            raise ValueError("A camera must be selected to create a RHEEDWidget instance")
+
         self.camera_widget = VideoWidget(camera, parent=self)
-        self.camera_widget.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.camera_widget.setSizePolicy(
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
+        )
 
         # Create the plot widgets
         # self.region_plot = PlotWidget(parent=self, popup=True, name="Regions (Live)")
@@ -87,9 +97,15 @@ class RHEEDWidget(QWidget):
         self.line_scan_plot = self.plot_grid.line_scan_plot
 
         # Add widgets to layout
-        self.layout.addWidget(self.camera_widget, 1, 0, 1, 1)
-        self.layout.setRowStretch(1, 1)
-        self.layout.setColumnStretch(0, 1)
+        layout = self.layout()
+        if not isinstance(layout, QGridLayout):
+            raise TypeError(
+                f"Expected RHEEDWidget to have layout of type 'QGridLayout', but got {type(layout)}"
+            )
+
+        layout.addWidget(self.camera_widget, 1, 0, 1, 1)
+        layout.setRowStretch(1, 1)
+        layout.setColumnStretch(0, 1)
 
         # Connect signals
         self.camera_widget.analysis_worker.data_ready.connect(self.plot_data)
@@ -104,10 +120,10 @@ class RHEEDWidget(QWidget):
         # Mark as initialized
         self._initialized = True
 
-    def resizeEvent(self, event) -> None:
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
         super().resizeEvent(event)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         if self._initialized:
             [
                 wid.setParent(None)
@@ -173,7 +189,8 @@ class RHEEDWidget(QWidget):
     @pyqtSlot()
     def change_camera(self) -> None:
         """Change the active camera."""
-        self.camera_widget.set_camera(self.cam_selection._cam)
+        if self.cam_selection._cam is not None:
+            self.camera_widget.set_camera(self.cam_selection._cam)
 
     @pyqtSlot()
     def live_plots_closed(self) -> None:
