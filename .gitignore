@@ -16,3 +16,6 @@ dist/
 
 # ruff
 .ruff_cache/
+
+# scratch Python files for GUI testing
+*scratch.py
