@@ -5,11 +5,10 @@ Widgets for plotting data in PyQt.
 import logging
 
 import numpy as np
-import pyqtgraph as pg  # import *after* PyQt5
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QColor, QPixmap
-from PyQt5.QtWidgets import (
-    QAction,
+import pyqtgraph as pg  # import *after* PyQt6
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QAction, QColor, QPixmap
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
     QGraphicsPixmapItem,
@@ -71,7 +70,7 @@ def init_pyqtgraph(use_opengl: bool = False) -> None:
 
 
 class PlotWidget(QWidget):
-    """The base plot widget for embedding in PyQt5"""
+    """The base plot widget for embedding in PyQt6"""
 
     curve_added = pyqtSignal(str)
     curve_removed = pyqtSignal(str)
@@ -80,7 +79,7 @@ class PlotWidget(QWidget):
 
     def __init__(
         self,
-        parent: QWidget = None,
+        parent: QWidget | None = None,
         popup: bool = False,
         name: str | None = None,
         title: str | None = None,
@@ -736,13 +735,3 @@ class PlotGridWidget(QWidget):
         """Remove curves from plots."""
         color = shape.color.name()
         [wid.remove_curve(color) for wid in self.plot_widgets]
-
-
-if __name__ == "__main__":
-
-    def test():
-        from frheed.utils import test_widget
-
-        return test_widget(PlotGridWidget, block=True, parent=None)
-
-    widget, app = test()

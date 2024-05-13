@@ -2,11 +2,12 @@
 Widgets for selecting things, including the source camera to use.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QWidget
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QGridLayout, QPushButton, QWidget
 
 from frheed.cameras.flir import FlirCamera
 from frheed.cameras.flir import get_available_cameras as get_flir_cams
@@ -22,7 +23,7 @@ class CameraClasses(Enum):
 
 @dataclass
 class CameraObject:
-    cam_class: object
+    cam_class: type[FlirCamera] | type[UsbCamera]
     src: str | int
     name: str | None = None
 
@@ -34,7 +35,7 @@ class CameraSelection(QWidget):
     camera_classes = (FlirCamera, UsbCamera)
     camera_selected = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(None)
 
         # NOTE: No parent is provided so the window can be minimized to the taskbar
@@ -47,7 +48,7 @@ class CameraSelection(QWidget):
         cams = self.available_cameras()
 
         # Set window properties
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Window)
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Window)
         self.setWindowTitle("Select Camera")
         self.setWindowIcon(get_icon("FRHEED"))
 
@@ -55,14 +56,14 @@ class CameraSelection(QWidget):
         self.setMinimumWidth(300)
 
         # Create layout
-        self.layout = QGridLayout()
-        self.setLayout(self.layout)
+        layout = QGridLayout()
+        self.setLayout(layout)
 
         # If there are no cameras, no buttons need to be added
         if not cams:
             btn = QPushButton("No cameras found")
             btn.setEnabled(False)
-            self.layout.addWidget(btn, 0, 0)
+            layout.addWidget(btn, 0, 0)
 
         # Create buttons for each camera
         for i, cam in enumerate(cams):
@@ -72,13 +73,13 @@ class CameraSelection(QWidget):
             # Connect signal
             # Doing it this way is necessary because otherwise all lambda
             # functions will initialize the same camera
-            def make_lambda(cam_obj: CameraObject):
+            def make_lambda(cam_obj: CameraObject) -> Callable[[], FlirCamera | UsbCamera]:
                 return lambda: self.select_camera(cam_obj)
 
             btn.clicked.connect(make_lambda(cam))
 
             # Add button to layout
-            self.layout.addWidget(btn, i, 0)
+            layout.addWidget(btn, i, 0)
 
         # Show the widget
         self.setVisible(True)
@@ -89,14 +90,11 @@ class CameraSelection(QWidget):
         flir_cams = [CameraObject(FlirCamera, src, name) for src, name in get_flir_cams().items()]
         return usb_cams + flir_cams
 
-    def select_camera(self, cam: CameraObject) -> object:
+    def select_camera(self, cam: CameraObject) -> FlirCamera | UsbCamera:
         """Get the selected camera class object."""
         # Deselect existing camera
-        try:
+        if self._cam is not None:
             self._cam.close()
-        except:  # noqa: E722
-            # TODO(ecyoung3): Determine exact error type
-            pass
 
         # Initialize camera
         self._cam = cam.get_camera()
@@ -108,7 +106,3 @@ class CameraSelection(QWidget):
         self.setVisible(False)
 
         return self._cam
-
-
-if __name__ == "__main__":
-    cam_select = CameraSelection()

@@ -7,22 +7,21 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from PyQt5.QtGui import QColor, QIcon, QPen
-from PyQt5.QtWidgets import QApplication, QDesktopWidget, QWidget
+from PyQt6.QtGui import QColor, QIcon, QPen, QScreen
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from frheed import settings
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-    from PyQt5.QtCore import QCoreApplication
+    from PyQt6.QtCore import QCoreApplication
 
 
 def fit_screen(widget: QWidget, scale: float = 0.5) -> None:
     """Fit a widget in the center of the main screen"""
     # Get main screen geometry
-    desktop = QDesktopWidget()
-    screen = desktop.availableGeometry()
-    tot_w, tot_h = screen.width(), screen.height()
+    available_geometry = QScreen().availableGeometry()
+    tot_w, tot_h = available_geometry.width(), available_geometry.height()
 
     # Resize widget to 75% of available space
     w, h = int(tot_w * scale), int(tot_h * scale)
@@ -76,13 +75,15 @@ def test_widget(
     fit_screen(widget)
     widget.show()
 
-    # NOTE: _exec() starts a blocking loop; any code after will not run
-    sys.exit(app.exec_()) if block else None
+    # NOTE: exec() starts a blocking loop; any code after will not run
+    sys.exit(app.exec()) if block else None
 
     return (widget, app)
 
 
-def unit_string(value: float, unit: str, sep: str | None = None, precision: int | None = 2) -> str:
+def unit_string(
+    value: float, unit: str | None, sep: str | None = None, precision: int | None = 2
+) -> str:
     """
     Format a unit string depending on the order of magnitude.
     For example: 3_000_000 µm -> 3 m if base_unit = "m".
@@ -339,7 +340,7 @@ def get_qcolor(color: str | tuple | QColor) -> QColor:
         raise TypeError(f"Unsupported color type {type(color)}")
 
 
-def get_qpen(color: str | tuple | QColor, cosmetic: bool = True) -> QColor:
+def get_qpen(color: str | tuple | QColor, cosmetic: bool = True) -> QPen:
     """Create a QPen with the specified color"""
     pen = QPen(get_qcolor(color))
     pen.setCosmetic(cosmetic)

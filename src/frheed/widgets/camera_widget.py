@@ -10,9 +10,9 @@ from datetime import datetime
 
 import cv2
 import numpy as np
-from PyQt5.QtCore import QObject, QSize, Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QObject, QSize, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
@@ -237,8 +237,8 @@ class VideoWidget(QWidget):
         else:
             super().wheelEvent(event)
 
-    @pyqtSlot(QCloseEvent)
-    def closeEvent(self, event: QCloseEvent) -> None:
+    @pyqtSlot(QCloseEvent | None)
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         """Stop the camera and close settings when the widget is closed"""
         [worker.stop() for worker in self.workers]
         self.settings_widget.deleteLater()
