@@ -5,9 +5,9 @@ PyQt widgets for drawing shapes.
 from __future__ import annotations
 
 import numpy as np
-from PyQt5.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QColor, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import QAction, QActionGroup, QApplication, QLabel, QMenu, QMessageBox, QWidget
+from PyQt6.QtCore import QEvent, QLine, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtWidgets import QAction, QActionGroup, QApplication, QLabel, QMenu, QMessageBox, QWidget
 
 from frheed.constants import COLOR_DICT
 from frheed.utils import get_qcolor
@@ -1070,7 +1070,7 @@ if __name__ == "__main__":
     def test():
         import sys
 
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
 
         from frheed.utils import test_widget
 
