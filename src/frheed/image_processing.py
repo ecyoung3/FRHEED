@@ -2,7 +2,6 @@
 Assorted image processing operations.
 """
 
-import cmapy
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -42,12 +41,9 @@ def normalize(arr: np.ndarray) -> np.ndarray:
     return arr.astype(np.uint8, copy=True)
 
 
-def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
+def apply_cmap(arr: np.ndarray, cmap_name: str, bgr_order: bool = False) -> np.ndarray:
     """
-    Apply a named colormap to an array. This function uses the cmapy library
-    to convert matplotlib colormaps to cv2 colormaps, since cv2.applyColormap is
-    approximately 5x faster than using matplotlib/numpy methods
-    (tested using uint8 2048 x 1536 arrays, ~30ms vs ~6ms).
+    Apply a named colormap to an array.
 
     Parameters
     ----------
@@ -55,6 +51,8 @@ def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
         The array to apply the colormap to. The array must be single-channel (not RGB).
     cmap : str
         The name of the colormap to apply (any valid matplotlib colormap).
+    rgbA_order : bool
+        Whether the provided array is in BGR order instead of RGB order.
 
     Returns
     -------
@@ -65,8 +63,20 @@ def apply_cmap(arr: np.ndarray, cmap: str) -> np.ndarray:
         and width of the input array.
 
     """
-    colorized_arr: np.ndarray = cmapy.colorize(normalize(arr), cmap, rgb_order=True)
-    return colorized_arr
+    cmap = plt.get_cmap(cmap_name, 256)
+    rgba_data = plt.cm.ScalarMappable(cmap=cmap).to_rgba(np.arange(0, 1, 1 / 256), bytes=True)
+    rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
+
+    # Convert to 3-channel RGB/BGR uint8 for OpenCV
+    cmap_data = np.zeros((256, 1, 3), np.uint8)
+
+    # Remove the alpha channel and optionally reverse RGB to BGR
+    if bgr_order:
+        cmap_data[:, :, :] = rgba_data[:, :, ::-1]
+    else:
+        cmap_data[:, :, :] = rgba_data[:, :, :]
+
+    return cv2.applyColorMap(arr, cmap_data)
 
 
 def to_grayscale(array: np.ndarray) -> np.ndarray:
@@ -124,4 +134,4 @@ def extend_image(image: np.ndarray, new_col: np.ndarray) -> np.ndarray:
 
 
 def get_valid_colormaps() -> list[str]:
-    return plt.colormaps()
+    return list(plt.colormaps())
