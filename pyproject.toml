@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "appdirs == 1.4.4",
+    "attrs == 23.2.*",
     "matplotlib == 3.8.*",
     "numpy == 1.26.*",
     "opencv-python == 4.9.0.*",
