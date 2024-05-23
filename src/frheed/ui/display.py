@@ -1,4 +1,4 @@
-"""GUI components for displaying and drawing shapes over images."""
+"""UI components for displaying and drawing shapes over images."""
 
 from __future__ import annotations
 
@@ -8,15 +8,13 @@ import itertools
 import logging
 
 import attrs
-import PyQt6.QtCore as QtCore
-import PyQt6.QtGui as QtGui
-import PyQt6.QtWidgets as QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 # The default pen width for all shapes
 SHAPE_PEN_WIDTH = 2
 
 # The pen width for shapes that have focus
-BOUNDING_RECT_PEN_WIDTH = 2
+FOCUS_PEN_WIDTH = 4
 
 # Colorblind-friendly color scheme
 HEX_COLORS = (
@@ -105,7 +103,7 @@ class Shape(QtWidgets.QGraphicsPathItem):
     def focusInEvent(self, event: QtGui.QFocusEvent | None) -> None:
         """Show the bounding rectangle item for a shape"""
         super().focusInEvent(event)
-        self.set_pen_width(2 * SHAPE_PEN_WIDTH)
+        self.set_pen_width(FOCUS_PEN_WIDTH)
         if self.bounding_box is not None:
             self.bounding_box.show()
 
@@ -363,7 +361,7 @@ class ShapeHandle(QtWidgets.QGraphicsEllipseItem):
         # cosmetic so that the visual width of its edges do not change with zooming or scaling
         color = parent_shape.pen().color()
         pen = QtGui.QPen(color)
-        pen.setWidth(2 * BOUNDING_RECT_PEN_WIDTH)
+        pen.setWidth(FOCUS_PEN_WIDTH)
         pen.setCosmetic(True)
         self.setPen(pen)
         self.setBrush(color)
@@ -455,7 +453,7 @@ class ShapeBoundingBox(QtWidgets.QGraphicsRectItem):
         # The bounding rect should be the same color as the parent item, but with dotted lines
         parent_color = shape.pen().color()
         dotted_pen = QtGui.QPen(parent_color)
-        dotted_pen.setWidthF(BOUNDING_RECT_PEN_WIDTH)
+        dotted_pen.setWidthF(SHAPE_PEN_WIDTH)
         dotted_pen.setStyle(QtCore.Qt.PenStyle.DotLine)
         dotted_pen.setCosmetic(True)
         self.setPen(dotted_pen)
@@ -520,7 +518,11 @@ class Display(QtWidgets.QGraphicsView):
     # The minimum width and height of a shape, in pixels
     _MIN_SHAPE_SIZE = 4
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        image_item: QtWidgets.QGraphicsPixmapItem | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
 
         # Create a graphics scene that is always displayed in the top left of the view
@@ -532,7 +534,7 @@ class Display(QtWidgets.QGraphicsView):
         self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
 
         # Create the graphics item for displaying images; it should always be the lowermost item
-        self._image_item = QtWidgets.QGraphicsPixmapItem()
+        self._image_item = image_item or QtWidgets.QGraphicsPixmapItem()
         self._scene.addItem(self._image_item)
 
         # Don't allow shapes to be drawn outside the image
@@ -587,7 +589,7 @@ class Display(QtWidgets.QGraphicsView):
         self._current_shape_modification.on_mouse_moved(scene_pos)
 
         # Ensure that moving the shape does not expand the scene rect
-        self.setSceneRect(self._image_item.boundingRect())
+        self.setSceneRect(self.image_item.boundingRect())
 
     @QtCore.pyqtSlot(QtGui.QMouseEvent)
     def mousePressEvent(self, event: QtGui.QMouseEvent | None) -> None:
@@ -692,6 +694,11 @@ class Display(QtWidgets.QGraphicsView):
             super().wheelEvent(event)
 
     @property
+    def image_item(self) -> QtWidgets.QGraphicsPixmapItem:
+        """The item used to display images."""
+        return self._image_item
+
+    @property
     def shapes(self) -> list[Shape]:
         """All shapes that have been added to the display."""
         return self._shapes
@@ -704,7 +711,7 @@ class Display(QtWidgets.QGraphicsView):
     def set_image(self, image: QtGui.QImage) -> None:
         """Sets the displayed image."""
         pixmap = QtGui.QPixmap.fromImage(image)
-        self._image_item.setPixmap(pixmap)
+        self.image_item.setPixmap(pixmap)
 
     def add_shape(self, p1: QtCore.QPointF, p2: QtCore.QPointF) -> Shape | None:
         """Adds a new shape of the currently-selected type to the display."""
@@ -720,7 +727,7 @@ class Display(QtWidgets.QGraphicsView):
         # Create the shape based on the currently-selected type
         # NOTE: This will also add it to the scene, since it is created as a child of the image
         #   item, which is already in the scene.
-        shape = self._current_shape_type(p1, p2, color, self._image_item)
+        shape = self._current_shape_type(p1, p2, color, self.image_item)
         self._shapes.append(shape)
         return shape
 
