@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import collections
 import enum
 import itertools
 import logging
@@ -545,18 +544,14 @@ class Display(QtWidgets.QGraphicsView):
         #   updated to match the attached camera's resolution, e.g. 1920x1080.
         self._image_item.setCacheMode(QtWidgets.QGraphicsItem.CacheMode.ItemCoordinateCache)
 
-        # Rectangles, ellipses, and lines that are drawn on the graphics scene
-        self._shapes: list[Shape] = []
+        # Store shapes drawn on the graphics scene by hex color
+        self._shape_by_color: dict[str, Shape | None] = {color: None for color in HEX_COLORS}
 
         # Define the types of shapes that can be drawn and the order through which they are cycled
         self._shape_types_cycle = itertools.cycle((Rectangle, Ellipse, Line))
 
         # Set the current shape type (the first one in the cycle, Rectangle)
         self.next_shape_type()
-        self.next_shape_type()  # TODO: remove
-
-        # Store the available colors to use for shapes; there can only be 1 shape per color
-        self._available_colors = collections.deque(HEX_COLORS)
 
         # Information about the current shape modification (resizing or translating)
         self._current_shape_modification: ShapeModification | None = None
@@ -693,6 +688,18 @@ class Display(QtWidgets.QGraphicsView):
             # Use default event handling if CTRL is not pressed
             super().wheelEvent(event)
 
+    @QtCore.pyqtSlot(QtGui.QKeyEvent)
+    def keyPressEvent(self, event: QtGui.QKeyEvent | None) -> None:
+        if event is None:
+            return
+
+        # Do not use `QKeyEvent.keyCombination()` because it doesn't define `__match_args__`
+        match (event.modifiers(), event.key()):
+            case (QtCore.Qt.KeyboardModifier.NoModifier, QtCore.Qt.Key.Key_Delete):
+                # Pressed the delete key with no modifiers; delete any active shape
+                if self.active_shape is not None:
+                    self.delete_shape(self.active_shape)
+
     @property
     def image_item(self) -> QtWidgets.QGraphicsPixmapItem:
         """The item used to display images."""
@@ -701,7 +708,7 @@ class Display(QtWidgets.QGraphicsView):
     @property
     def shapes(self) -> list[Shape]:
         """All shapes that have been added to the display."""
-        return self._shapes
+        return [shape for _color, shape in self._shape_by_color.items() if shape is not None]
 
     @property
     def active_shape(self) -> Shape | None:
@@ -713,24 +720,46 @@ class Display(QtWidgets.QGraphicsView):
         pixmap = QtGui.QPixmap.fromImage(image)
         self.image_item.setPixmap(pixmap)
 
-    def add_shape(self, p1: QtCore.QPointF, p2: QtCore.QPointF) -> Shape | None:
-        """Adds a new shape of the currently-selected type to the display."""
-        # Determine if a new shape can be added
-        if not self._available_colors:
-            logging.warning("The maximum number of shapes (%s) already exist", len(HEX_COLORS))
-            return None
-
-        # Create a pen with the current color and linewidth for drawing the rectangle
-        hex_color = self._available_colors.popleft()
-        color = QtGui.QColor(hex_color)
-
-        # Create the shape based on the currently-selected type
-        # NOTE: This will also add it to the scene, since it is created as a child of the image
-        #   item, which is already in the scene.
-        shape = self._current_shape_type(p1, p2, color, self.image_item)
-        self._shapes.append(shape)
-        return shape
+    def get_next_shape_color(self) -> str | None:
+        """Returns the hex value of the next available shape color."""
+        return next((color for color, shape in self._shape_by_color.items() if shape is None), None)
 
     def next_shape_type(self) -> None:
         """Cycles to the next shape type."""
         self._current_shape_type = next(self._shape_types_cycle)
+
+    def add_shape(self, p1: QtCore.QPointF, p2: QtCore.QPointF) -> Shape | None:
+        """Adds a new shape of the currently-selected type to the display."""
+        # Determine if a new shape can be added
+        if (hex_color := self.get_next_shape_color()) is None:
+            logging.warning("The maximum number of shapes (%s) already exist", len(HEX_COLORS))
+            return None
+
+        # Create the shape based on the currently-selected type
+        # NOTE: This will also add it to the scene, since it is created as a child of the image
+        #   item, which is already in the scene.
+        logging.info("Adding shape with color %r", hex_color)
+        shape = self._current_shape_type(p1, p2, QtGui.QColor(hex_color), self.image_item)
+        self._shape_by_color[hex_color] = shape
+        return shape
+
+    def delete_shape(self, shape: Shape) -> None:
+        """Deletes a shape from the display."""
+        for color, other_shape in self._shape_by_color.items():
+            if shape == other_shape:
+                color_to_delete = color
+                break
+        else:
+            logging.warning("Shape not found; unable to delete it from the display")
+            return
+
+        # Remove the shape from storage and from the scene, which will also remove the associated
+        # bounding box and handles
+        logging.info("Deleting shape with color %r", color_to_delete)
+        self._shape_by_color[color_to_delete] = None
+        if (scene := self.scene()) is not None:
+            scene.removeItem(shape)
+
+        # Reset the mouse cursor and any shape modification information
+        self.unsetCursor()
+        self._current_shape_modification = None
