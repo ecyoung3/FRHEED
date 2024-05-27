@@ -28,7 +28,8 @@ dependencies = [
     "matplotlib == 3.8.*",
     "numpy == 1.26.*",
     "opencv-python == 4.9.0.*",
-    "PyQt6 == 6.7.*",
+    "PyQt6 == 6.6.1",  # QCamera does not work on 6.7.0 on Windows 11
+    "PyQt6-Qt6 == 6.6.1",  # Force to match PyQt6 version otherwise DLL load may fail
     "pyqtgraph == 0.13.*",
     "scipy == 1.13.*",
 ]

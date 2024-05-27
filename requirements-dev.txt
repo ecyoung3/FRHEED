@@ -20,7 +20,7 @@ matplotlib==3.8.4
 mypy==1.10.0
 mypy-extensions==1.0.0
     # via mypy
-numpy==1.26.1
+numpy==1.26.4
     # via
     #   contourpy
     #   matplotlib
@@ -28,7 +28,7 @@ numpy==1.26.1
     #   pyqtgraph
     #   scipy
 opencv-python==4.9.0.80
-packaging==23.2
+packaging==24.0
     # via
     #   matplotlib
     #   pytest
@@ -38,12 +38,12 @@ pluggy==1.5.0
     # via pytest
 pyparsing==3.1.2
     # via matplotlib
-pyqt6==6.7.0
-pyqt6-qt6==6.7.0
+pyqt6==6.6.1
+pyqt6-qt6==6.6.1
     # via pyqt6
 pyqt6-sip==13.6.0
     # via pyqt6
-pyqtgraph==0.13.3
+pyqtgraph==0.13.7
 pytest==8.2.0
 python-dateutil==2.9.0.post0
     # via matplotlib
@@ -55,6 +55,6 @@ tomli==2.0.1
     # via
     #   mypy
     #   pytest
-typing-extensions==4.8.0
+typing-extensions==4.11.0
     # via mypy
 uv==0.1.39
