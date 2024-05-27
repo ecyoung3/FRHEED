@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 import functools
+import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -114,17 +115,18 @@ class ColormapFamily(enum.Enum):
     )
 
 
-def is_reversed_colormap_name(cmap_name: str) -> bool:
+def is_reversed_colormap(cmap: str | Colormap) -> bool:
     """Returns whether or not a colormap name is the reversed version of a colormap.
 
     Reversed colormap names end with "_r" - see the matplotlib documentation for details.
 
     https://matplotlib.org/stable/gallery/color/colormap_reference.html#reversed-colormaps
     """
-    return cmap_name.endswith("_r")
+    cmap = cmap if isinstance(cmap, str) else cmap.name
+    return cmap.endswith("_r")
 
 
-def get_reversed_colormap_name(cmap_name: str) -> str:
+def get_reversed_colormap_name(cmap: str | Colormap) -> str:
     """Returns the name for the reversed version of a colormap.
 
     This is done by appending "_r" to the colormap name if it does not already end with "_r".
@@ -132,7 +134,8 @@ def get_reversed_colormap_name(cmap_name: str) -> str:
     https://matplotlib.org/stable/gallery/color/colormap_reference.html#reversed-colormaps
     """
     # Any matplotlib colormap can be reversed by appending "_r" to its name
-    return cmap_name if is_reversed_colormap_name(cmap_name) else f"{cmap_name}_r"
+    cmap = cmap if isinstance(cmap, str) else cmap.name
+    return cmap if is_reversed_colormap(cmap) else f"{cmap}_r"
 
 
 def get_colormap(cmap_name: str, lut: int = 256, reversed: bool = False) -> Colormap:
@@ -217,14 +220,23 @@ class ColormapImage(QtGui.QImage):
         return QtGui.QIcon(self.to_pixmap())
 
 
-class ColormapAction(QtGui.QAction):
+class ColormapSelectionAction(QtGui.QAction):
     """An action used to select a colormap."""
 
-    def __init__(self, cmap: Colormap | str, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        cmap: Colormap | str,
+        group: QtGui.QActionGroup,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         cmap_image = ColormapImage(cmap)
         cmap_icon = cmap_image.to_icon()
         cmap_name = cmap_image.get_colormap_name()
         super().__init__(cmap_icon, cmap_name, parent)
+
+        # All colormap actions should be checkable and belong to an action group
+        self.setCheckable(True)
+        self.setActionGroup(group)
 
         # Store the colormap name as item data for passing around via signals and slots
         self._cmap_name = cmap_name
@@ -246,8 +258,8 @@ class ColormapAction(QtGui.QAction):
         return self._cmap_name
 
 
-class ColormapsMenu(QtWidgets.QMenu):
-    """A menu of colormaps."""
+class ColormapSelectionMenu(QtWidgets.QMenu):
+    """A menu of available colormaps."""
 
     # Signal emitted when a colormap is selected
     colormap_selected = QtCore.pyqtSignal(str)
@@ -255,7 +267,8 @@ class ColormapsMenu(QtWidgets.QMenu):
     def __init__(
         self,
         title: str,
-        cmap_names: Sequence[str],
+        colormaps: Sequence[str | Colormap | ColormapFamily],
+        include_none_selected: bool = True,
         include_reversed: bool = True,
         action_group: QtGui.QActionGroup | None = None,
         parent: QtWidgets.QWidget | None = None,
@@ -264,29 +277,59 @@ class ColormapsMenu(QtWidgets.QMenu):
 
         Args:
             title: The text to display for the menu.
-            cmap_names: The names of all colormaps to include in the menu.
+            colormaps: The colormaps and/or colormap families to include in the menu. Colormap
+                families will be added as sub-menus containing all colormaps in that family.
+            include_none_selected: Whether to include an item at the top of the menu to represent
+                that no colormap is selected.
             include_reversed: Whether to include reversed versions of all colormaps in the menu.
-            action_group: The action group to add all colormap actions to, for example if only one
-                colormap from the group should be selected at any given time. If none is provided,
-                the colormap actions will not belong to a group.
+            action_group: The action group to add all colormap actions to, or `None` if an action
+                group should be created automatically.
             parent: The widget to set as the parent of the menu.
         """
         super().__init__(title, parent)
 
+        # Create an action group if necessary and make sure it's exclusive so that at most one
+        # choice can be selected at a time
+        if action_group is None:
+            action_group = QtGui.QActionGroup(self)
+
+        action_group.setExclusive(True)
+        self._action_group = action_group
+
+        # Create the item that represents no colormap being selected
+        if include_none_selected:
+            none_action = QtGui.QAction("None", self)
+            none_action.setCheckable(True)
+            none_action.setActionGroup(action_group)
+            self.addAction(none_action)
+
         # Add actions for each of the colormaps to the menu and to the action group if necessary
-        actions: list[ColormapAction] = []
-        for cmap_name in cmap_names:
-            actions.append(ColormapAction(cmap_name, self))
-            if include_reversed and not is_reversed_colormap_name(cmap_name):
-                actions.append(ColormapAction(get_reversed_colormap_name(cmap_name), self))
+        for cmap in colormaps:
+            if isinstance(cmap, ColormapFamily):
+                # Create a sub-menu for the colormap family but _without_ the "None" item, which
+                # should only be created for top-level colormap menus
+                submenu = ColormapSelectionMenu.for_family(
+                    cmap,
+                    include_none_selected=False,
+                    include_reversed=include_reversed,
+                    action_group=action_group,
+                    parent=self,
+                )
+                submenu_action = self.addMenu(submenu)
 
-        self.addActions(actions)
+                # Make the sub-menu checkable to indicate if it contains the selected colormap
+                if submenu_action is not None:
+                    submenu_action.setCheckable(True)
 
-        # Actions should be checkable if they belong to an action group
-        if action_group is not None:
-            for action in actions:
-                action.setCheckable(True)
-                action_group.addAction(action)
+                # Disconnect the triggered signal, otherwise it will fire twice (once for the parent
+                # menu connection and once for the child menu connection)
+                submenu.triggered.disconnect()
+            else:
+                # Create an action for the colormap and optionally its reversed version
+                self.addAction(ColormapSelectionAction(cmap, action_group, self))
+                if include_reversed and not is_reversed_colormap(cmap):
+                    reversed_cmap_name = get_reversed_colormap_name(cmap)
+                    self.addAction(ColormapSelectionAction(reversed_cmap_name, action_group, self))
 
         # Enable tooltips so the user can preview the colormap when hovering over it
         self.setToolTipsVisible(True)
@@ -294,49 +337,83 @@ class ColormapsMenu(QtWidgets.QMenu):
         # Emit the `colormap_changed` signal when an action is clicked
         self.triggered.connect(self.on_action_triggered)
 
+        # By default, no colormap is selected (if it's an option)
+        if include_none_selected:
+            self.set_selected_colormap(None)
+
     @classmethod
     def for_family(
         cls,
         family: ColormapFamily,
+        include_none_selected: bool = True,
         include_reversed: bool = True,
         action_group: QtGui.QActionGroup | None = None,
         parent: QtWidgets.QWidget | None = None,
-    ) -> ColormapsMenu:
+    ) -> ColormapSelectionMenu:
         """Returns a colormap menu containing colormaps in the given family."""
         # Generate the menu title based on the family name, e.g. "SEQUENTIAL_2" -> "Sequential (2)"
         title_parts = family.name.split("_")
         title = " ".join(f"({part})" if part.isnumeric() else part.title() for part in title_parts)
         cmap_names = family.value
-        return cls(title, cmap_names, include_reversed, action_group, parent)
+        return cls(title, cmap_names, include_none_selected, include_reversed, action_group, parent)
+
+    @classmethod
+    def for_all_colormaps(
+        cls, title: str = "&Colormaps", parent: QtWidgets.QWidget | None = None
+    ) -> ColormapSelectionMenu:
+        """Returns a colormap menu containing submenus for all colormaps in all families."""
+        return cls(title, list(ColormapFamily), include_reversed=True, parent=parent)
 
     @QtCore.pyqtSlot(QtGui.QAction)
     def on_action_triggered(self, action: QtGui.QAction) -> None:
-        """Emits the colormap name associated with the triggered action."""
-        if isinstance(action, ColormapAction):
-            self.colormap_selected.emit(action.get_colormap_name())
+        """Emits the colormap name associated with the triggered action and makes its font bold."""
+        if isinstance(action, ColormapSelectionAction):
+            self.set_selected_colormap(action.get_colormap_name())
+        else:
+            # Selected the "No Colormap" action
+            self.set_selected_colormap(None)
 
+    def set_selected_colormap(self, cmap_name: str | None) -> None:
+        """Selects the given colormap."""
+        for action in self._action_group.actions():
+            if (
+                isinstance(action, ColormapSelectionAction)
+                and action.get_colormap_name() == cmap_name
+            ):
+                # Selected a colormap
+                action.setChecked(True)
+                logging.info("Selected colormap %r", cmap_name)
+            elif action.data() == cmap_name:
+                # Selected the "None" action to de-select the existing colormap
+                action.setChecked(True)
+                logging.info("Cleared selected colormap")
 
-class ColormapFamiliesMenu(QtWidgets.QMenu):
-    """A menu containing submenus for each family of colormaps."""
+            # Bold all checked actions and un-bold any unchecked actions
+            # NOTE: Do this because the colormap icon makes it hard to see if it's checked or not
+            font = action.font()
+            font.setBold(action.isChecked())
+            action.setFont(font)
 
-    # Signal emitted when a colormap is selected
-    colormap_selected = QtCore.pyqtSignal(str)
+        # Bold any sub-menu actions that have a colormap selected
+        for action in self.actions():
+            if isinstance((action_menu := action.menu()), QtWidgets.QMenu):
+                any_checked = any(sub_action.isChecked() for sub_action in action_menu.actions())
+                action.setChecked(any_checked)
+                font = action.font()
+                font.setBold(any_checked)
+                action.setFont(font)
 
-    def __init__(
-        self,
-        include_reversed: bool = True,
-        title: str | None = "&Colormaps",
-        parent: QtWidgets.QWidget | None = None,
-    ) -> None:
-        super().__init__(title, parent)
+        # Indicate that the colormap selection changed
+        self.colormap_selected.emit(cmap_name)
 
-        # Create submenus for all colormap families, using an exclusive action group so that only
-        # one colormap can be selected at any given time
-        action_group = QtGui.QActionGroup(self)
-        action_group.setExclusive(True)
-        for family in ColormapFamily:
-            submenu = ColormapsMenu.for_family(family, include_reversed, action_group, self)
-
-            # Pass through the `colormap_selected` signal from the submenu
-            self.addMenu(submenu)
-            submenu.colormap_selected.connect(self.colormap_selected.emit)
+    def get_selected_colormap(self) -> str | None:
+        """Returns the name of the currently-selected colormap."""
+        if (action := self._action_group.checkedAction()) is None:
+            # No action selected
+            return None
+        elif not isinstance(action, ColormapSelectionAction):
+            # Action is selected, but it's the "None" action representing no colormap selection
+            return None
+        else:
+            # A colormap is selected
+            return action.get_colormap_name()
