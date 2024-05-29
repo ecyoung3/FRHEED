@@ -23,11 +23,11 @@ classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3",
 ]
 dependencies = [
-    "appdirs == 1.4.4",
     "attrs == 23.2.*",
     "matplotlib == 3.8.*",
     "numpy == 1.26.*",
     "opencv-python == 4.9.0.*",
+    "platformdirs == 4.2.*",
     "PyQt6 == 6.6.1",  # QCamera does not work on 6.7.0 on Windows 11
     "PyQt6-Qt6 == 6.6.1",  # Force to match PyQt6 version otherwise DLL load may fail
     "pyqtgraph == 0.13.*",
@@ -100,8 +100,6 @@ local_partial_types = true
 # Third-party libraries without stubs
 [[tool.mypy.overrides]]
 module = [
-    "appdirs",
-    "cmapy",
     "pyqtgraph",
     "PySpin",
     "scipy.*",
