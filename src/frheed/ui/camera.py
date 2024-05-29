@@ -6,6 +6,7 @@ import logging
 
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
 
+from frheed import image_util
 from frheed.ui import colormap, display
 
 
@@ -347,14 +348,9 @@ class CameraWidget(QtWidgets.QWidget):
         if image is None:
             return
 
+        image_array = image_util.qimage_to_ndarray(image)
         for shape in self.camera_display.shapes:
-            region = display.get_image_region(image, shape)
-
-            try:
-                print(
-                    f"{region.sum() = }, {region.mean() = }, {region.min() = }, {region.max() = }"
-                )
-                # print(f"{region = }")
-            except ValueError:
-                # Array is empty
-                pass
+            _region = display.get_image_region(image_array, shape)
+            # print(
+            #     f"{region.sum() = }, {region.mean() = }, {region.min() = }, {region.max() = }"
+            # )
