@@ -1,7 +1,5 @@
 """Image processing utilities."""
 
-import functools
-
 import cv2
 import numpy as np
 import numpy.typing as npt
@@ -10,12 +8,8 @@ from PyQt6 import QtGui
 ImageArray = npt.NDArray[np.generic]
 
 
-@functools.lru_cache
 def qimage_to_ndarray(image: QtGui.QImage) -> ImageArray:
-    """Converts a QImage to a numpy array.
-
-    This function is cached, so the resulting array should be copied before modifying it.
-    """
+    """Converts a QImage to a numpy array."""
     if (image_bits := image.bits()) is None:
         raise ValueError("Image contains no data")
 
