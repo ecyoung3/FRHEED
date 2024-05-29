@@ -327,7 +327,11 @@ class Line(Shape):
 def get_image_region(
     image: QtGui.QImage | image_util.ImageArray, shape: Shape
 ) -> image_util.ImageArray:
-    """Returns the region of an image within a shape."""
+    """Returns the region of an image within a shape.
+
+    Raises:
+        NotImplementedError if getting the image region is not implemented for the given shape type.
+    """
     if isinstance(image, QtGui.QImage):
         image = image_util.qimage_to_ndarray(image)
 
@@ -341,7 +345,9 @@ def get_image_region(
     elif isinstance(shape, Line):
         return image_util.get_line_region(image, x1, y1, x2, y2)
 
-    raise ValueError(f"Cannot get region for shape with type {type(shape).__name__!r}")
+    raise NotImplementedError(
+        f"Getting the image region is not implemented for shape type {type(shape).__name__!r}"
+    )
 
 
 class ShapeHandle(QtWidgets.QGraphicsEllipseItem):
