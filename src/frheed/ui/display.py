@@ -131,8 +131,7 @@ class Shape(QtWidgets.QGraphicsPathItem):
         if change == position_change and self.scene() is not None:
             # Get what the new top left position would be after the item change and constrain it so
             # that no part of the shape would fall outside the parent image after the change
-            bounding_rect = self.get_bounding_rect()
-            current_top_left = bounding_rect.topLeft()
+            current_top_left = self.get_bounding_rect().topLeft()
             new_top_left = self._constrain_to_image(current_top_left + top_left_delta)
 
             # Convert back to a delta from the current position
@@ -185,9 +184,17 @@ class Shape(QtWidgets.QGraphicsPathItem):
         min_y = parent_rect.top()
         max_y = parent_rect.bottom()
 
+        # The calculations assume the top left is the _visual_ top left, not the logical top left,
+        # so we need to account for any offset between the two
+        offset = bounding_rect.normalized().topLeft() - bounding_rect.topLeft()
+        top_left += offset
+
         # Constrain the shape to the parent image
         top_left.setX(min(max_x - bounding_rect.width(), max(min_x, top_left.x())))
         top_left.setY(min(max_y - bounding_rect.height(), max(min_y, top_left.y())))
+
+        # Add the offset back in to get the correct position
+        top_left -= offset
 
         return top_left
 
@@ -489,7 +496,17 @@ class ShapeBoundingBox(QtWidgets.QGraphicsRectItem):
 
 @attrs.frozen
 class ShapeModification:
-    """A modification to a single shape initiated by a mouse click."""
+    """A modification to a single shape initiated by a mouse click.
+
+    Attributes:
+        display: The display that the shape is being drawn on.
+        shape: The shape being modified.
+        clicked_handle: The handle that was clicked to initiate the modification, or `None` if no
+            handle was clicked, indicating that the shape is being translated.
+        starting_bounding_rect: The bounding rectangle of the shape when the modification started.
+            Be aware that this rectangle is not necessarily normalized.
+        first_click_pos: The position where the mouse clicked to initiate modification.
+    """
 
     display: Display
     shape: Shape
