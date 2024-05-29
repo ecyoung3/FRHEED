@@ -10,6 +10,18 @@ from frheed import image_util
 from frheed.ui import colormap, display
 
 
+def camera_ids_match(
+    camera1: QtMultimedia.QCamera | None, camera2: QtMultimedia.QCamera | None
+) -> bool:
+    """Returns whether the device IDs of two cameras match or are both `None`."""
+    if camera1 is None and camera2 is None:
+        return True
+    elif camera1 is None or camera2 is None:
+        return False
+    else:
+        return camera1.cameraDevice().id().data() == camera2.cameraDevice().id().data()
+
+
 class ImageEmitter(QtCore.QObject):
     """Emits images on behalf of instances that do not derive from QObject."""
 
@@ -124,7 +136,8 @@ class CameraDisplay(display.Display):
 
         If a different camera is already active, it will be disconnected and replaced.
         """
-        if camera == (current_camera := self.get_camera()):
+        current_camera = self.get_camera()
+        if camera_ids_match(camera, current_camera):
             if camera is not None:
                 camera_description = camera.cameraDevice().description()
                 logging.warning("Requested camera %r is already active", camera_description)
@@ -225,13 +238,6 @@ class CameraSelectionAction(QtGui.QAction):
         """Returns the camera associated with this action."""
         return self._camera
 
-    def get_camera_id(self) -> QtCore.QByteArray | None:
-        """Returns the ID of the camera associated with this action."""
-        if (camera := self.get_camera()) is None:
-            return None
-
-        return camera.cameraDevice().id()
-
 
 class CameraSelectionMenu(QtWidgets.QMenu):
     """A menu for selecting a camera."""
@@ -270,11 +276,10 @@ class CameraSelectionMenu(QtWidgets.QMenu):
     @QtCore.pyqtSlot(QtMultimedia.QCamera)
     def on_camera_changed(self, camera: QtMultimedia.QCamera | None) -> None:
         """Updates the checked state of each menu item when a camera is selected elsewhere."""
-        camera_id = None if camera is None else camera.cameraDevice().id()
         for action in self._action_group.actions():
             if isinstance(action, CameraSelectionAction):
                 # Check the action if its camera was selected, otherwise uncheck the item
-                action.setChecked(action.get_camera_id() == camera_id)
+                action.setChecked(camera_ids_match(camera, action.get_camera()))
 
     def refresh_cameras(self) -> None:
         """Refreshes the menu with the list of available cameras."""
