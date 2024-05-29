@@ -4,15 +4,15 @@ Constants and settings for use elsewhere.
 
 import os
 
-import appdirs
+import platformdirs
 
 DATA_DIR = os.path.normpath(os.path.expanduser("~/FRHEED"))
 os.makedirs(DATA_DIR, exist_ok=True)
 
-CONFIG_DIR = os.path.join(appdirs.user_config_dir(), "FRHEED", "")
+CONFIG_DIR = os.path.join(platformdirs.user_config_dir(), "FRHEED", "")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
-LOG_DIR = os.path.join(appdirs.user_log_dir(), "FRHEED", "")
+LOG_DIR = os.path.join(platformdirs.user_log_dir(), "FRHEED", "")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 _LOCAL_DIR = os.path.dirname(__file__)
