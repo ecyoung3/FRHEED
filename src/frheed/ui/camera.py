@@ -9,12 +9,31 @@ from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
 from frheed.ui import colormap, display
 
 
+class ImageEmitter(QtCore.QObject):
+    """Emits images on behalf of instances that do not derive from QObject."""
+
+    image_changed = QtCore.pyqtSignal(QtGui.QImage)
+
+
 class VideoFrameItem(QtWidgets.QGraphicsPixmapItem):
     """A graphics item for displaying a video frame."""
 
     def __init__(self, parent: QtWidgets.QGraphicsItem | None = None) -> None:
         super().__init__(parent)
         self._colormap: str | None = None
+
+        # Because this class does not inherit from QObject, it cannot emit signals on its own, so
+        # we must use a helper class instance to emit images
+        self._image_emitter = ImageEmitter()
+
+        # Store grayscale and colored copies of the frame to minimize conversion operations
+        # TODO(ecyoung3): Implement this storage
+        self._grayscale_image: QtGui.QImage | None = None
+        self._colored_image: QtGui.QImage | None = None
+
+    @property
+    def image_changed(self) -> QtCore.pyqtBoundSignal:
+        return self._image_emitter.image_changed
 
     def get_colormap(self) -> str | None:
         """Returns the name of the active colormap."""
@@ -47,12 +66,16 @@ class VideoFrameItem(QtWidgets.QGraphicsPixmapItem):
             if not image.isGrayscale():
                 image = image.convertToFormat(QtGui.QImage.Format.Format_Grayscale8)
 
-            image = image.convertToFormat(QtGui.QImage.Format.Format_Indexed8)
-            image.setColorTable(colortable)
+            # Convert the image to indexed 8-bit without changing the format
+            if image.reinterpretAsFormat(QtGui.QImage.Format.Format_Indexed8):
+                image.setColorTable(colortable)
 
         # Convert the image to a pixmap and show it on the display
         pixmap = QtGui.QPixmap.fromImage(image)
         self.setPixmap(pixmap)
+
+        # Send the image to any connected slots
+        self.image_changed.emit(image)
 
 
 class CameraDisplay(display.Display):
@@ -284,6 +307,9 @@ class CameraWidget(QtWidgets.QWidget):
         self.camera_display = CameraDisplay(camera, self)
         self.camera_display.camera_changed.connect(self.on_camera_changed)
 
+        # TODO(ecyoung3): Clean up this connection
+        self.camera_display._video_frame_item.image_changed.connect(self.on_image_changed)
+
         # Create the menu bar with menus for selecting the camera and colormap
         self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setSizePolicy(
@@ -315,3 +341,20 @@ class CameraWidget(QtWidgets.QWidget):
     def on_camera_changed(self) -> None:
         # TODO(ecyoung3): Implement
         pass
+
+    @QtCore.pyqtSlot(QtGui.QImage)
+    def on_image_changed(self, image: QtGui.QImage | None) -> None:
+        if image is None:
+            return
+
+        for shape in self.camera_display.shapes:
+            region = display.get_image_region(image, shape)
+
+            try:
+                print(
+                    f"{region.sum() = }, {region.mean() = }, {region.min() = }, {region.max() = }"
+                )
+                # print(f"{region = }")
+            except ValueError:
+                # Array is empty
+                pass
