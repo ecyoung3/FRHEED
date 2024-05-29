@@ -331,7 +331,8 @@ def get_image_region(
     if isinstance(image, QtGui.QImage):
         image = image_util.qimage_to_ndarray(image)
 
-    rect = shape.get_bounding_rect().toRect()
+    # The rectangle must have positive width and height to draw the region
+    rect = shape.get_bounding_rect().toRect().normalized()
     x1, y1, x2, y2 = rect.left(), rect.top(), rect.right(), rect.bottom()
     if isinstance(shape, Rectangle):
         return image_util.get_rectangle_region(image, x1, y1, x2, y2)
