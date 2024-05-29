@@ -9,6 +9,8 @@ import logging
 import attrs
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from frheed import image_util
+
 # The default pen width for all shapes
 SHAPE_PEN_WIDTH = 2
 
@@ -221,6 +223,7 @@ class Shape(QtWidgets.QGraphicsPathItem):
         return QtCore.QRectF(self.p1, self.p2)
 
     def set_bounding_rect(self, rect: QtCore.QRectF) -> None:
+        """Sets the bounding rectangle for the shape."""
         self.set_points(rect.topLeft(), rect.bottomRight())
 
     def update_bounding_box(self) -> None:
@@ -319,6 +322,32 @@ class Line(Shape):
         path.moveTo(p1)
         path.lineTo(p2)
         self.setPath(path)
+
+
+def get_image_region(
+    image: QtGui.QImage | image_util.ImageArray, shape: Shape
+) -> image_util.ImageArray:
+    """Returns the region of an image within a shape.
+
+    Raises:
+        NotImplementedError if getting the image region is not implemented for the given shape type.
+    """
+    if isinstance(image, QtGui.QImage):
+        image = image_util.qimage_to_ndarray(image)
+
+    # The rectangle must have positive width and height to draw the region
+    rect = shape.get_bounding_rect().toRect().normalized()
+    x1, y1, x2, y2 = rect.left(), rect.top(), rect.right(), rect.bottom()
+    if isinstance(shape, Rectangle):
+        return image_util.get_rectangle_region(image, x1, y1, x2, y2)
+    elif isinstance(shape, Ellipse):
+        return image_util.get_ellipse_region(image, x1, y1, x2, y2)
+    elif isinstance(shape, Line):
+        return image_util.get_line_region(image, x1, y1, x2, y2)
+
+    raise NotImplementedError(
+        f"Getting the image region is not implemented for shape type {type(shape).__name__!r}"
+    )
 
 
 class ShapeHandle(QtWidgets.QGraphicsEllipseItem):
