@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from frheed.ui import common
+
 if TYPE_CHECKING:
     import matplotlib.colors
 
@@ -178,29 +180,38 @@ class ColormapImage(QtGui.QImage):
 
     def __init__(
         self,
-        cmap: Colormap | str,
+        cmap: Colormap | str | None,
         width: int = 128,
         height: int = 128,
     ) -> None:
-        if isinstance(cmap, str):
+        if cmap == "":
+            cmap = None
+        elif isinstance(cmap, str):
             cmap = plt.get_cmap(cmap, lut=width)
 
         self._cmap = cmap
 
-        # Represent the colormap as an array with the given size
-        row = np.linspace(0, 1, width)
-        rgba = plt.cm.ScalarMappable(cmap=cmap).to_rgba(np.tile(row, (height, 1)), bytes=True)
+        # Get RGBA data for the colormap
+        if cmap is None:
+            # Use transparent image if there is no colormap
+            rgba = np.full((height, width, 4), fill_value=(0, 0, 0, 0))
+        else:
+            # Generate a gradient image that uses the full colormap
+            row = np.linspace(0, 1, width)
+            rgba = plt.cm.ScalarMappable(cmap=cmap).to_rgba(np.tile(row, (height, 1)), bytes=True)
+
+        # Initialize the image using the colormap data
         bytes_per_line = rgba.strides[0]
         image_format = QtGui.QImage.Format.Format_RGBA8888
         super().__init__(rgba.data, width, height, bytes_per_line, image_format)
 
-    def get_colormap(self) -> Colormap:
+    def get_colormap(self) -> Colormap | None:
         """Returns the colormap the image represents."""
         return self._cmap
 
-    def get_colormap_name(self) -> str:
+    def get_colormap_name(self) -> str | None:
         """Returns the name of the colormap the image represents."""
-        return self._cmap.name
+        return self._cmap.name if self._cmap is not None else None
 
     def resize(self, width: int, height: int) -> None:
         """Resize the image to the given dimensions."""
@@ -225,18 +236,24 @@ class ColormapSelectionAction(QtGui.QAction):
 
     def __init__(
         self,
-        cmap: Colormap | str,
+        cmap: Colormap | str | None,
         group: QtGui.QActionGroup,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         cmap_image = ColormapImage(cmap)
-        cmap_icon = cmap_image.to_icon()
         cmap_name = cmap_image.get_colormap_name()
-        super().__init__(cmap_icon, cmap_name, parent)
+        if not cmap:
+            super().__init__("No colormap", parent)
+        else:
+            super().__init__(cmap_image.to_icon(), cmap_name, parent)
 
         # All colormap actions should be checkable and belong to an action group
         self.setCheckable(True)
         self.setActionGroup(group)
+
+        # Make the action font bold when checked and normal when not checked since the icon can
+        # make it difficult to see the default light blue box indicator that the item is selected
+        self.toggled.connect(self.on_toggled)
 
         # Store the colormap name as item data for passing around via signals and slots
         self._cmap_name = cmap_name
@@ -246,14 +263,35 @@ class ColormapSelectionAction(QtGui.QAction):
         # https://stackoverflow.com/a/34300771/10342097
         # TODO(ecyoung3): There is still a slight margin on the tooltip - consider creating a
         #   custom widget instead and intercepting the ToolTip event.
-        image_data = QtCore.QByteArray()
-        image_buffer = QtCore.QBuffer(image_data)
-        cmap_image.scaled(256, 32).save(image_buffer, "PNG", 100)
-        image_data_base64 = image_data.toBase64().data().decode()
-        tooltip = f"<img src='data:image/png;base64, {image_data_base64}'>"
-        self.setToolTip(tooltip)
+        if cmap is not None:
+            image_data = QtCore.QByteArray()
+            image_buffer = QtCore.QBuffer(image_data)
+            cmap_image.scaled(256, 32).save(image_buffer, "PNG", 100)
+            image_data_base64 = image_data.toBase64().data().decode()
+            tooltip = f"<img src='data:image/png;base64, {image_data_base64}'>"
+            self.setToolTip(tooltip)
 
-    def get_colormap_name(self) -> str:
+    @QtCore.pyqtSlot(bool)
+    def on_toggled(self, checked: bool) -> None:
+        """Updates the action font when it is toggled for any reason."""
+        if checked:
+            logging.info("Selected colormap %r", self.get_colormap_name())
+
+        font = self.font()
+        font.setBold(checked)
+        self.setFont(font)
+
+        # Also make the parent menu font bold to indicate it contains the selected item
+        # NOTE: This works even if the previously-checked action was in the same menu because the
+        #   checked action triggers second (bold -> normal -> bold)
+        for obj in self.associatedObjects():
+            if isinstance(obj, QtWidgets.QMenu):
+                if (menu_action := obj.menuAction()) is not None:
+                    menu_font = menu_action.font()
+                    menu_font.setBold(checked)
+                    menu_action.setFont(menu_font)
+
+    def get_colormap_name(self) -> str | None:
         """Returns the name of the colormap associated with this action."""
         return self._cmap_name
 
@@ -298,10 +336,11 @@ class ColormapSelectionMenu(QtWidgets.QMenu):
 
         # Create the item that represents no colormap being selected
         if include_none_selected:
-            none_action = QtGui.QAction("None", self)
-            none_action.setCheckable(True)
-            none_action.setActionGroup(action_group)
+            none_action = ColormapSelectionAction(None, action_group, self)
             self.addAction(none_action)
+
+            # If the "None" action is included, select it by default
+            none_action.setChecked(True)
 
         # Add actions for each of the colormaps to the menu and to the action group if necessary
         for cmap in colormaps:
@@ -323,7 +362,7 @@ class ColormapSelectionMenu(QtWidgets.QMenu):
 
                 # Disconnect the triggered signal, otherwise it will fire twice (once for the parent
                 # menu connection and once for the child menu connection)
-                submenu.triggered.disconnect()
+                # submenu.triggered.disconnect()
             else:
                 # Create an action for the colormap and optionally its reversed version
                 self.addAction(ColormapSelectionAction(cmap, action_group, self))
@@ -334,12 +373,8 @@ class ColormapSelectionMenu(QtWidgets.QMenu):
         # Enable tooltips so the user can preview the colormap when hovering over it
         self.setToolTipsVisible(True)
 
-        # Emit the `colormap_changed` signal when an action is clicked
+        # Emit the `colormap_changed` signal when a colormap action is clicked
         self.triggered.connect(self.on_action_triggered)
-
-        # By default, no colormap is selected (if it's an option)
-        if include_none_selected:
-            self.set_selected_colormap(None)
 
     @classmethod
     def for_family(
@@ -366,45 +401,27 @@ class ColormapSelectionMenu(QtWidgets.QMenu):
 
     @QtCore.pyqtSlot(QtGui.QAction)
     def on_action_triggered(self, action: QtGui.QAction) -> None:
-        """Emits the colormap name associated with the triggered action and makes its font bold."""
+        """Emits the colormap name associated with the triggered action."""
         if isinstance(action, ColormapSelectionAction):
-            self.set_selected_colormap(action.get_colormap_name())
-        else:
-            # Selected the "No Colormap" action
-            self.set_selected_colormap(None)
+            self.colormap_selected.emit(action.get_colormap_name())
 
-    def set_selected_colormap(self, cmap_name: str | None) -> None:
-        """Selects the given colormap."""
+    def set_selected_colormap(self, cmap: str | None) -> None:
+        """Sets the selected colormap.
+
+        This method should be used if setting the colormap programmatically, otherwise the
+        `colormap_changed` signal will not be emitted.
+        """
+        if cmap == self.get_selected_colormap():
+            logging.info("Colormap %r is already selected", cmap)
+            return
+
         for action in self._action_group.actions():
-            if (
-                isinstance(action, ColormapSelectionAction)
-                and action.get_colormap_name() == cmap_name
-            ):
-                # Selected a colormap
+            if isinstance(action, ColormapSelectionAction) and action.get_colormap_name() == cmap:
                 action.setChecked(True)
-                logging.info("Selected colormap %r", cmap_name)
-            elif action.data() == cmap_name:
-                # Selected the "None" action to de-select the existing colormap
-                action.setChecked(True)
-                logging.info("Cleared selected colormap")
-
-            # Bold all checked actions and un-bold any unchecked actions
-            # NOTE: Do this because the colormap icon makes it hard to see if it's checked or not
-            font = action.font()
-            font.setBold(action.isChecked())
-            action.setFont(font)
-
-        # Bold any sub-menu actions that have a colormap selected
-        for action in self.actions():
-            if isinstance((action_menu := action.menu()), QtWidgets.QMenu):
-                any_checked = any(sub_action.isChecked() for sub_action in action_menu.actions())
-                action.setChecked(any_checked)
-                font = action.font()
-                font.setBold(any_checked)
-                action.setFont(font)
-
-        # Indicate that the colormap selection changed
-        self.colormap_selected.emit(cmap_name)
+                self.colormap_selected.emit(cmap)
+                break
+        else:
+            logging.warning("Colormap %r not found in menu")
 
     def get_selected_colormap(self) -> str | None:
         """Returns the name of the currently-selected colormap."""
@@ -417,3 +434,47 @@ class ColormapSelectionMenu(QtWidgets.QMenu):
         else:
             # A colormap is selected
             return action.get_colormap_name()
+
+
+class ColormapSelectionToolButton(common.MenuButton):
+    """A button that opens a colormap selection menu and displays the selected colormap."""
+
+    def __init__(
+        self, menu: ColormapSelectionMenu | None = None, parent: QtWidgets.QWidget | None = None
+    ) -> None:
+        # If no menu is provided, initialize using a menu containing all colormaps
+        if menu is None:
+            menu = ColormapSelectionMenu.for_all_colormaps()
+
+        super().__init__(menu, parent=parent)
+
+        # Indicate that the button is for selecting the colormap when hovering it with the mouse
+        self.setToolTip("Colormap")
+
+        # Update the button icon and text now and whenever another colormap is selected
+        self.on_colormap_selected(menu.get_selected_colormap())
+        self.colormap_selected.connect(self.on_colormap_selected)
+
+    @property
+    def colormap_selected(self) -> QtCore.pyqtBoundSignal:
+        """The signal emitted when a colormap is selected."""
+        if isinstance((menu := self.menu()), ColormapSelectionMenu):
+            return menu.colormap_selected
+
+        raise NotImplementedError(f"Menu {menu!r} does not implement a `colormap_selected` signal")
+
+    @QtCore.pyqtSlot(str)
+    def on_colormap_selected(self, cmap: str | None) -> None:
+        """Updates the action icon and text when a colormap is selected."""
+        if cmap:
+            # Show the icon and text
+            icon = ColormapImage(cmap).to_icon()
+            text = cmap
+        else:
+            # Hide the icon if no colormap is selected and only show text
+            icon = QtGui.QIcon()
+            text = "No colormap"
+
+        # Set the icon _before_ the text, because eliding relies on knowing the icon width
+        self.setIcon(icon)
+        self.set_text(text)
