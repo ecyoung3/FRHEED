@@ -40,6 +40,7 @@ class MenuButton(QtWidgets.QPushButton):
         return self._menu
 
     def show_menu(self) -> None:
+        """Show the menu at the bottom left corner of the button."""
         self._menu.popup(self.mapToGlobal(self.rect().bottomLeft()))
         self.setDown(True)
 
