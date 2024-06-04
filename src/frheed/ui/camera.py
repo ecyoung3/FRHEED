@@ -7,7 +7,7 @@ import logging
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
 
 from frheed import image_util
-from frheed.ui import colormap, display
+from frheed.ui import colormap, common, display
 
 
 def camera_ids_match(
@@ -118,6 +118,11 @@ class CameraDisplay(display.Display):
         """The item used to display video frames."""
         return self._video_frame_item
 
+    @property
+    def image_changed(self) -> QtCore.pyqtBoundSignal:
+        """The signal emitted when the displayed image changes."""
+        return self.video_frame_item.image_changed
+
     @QtCore.pyqtSlot(QtMultimedia.QCamera.Error, str)
     def on_camera_error_occurred(self, error: QtMultimedia.QCamera.Error, msg: str) -> None:
         """Handles a camera error."""
@@ -186,15 +191,17 @@ class CameraDisplay(display.Display):
         # Only notify that the camera was changed after everything is complete
         self.camera_changed.emit(camera)
 
-    def set_default_camera(self) -> None:
+    def set_default_camera(self) -> QtMultimedia.QCamera | None:
         """Sets the camera to the system default."""
         if (default_device := QtMultimedia.QMediaDevices.defaultVideoInput()).isNull():
             logging.warning("No cameras found")
-            return
+            return None
 
         logging.info("Setting default camera %r", default_device.description())
         default_camera = QtMultimedia.QCamera(default_device)
         self.set_camera(default_camera)
+
+        return default_camera
 
     def get_resolution(self) -> QtCore.QSize | None:
         """Returns the resolution of the active camera."""
@@ -281,6 +288,38 @@ class CameraSelectionMenu(QtWidgets.QMenu):
                 # Check the action if its camera was selected, otherwise uncheck the item
                 action.setChecked(camera_ids_match(camera, action.get_camera()))
 
+    def set_selected_camera(self, camera: QtMultimedia.QCamera | None) -> None:
+        """Sets the selected camera.
+
+        This method should be used if setting the camera programmatically, otherwise the
+        `camera_selected` signal will not be emitted.
+        """
+        description = None if camera is None else camera.cameraDevice().description()
+        if camera_ids_match(camera, self.get_selected_camera()):
+            logging.info("Camera %r is already selected", description)
+            return
+
+        for action in self._action_group.actions():
+            if isinstance(action, CameraSelectionAction):
+                if camera_ids_match(camera, action.get_camera()):
+                    action.setChecked(True)
+                    self.camera_selected.emit(camera)
+                    break
+        else:
+            logging.warning("Camera %r not found in menu", description)
+
+    def get_selected_camera(self) -> QtMultimedia.QCamera | None:
+        """Returns the currently-selected camera."""
+        if (action := self._action_group.checkedAction()) is None:
+            # No action selected
+            return None
+        elif not isinstance(action, CameraSelectionAction):
+            # Action is selected, but it's the "None" action representing no camera selection
+            return None
+        else:
+            # A camera is selected
+            return action.get_camera()
+
     def refresh_cameras(self) -> None:
         """Refreshes the menu with the list of available cameras."""
         # Clear the current actions from both the menu and the action group
@@ -288,6 +327,8 @@ class CameraSelectionMenu(QtWidgets.QMenu):
         for action in self._action_group.actions():
             self._action_group.removeAction(action)
 
+        # Always include an action for selecting no camera
+        self.addAction(CameraSelectionAction(None, self._action_group, self))
         if not (devices := self._media_devices_watcher.videoInputs()):
             # No available devices to choose from
             logging.warning("No available cameras detected")
@@ -301,6 +342,58 @@ class CameraSelectionMenu(QtWidgets.QMenu):
             self.addAction(action)
 
 
+class CameraSelectionMenuButton(common.MenuButton):
+    """A button that opens a camera selection menu and displays the selected camera description."""
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        menu = CameraSelectionMenu()
+        super().__init__(menu, parent=parent)
+
+        # Indicate that the button is for selecting the camera when hovering it with the mouse
+        self.setToolTip("Camera")
+
+        # Update the text with the camera description now and whenever another camera is selected
+        self.on_camera_selected(menu.get_selected_camera())
+        self.camera_selected.connect(self.on_camera_selected)
+
+    @property
+    def camera_selected(self) -> QtCore.pyqtBoundSignal:
+        """The signal emitted when a camera is selected."""
+        if isinstance((menu := self.menu()), CameraSelectionMenu):
+            return menu.camera_selected
+
+        raise NotImplementedError(f"Menu {menu!r} does not implement a `camera_selected` signal")
+
+    @QtCore.pyqtSlot(QtMultimedia.QCamera)
+    def on_camera_selected(self, camera: QtMultimedia.QCamera | None) -> None:
+        """Updates the action text when a camera is selected."""
+        self.set_text("No camera" if camera is None else camera.cameraDevice().description())
+
+    def get_menu(self) -> CameraSelectionMenu:
+        """Returns the camera selection menu associated with the button."""
+        if isinstance((menu := self.menu()), CameraSelectionMenu):
+            return menu
+
+        raise TypeError(f"Camera selection button menu has incorrect type: {type(menu)}")
+
+
+class CameraToolBar(QtWidgets.QToolBar):
+    """A toolbar for interacting with a camera."""
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
+
+        # Create the action for changing the camera
+        self.cameras_button = CameraSelectionMenuButton(parent=self)
+        self.addWidget(self.cameras_button)
+        self.addSeparator()
+
+        # Create the action that opens the colormap menu
+        self.colormaps_button = colormap.ColormapSelectionToolButton(parent=self)
+        self.addWidget(self.colormaps_button)
+        self.addSeparator()
+
+
 class CameraWidget(QtWidgets.QWidget):
     """A widget for controlling, capturing, and displaying live video from a camera."""
 
@@ -312,30 +405,18 @@ class CameraWidget(QtWidgets.QWidget):
         # Create the camera display first so signals and slots can be connected to it
         self.camera_display = CameraDisplay(camera, self)
         self.camera_display.camera_changed.connect(self.on_camera_changed)
+        self.camera_display.image_changed.connect(self.on_image_changed)
 
-        # TODO(ecyoung3): Clean up this connection
-        self.camera_display._video_frame_item.image_changed.connect(self.on_image_changed)
-
-        # Create the menu bar with menus for selecting the camera and colormap
-        self.menubar = QtWidgets.QMenuBar(self)
-        self.menubar.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Maximum
-        )
-
-        self.camera_selection_menu = CameraSelectionMenu(parent=self)
-        self.camera_display.camera_changed.connect(self.camera_selection_menu.on_camera_changed)
-        self.camera_selection_menu.camera_selected.connect(self.camera_display.set_camera)
-        self.menubar.addMenu(self.camera_selection_menu)
-
-        self.colormap_selection_menu = colormap.ColormapSelectionMenu.for_all_colormaps(parent=self)
-        self.colormap_selection_menu.colormap_selected.connect(self.camera_display.set_colormap)
-        self.menubar.addMenu(self.colormap_selection_menu)
+        # Create the toolbar containing controls for the camera
+        self.toolbar = CameraToolBar(self)
+        self.toolbar.cameras_button.camera_selected.connect(self.camera_display.set_camera)
+        self.toolbar.colormaps_button.colormap_selected.connect(self.camera_display.set_colormap)
 
         # Create the layout and add widgets to it
         layout = QtWidgets.QGridLayout(self)
         layout.setSpacing(2)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.menubar, 0, 0, 1, 1)
+        layout.addWidget(self.toolbar, 0, 0, 1, 1)
         layout.addWidget(self.camera_display, 1, 0, 1, 1)
 
         if (camera_resolution := self.camera_display.get_resolution()) is not None:
@@ -343,10 +424,14 @@ class CameraWidget(QtWidgets.QWidget):
         else:
             self.resize(1280, 960)
 
-    @QtCore.pyqtSlot()
-    def on_camera_changed(self) -> None:
-        # TODO(ecyoung3): Implement
-        pass
+    @QtCore.pyqtSlot(QtMultimedia.QCamera)
+    def on_camera_changed(self, camera: QtMultimedia.QCamera | None) -> None:
+        if camera_ids_match(camera, self.toolbar.cameras_button.get_menu().get_selected_camera()):
+            # Camera did not actually change
+            return
+
+        # Ensure the menu always shows which camera is displayed
+        self.get_cameras_menu().set_selected_camera(camera)
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def on_image_changed(self, image: QtGui.QImage | None) -> None:
@@ -359,3 +444,12 @@ class CameraWidget(QtWidgets.QWidget):
             # print(
             #     f"{region.sum() = }, {region.mean() = }, {region.min() = }, {region.max() = }"
             # )
+
+    def get_cameras_menu(self) -> CameraSelectionMenu:
+        """Returns the menu used to select the camera."""
+        return self.toolbar.cameras_button.get_menu()
+
+    def set_default_camera(self) -> None:
+        """Sets the camera to the system default."""
+        default_camera = self.camera_display.set_default_camera()
+        self.toolbar.cameras_button.get_menu().set_selected_camera(default_camera)
