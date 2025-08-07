@@ -40,7 +40,7 @@ dev = [
     "mypy == 1.10.*",
     "pytest == 8.2.*",
     "ruff == 0.4.3",
-    "uv == 0.1.39",
+    "uv == 0.8.6",
 ]
 # TODO(ecyoung3): Add requirements for 3rd-part (e.g. FLIR) cameras (maybe use open source, aravis?)
 
