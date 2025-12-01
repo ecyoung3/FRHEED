@@ -9,7 +9,7 @@ cycler==0.12.1
     # via matplotlib
 exceptiongroup==1.2.1
     # via pytest
-fonttools==4.52.4
+fonttools==4.61.0
     # via matplotlib
 iniconfig==2.0.0
     # via pytest
