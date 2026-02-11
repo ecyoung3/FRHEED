@@ -20,7 +20,7 @@ numpy==1.26.4
 opencv-python==4.9.0.80
 packaging==24.0
     # via matplotlib
-pillow==10.3.0
+pillow==12.1.1
     # via matplotlib
 platformdirs==4.2.2
 pyparsing==3.1.2

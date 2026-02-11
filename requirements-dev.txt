@@ -31,7 +31,7 @@ packaging==24.0
     # via
     #   matplotlib
     #   pytest
-pillow==10.3.0
+pillow==12.1.1
     # via matplotlib
 platformdirs==4.2.2
 pluggy==1.5.0
